@@ -90,6 +90,8 @@ class DeploymentTests(unittest.TestCase):
         self.assertNotEqual(configs[0].args[0][3], configs[1].args[0][3])
         for key in ('APP_IMAGE_TAG', 'APP_BASE_PATH', 'SITE_ADDRESS', 'TUNNEL_PORT', 'WEB_HEALTH_PORT'):
             self.assertNotEqual(configs[0].kwargs['env'][key], configs[1].kwargs['env'][key])
+        for config in configs:
+            self.assertEqual(config.kwargs['env']['WEB_BIND'], '127.0.0.1')
 
     def test_duplicate_origin_project_or_root_is_rejected(self):
         for dev_root, dev_project in (('/tmp/main', 'dev'), ('/tmp/dev', 'main')):

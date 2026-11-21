@@ -46,7 +46,8 @@ def compose(environment, release, *args):
     http, tunnel, health = PORTS[environment]
     env = {**os.environ, 'APP_IMAGE_TAG': f'{environment}-{release.name}',
            'APP_BASE_PATH': f'/{environment}/', 'TUNNEL_PORT': str(tunnel),
-           'WEB_HEALTH_PORT': str(health), 'SITE_ADDRESS': f'http://127.0.0.1:{http}'}
+           'WEB_HEALTH_PORT': str(health), 'SITE_ADDRESS': f'http://:{http}',
+           'WEB_BIND': '127.0.0.1'}
     subprocess.run(['docker', 'compose', '-p', f'pentada-edge-{environment}', '-f',
                     str(release / 'compose.edge.yaml'), *args],
                    env=env, stdin=subprocess.DEVNULL, check=True)

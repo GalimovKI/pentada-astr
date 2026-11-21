@@ -9,6 +9,7 @@ esac
 release=$(readlink -f "/opt/pentada/environments/$environment/current")
 APP_IMAGE_TAG="$environment-$(basename "$release")"
 APP_BASE_PATH="/$environment/"
-SITE_ADDRESS="http://127.0.0.1:$port"
-export APP_IMAGE_TAG APP_BASE_PATH SITE_ADDRESS TUNNEL_PORT WEB_HEALTH_PORT
+SITE_ADDRESS="http://:$port"
+WEB_BIND=127.0.0.1
+export APP_IMAGE_TAG APP_BASE_PATH SITE_ADDRESS TUNNEL_PORT WEB_HEALTH_PORT WEB_BIND
 exec docker compose -p "pentada-edge-$environment" -f "$release/compose.edge.yaml" "$@"

@@ -8,6 +8,7 @@ http://127.0.0.1:{$WEB_HEALTH_PORT:8081} {
 }
 
 {$SITE_ADDRESS:http://:80} {
+	bind {$WEB_BIND:0.0.0.0}
 	# Access logging is intentionally disabled: URLs contain mailbox/message IDs.
 	encode gzip
 	handle_path {$APP_BASE_PATH:/}* {
