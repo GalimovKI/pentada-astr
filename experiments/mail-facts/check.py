@@ -32,6 +32,19 @@ CASES = [
     ("query","Письмо от marina@example.invalid насчёт билета на 2028-09-22","marina@example.invalid",[("event","2028-09-22")]),
 ]
 
+# Additional examples frozen before the second inference run.
+HOLDOUT = [
+    ("letter","Олег, здравствуй! Завтра выступление на семинаре.\nС уважением, Жанна","Жанна",[("event","2028-09-20")]),
+    ("letter","Для Алёны: акт от 18.09.2028 уже в архиве.",None,[("event","2028-09-18")]),
+    ("letter","From: osip@example.invalid\nКому: Павел\nНапоминаю об оплате до 2028-09-25.","osip@example.invalid",[("deadline","2028-09-25")]),
+    ("letter","Мы вчера получили ваше письмо. С уважением, Светлана","Светлана",[("event","2028-09-18")]),
+    ("query","Что Зоя отправила сегодня насчёт завтрашней отгрузки?","Зоя",[("receipt","2028-09-19"),("event","2028-09-20")]),
+    ("query","Ищу уведомление для Саввы о собрании 11.09.2028",None,[("event","2028-09-11")]),
+    ("query","От Глеба было письмо позавчера?","Глеба",[("receipt","2028-09-17")]),
+    ("query","Найди сообщение про Ивана без упоминания срока.",None,[]),
+]
+
+
 
 def cases(archive):
     with ZipFile(archive) as z:
@@ -43,6 +56,9 @@ def cases(archive):
     for i,(kind,text,sender,days) in enumerate(CASES):
         key = "doc_dt" if kind=="letter" else "query_date"
         yield {"id": f"case-{i}", "kind": kind, "text":text, key:ANCHOR}, ("example-"+kind,sender,days)
+    for i,(kind,text,sender,days) in enumerate(HOLDOUT):
+        key = "doc_dt" if kind=="letter" else "query_date"
+        yield {"id": f"new-{i}", "kind":kind, "text":text, key:ANCHOR}, ("holdout-"+kind,sender,days)
     for q in public:
         expected_day = (date.fromisoformat(q["query_date"]) - timedelta(days=1)).isoformat()
         yield dict(id=q["query_id"],kind="query",text=q["query"],query_date=q["query_date"]), ("public",None,[("receipt",expected_day)])
