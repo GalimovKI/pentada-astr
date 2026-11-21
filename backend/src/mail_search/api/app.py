@@ -224,12 +224,17 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
               response_model_exclude_unset=True)
     def search(synthetic_user: str, body: SearchBody, explain: bool = False,
                model: Annotated[str | None, Query(max_length=64)] = None, dataset: str = PUBLIC_DATASET):
+        if body.min_similarity is not None and model != "e5-cosine":
+            raise ServiceError(422, "similarity_requires_e5")
+        if body.offset and body.min_similarity is None:
+            raise ServiceError(422, "offset_requires_similarity")
         active = service(dataset)
         archive = synthetic_user == ARCHIVE_USER and dataset in app.state.archive_stores
         if model is not None or archive:
             if app.state.evaluations is None:
                 raise ServiceError(422, "model_selection_disabled")
             active = app.state.mail_model(dataset, model if model is not None else next(iter(MODELS)), archive)
-        return active.search(synthetic_user, body.query, body.query_date, body.limit, explain=explain)
+        return active.search(synthetic_user, body.query, body.query_date, body.limit, explain=explain,
+                             min_similarity=body.min_similarity, offset=body.offset)
 
     return app

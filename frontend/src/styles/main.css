@@ -750,3 +750,6 @@ mark {
 .eval-table thead { background: #f6f8fb; }
 
 .mail-model { max-width: 280px; margin-bottom: 14px; }
+
+.similarity-field { margin-bottom: 14px; }
+.similarity-field input { width: 8em; }

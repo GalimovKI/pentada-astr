@@ -20,6 +20,7 @@ export function MailSession({ context, models, model, onModelChange }: {
 }) {
   const list = useTask<Messages>();
   const search = useTask<SearchResponse>();
+  const [threshold, setThreshold] = useState(0.84);
   const [submitted, setSubmitted] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const { run: loadList } = list;
@@ -38,10 +39,20 @@ export function MailSession({ context, models, model, onModelChange }: {
       }),
     });
   }
-  function find(query: string, selectedModel = model) {
+  function find(query: string, selectedModel = model, similarity = threshold) {
     setSubmitted(query);
     setSelected(null);
-    void search.run((signal) => api.search(context, query, signal, selectedModel));
+    setThreshold(similarity);
+    void search.run((signal) => api.search(context, query, signal, selectedModel,
+      selectedModel === "e5-cosine" ? similarity : undefined));
+  }
+  function nextMatches() {
+    if (search.busy() || !search.data || submitted === null) return;
+    const offset = search.data.items.length;
+    void search.run((signal) => api.search(context, submitted, signal, model, threshold, offset), {
+      keepData: true,
+      merge: (previous, next) => ({ ...next, items: [...(previous?.items ?? []), ...next.items] }),
+    });
   }
   function backToList() {
     search.reset();
@@ -75,7 +86,8 @@ export function MailSession({ context, models, model, onModelChange }: {
             </select>
           </div>
         )}
-        <SearchForm onSearch={find} pending={search.pending} />
+        <SearchForm onSearch={(query, similarity) => find(query, model, similarity)}
+          threshold={model === "e5-cosine" ? threshold : undefined} pending={search.pending} />
       </section>
       <div className={`mail-workspace ${selected ? "reading" : ""}`}>
         <section
@@ -104,7 +116,9 @@ export function MailSession({ context, models, model, onModelChange }: {
             </time></p>
           )}
           <p className="list-caption">
-            {!searching && list.data?.total != null
+            {searching && search.data?.total != null
+              ? `Показано ${items.length.toLocaleString("ru-RU")} из ${search.data.total.toLocaleString("ru-RU")}`
+              : !searching && list.data?.total != null
               ? `Показано ${items.length.toLocaleString("ru-RU")} из ${list.data.total.toLocaleString("ru-RU")}`
               : items.length > 0
               ? `${searching ? "Найдено" : "Загружено"}: ${items.length}`
@@ -125,7 +139,7 @@ export function MailSession({ context, models, model, onModelChange }: {
               error={task.error}
               retry={() =>
                 searching
-                  ? find(submitted)
+                  ? search.data ? nextMatches() : find(submitted)
                   : list.data
                     ? nextPage()
                     : void list.run((signal) => api.messages(context, signal))
@@ -137,11 +151,16 @@ export function MailSession({ context, models, model, onModelChange }: {
               title={searching ? "Писем не найдено" : "Здесь пока нет писем"}
             >
               {searching
-                ? "Попробуйте другие слова или проверьте дату просмотра."
+                ? model === "e5-cosine" ? "Уменьшите порог сходства или измените запрос." : "Попробуйте другие слова или проверьте дату просмотра."
                 : "На выбранную дату в этом ящике нет доступных писем."}
             </Empty>
           )}
           <MessageList items={items} selected={selected} onOpen={setSelected} />
+          {searching && search.data?.total != null && items.length < search.data.total && (
+            <div className="pagination">
+              <button type="button" disabled={search.pending} onClick={nextMatches}>Загрузить ещё</button>
+            </div>
+          )}
           {!searching && list.data?.next_cursor && (
             <div className="pagination">
               <button type="button" disabled={list.pending} onClick={nextPage}>

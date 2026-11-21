@@ -131,6 +131,7 @@ class ApiTests(PostgreSQLTestCase):
         with self.client() as c:
             for change in ({"query": ""}, {"query": " \n"}, {"query": "x" * 4001},
                            {"query": True}, {"limit": True}, {"limit": "2"}, {"limit": 1.2},
+                           {"min_similarity": 1.1}, {"min_similarity": -1.1}, {"offset": -1},
                            {"limit": 0}, {"limit": 101}, {"query_date": "2025-1-02"},
                            {"query_date": "2025-02-30"}, {"query_date": 123},
                            {"query_date": "2025-01-02T00:00:00"}, {"unexpected": "secret"}):

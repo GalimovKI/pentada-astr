@@ -23,6 +23,23 @@ class E5Tests(TestCase):
             with self.subTest(events=events), self.assertRaises(RuntimeError):
                 verify_cuda_profile(events)
 
+    def test_similarity_counts_all_matches_before_paging_and_includes_boundary(self):
+        import numpy as np
+        from mail_search.search.e5 import E5Engine
+
+        day = date(2029, 1, 1)
+        docs = [Document(str(i), "box", "text", day) for i in range(120)]
+        vectors = np.array([[0.5, 0.5]] * 119 + [[0.25, 0.75]], dtype=np.float32)
+        model = Mock()
+        model.encode.return_value = np.array([[1, 0]], dtype=np.float32)
+        engine = E5Engine(docs, vectors, model)
+        query = SearchRequest("query", "box", day)
+        pages = [engine.search_page(query, 50, min_similarity=0.5, offset=i) for i in (0, 50, 100)]
+        self.assertEqual([total for _, total in pages], [119] * 3)
+        self.assertEqual([hit.doc_id for hits, _ in pages for hit in hits], [str(i) for i in range(119)])
+        self.assertEqual(engine.search_page(query, 50, min_similarity=0.50001), ([], 0))
+        self.assertEqual(engine.search(query, 10), pages[0][0][:10])
+
     def test_full_mailbox_search_availability_archive_and_index_reuse(self):
         import numpy as np
         from mail_search.search.e5 import DIMENSION, E5Engine, passage_vectors

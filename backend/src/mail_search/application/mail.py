@@ -28,26 +28,33 @@ class MailService:
         if fingerprint != self.loaded.fingerprint:
             raise ServiceError(503, "dataset_mismatch")
 
-    def search(self, user, query, query_date, limit, *, explain=False):
+    def search(self, user, query, query_date, limit, *, explain=False, min_similarity=None, offset=0):
         self.ready()
         if user not in self.store.list_mailboxes():
             raise UnknownMailbox(user)
         def invoke():
             # Bound materialization, including a misbehaving lazy engine result.
-            hits = list(islice(self.loaded.engine.search(SearchRequest(query, user, query_date), limit), limit + 1))
+            request = SearchRequest(query, user, query_date)
+            total = None
+            if min_similarity is None:
+                result = self.loaded.engine.search(request, limit)
+            else:
+                result, total = self.loaded.engine.search_page(request, limit, min_similarity=min_similarity, offset=offset)
+            hits = list(islice(result, limit + 1))
             if len(hits) > limit or any(
                 not isinstance(h, SearchHit) or not isinstance(h.doc_id, str) or not h.doc_id
                 or type(h.score) not in (int, float) or not math.isfinite(h.score) for h in hits
             ) or len({h.doc_id for h in hits}) != len(hits):
                 raise ServiceError(500, "engine_contract_violation")
-            return hits
+            return hits, total
         try:
-            hits = self.executor.submit(invoke).result()
+            hits, total = self.executor.submit(invoke).result()
         except ServiceError:
             raise
         except Exception:
             raise ServiceError(500, "engine_failure") from None
         ids = [h.doc_id for h in hits]
+        page = {} if total is None else {"total": total}
         if explain:
             config = getattr(self.loaded.engine, "config", {})
             parser = target_day if isinstance(config, dict) and config.get("date_mode") == "legacy" else receipt_day
@@ -57,12 +64,12 @@ class MailService:
             documents = self.store.get_messages(user, ids, query_date=query_date)
             if [doc.doc_id for doc in documents] != ids:
                 raise ServiceError(500, "engine_contract_violation")
-            return dict(receipt_date=day, items=[
+            return dict(**page, receipt_date=day, items=[
                 dict(doc_id=d.doc_id, synthetic_user=d.synthetic_user, doc_dt=d.doc_dt,
                      snippet=d.doc[:200], score=h.score, passage=find_passage(d.doc, terms))
                 for h, d in zip(hits, documents)])
         previews = self.store.get_previews(user, ids, query_date=query_date)
         if [p.doc_id for p in previews] != ids:
             raise ServiceError(500, "engine_contract_violation")
-        return dict(items=[dict(doc_id=p.doc_id, synthetic_user=p.synthetic_user, doc_dt=p.doc_dt,
+        return dict(**page, items=[dict(doc_id=p.doc_id, synthetic_user=p.synthetic_user, doc_dt=p.doc_dt,
                                 snippet=p.snippet, score=h.score) for h, p in zip(hits, previews)])

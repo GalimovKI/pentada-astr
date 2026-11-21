@@ -27,6 +27,7 @@ export interface Messages {
   next_cursor: string | null;
 }
 export interface SearchResponse {
+  total?: number;
   receipt_date?: string | null;
   items: Hit[];
 }
@@ -39,6 +40,8 @@ export interface Context {
   date: string;
 }
 export interface SearchBody {
+  min_similarity?: number;
+  offset?: number;
   query: string;
   query_date: string;
   limit: number;
@@ -154,14 +157,14 @@ export const api = {
       signal,
     );
   },
-  search: (context: Context, query: string, signal: AbortSignal, model?: string) => {
+  search: (context: Context, query: string, signal: AbortSignal, model?: string, minSimilarity?: number, offset = 0) => {
     const params = new URLSearchParams({ explain: "true" });
     if (context.dataset) params.set("dataset", context.dataset);
     if (model) params.set("model", model);
     return request<SearchResponse>(`${mailboxPath(context)}/search?${params}`, signal, {
       query,
       query_date: context.date,
-      limit: 10,
+      ...(minSimilarity === undefined ? { limit: 10 } : { limit: 50, min_similarity: minSimilarity, offset }),
     });
   },
 };

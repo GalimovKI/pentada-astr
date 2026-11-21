@@ -120,18 +120,26 @@ class E5Engine:
         self.boxes = {user: np.array(rows) for user, rows in boxes.items()}
 
     def search(self, request, k):
+        hits, _ = self.search_page(request, k)
+        return hits
+
+    def search_page(self, request, k, *, min_similarity=None, offset=0):
         if k < 1 or not request.query.strip():
             raise ValueError("nonempty query and positive K required")
         rows = self.boxes.get(request.synthetic_user)
         if rows is None:
-            return []
+            return [], 0
         eligible = rows[self.dates[rows] <= request.query_date.toordinal()]
         if not len(eligible):
-            return []
+            return [], 0
         query, = self.model.encode(["query: " + request.query])
         scores = self.vectors[eligible] @ query
-        order = np.argsort(-scores, kind="stable")[:k]
-        return [SearchHit(self.ids[eligible[i]], float(scores[i])) for i in order]
+        if min_similarity is not None:
+            keep = scores.astype(np.float64) >= min_similarity
+            eligible, scores = eligible[keep], scores[keep]
+        order = np.argsort(-scores, kind="stable")[offset:offset + k]
+        hits = [SearchHit(self.ids[eligible[i]], float(scores[i])) for i in order]
+        return hits, len(scores)
 
 
 def dataset_engine(dataset, model_dir, index_dir, single_mailbox=None, *, device="cpu"):
