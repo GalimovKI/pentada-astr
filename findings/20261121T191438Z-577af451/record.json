@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "20261121T191438Z-577af451",
+  "kind": "finding",
+  "owner": "evseevgrv",
+  "status": "completed",
+  "updated_at": "2026-11-21T19:14:38.124711+00:00",
+  "title": "Гибрид BM25 и MiniLM в каталоге dev",
+  "hypothesis": null,
+  "code_branch": "dev",
+  "code_commit": "4f362ec2e5ebd818b9042ce5781abe624b299d20",
+  "baseline_ref": "20261121T150307Z-e539c8bf",
+  "replicates": null,
+  "outcome": null
+}
