@@ -1,0 +1,8 @@
+{
+  "model": "intfloat/multilingual-e5-small",
+  "revision": "614241f622f53c4eeff9890bdc4f31cfecc418b3",
+  "graph": "onnx/model_qint8_avx512_vnni.onnx",
+  "max_tokens": 512,
+  "pooling": "attention-mask mean",
+  "similarity": "cosine"
+}

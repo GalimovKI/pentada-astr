@@ -51,7 +51,8 @@ class MailService:
         if explain:
             config = getattr(self.loaded.engine, "config", {})
             parser = target_day if isinstance(config, dict) and config.get("date_mode") == "legacy" else receipt_day
-            day, content = parser(query, query_date)
+            day, content = ((None, query) if isinstance(config, dict) and config.get("date_mode") == "availability_only"
+                            else parser(query, query_date))
             terms = query_terms(content)
             documents = self.store.get_messages(user, ids, query_date=query_date)
             if [doc.doc_id for doc in documents] != ids:

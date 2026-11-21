@@ -13,6 +13,8 @@ class Settings(BaseModel):
     model_config = ConfigDict(extra="forbid")
     enable_evaluations: bool = False
     minilm_model_dir: Path | None = None
+    e5_model_dir: Path = repository_root() / "artifacts/models/e5"
+    e5_index_dir: Path = Path.home() / ".local/state/pentada/e5-indexes"
     evaluation_dir: Path = Path.home() / ".local/state/pentada/evaluations"
     enronqa_ru_database_url: SecretStr | None = None
     enronqa_en_database_url: SecretStr | None = None

@@ -24,8 +24,10 @@ ARG TARGETARCH
 COPY infra/docker/fetch_minilm.py /tmp/fetch_minilm.py
 RUN if [ "$INCLUDE_MINILM" = "1" ]; then \
       python /tmp/fetch_minilm.py --arch "${TARGETARCH:-$(uname -m)}" --output /opt/mailsearch/minilm; \
-    fi && rm /tmp/fetch_minilm.py
-RUN useradd --uid 10001 --create-home app && install -d -o app -g app /home/app/evaluations
+    fi
+COPY infra/docker/fetch_e5.py /tmp/fetch_e5.py
+RUN if [ "$INCLUDE_MINILM" = "1" ]; then python /tmp/fetch_e5.py --output /opt/mailsearch/e5; fi
+RUN useradd --uid 10001 --create-home app && install -d -o app -g app /home/app/evaluations /home/app/e5-indexes
 USER app
 EXPOSE 8000
 CMD ["uvicorn", "mail_search.api.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--no-access-log"]

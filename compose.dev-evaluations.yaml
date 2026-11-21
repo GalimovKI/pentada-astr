@@ -1,19 +1,24 @@
 # Applied only to releases of the dev environment on the academic host.
-x-corpora: &corpora
-  - ./data/benchmarks/enronqa-ru:/data/enronqa:ro
+x-e5: &e5
+  E5_MODEL_DIR: /opt/mailsearch/e5
+  E5_INDEX_DIR: /home/app/e5-indexes
 
 services:
   prepare:
     environment:
+      <<: *e5
       PREPARE_ENRONQA: "true"
       ENRONQA_DIRECTORY: /data/enronqa
-    volumes: *corpora
+    volumes:
+      - ./data/benchmarks/enronqa-ru:/data/enronqa:ro
+      - dev_e5_indexes:/home/app/e5-indexes
 
   backend:
     build:
       args:
         INCLUDE_MINILM: "1"
     environment:
+      <<: *e5
       MINILM_MODEL_DIR: /opt/mailsearch/minilm
       ENABLE_EVALUATIONS: "true"
       ENRONQA_DIRECTORY: /data/enronqa
@@ -22,7 +27,9 @@ services:
       EVALUATION_DIR: /home/app/evaluations
     volumes:
       - ./data/benchmarks/enronqa-ru:/data/enronqa:ro
+      - dev_e5_indexes:/home/app/e5-indexes
       - dev_evaluations:/home/app/evaluations
 
 volumes:
+  dev_e5_indexes:
   dev_evaluations:

@@ -44,3 +44,11 @@ def load_bm25_minilm(settings: Settings, *, single_mailbox=None) -> LoadedEngine
 
     factory = partial(create_bm25_minilm_engine, model_dir=settings.minilm_model_dir)
     return _load_engine(settings, factory, settings.search_config, single_mailbox)
+
+
+def load_e5(settings: Settings, *, single_mailbox=None) -> LoadedEngine:
+    from ..search.e5 import dataset_engine
+
+    dataset = load_dataset(settings.search_dataset)
+    engine = dataset_engine(dataset, settings.e5_model_dir, settings.e5_index_dir, single_mailbox)
+    return LoadedEngine(engine, dataset.summary["fingerprint"])

@@ -30,6 +30,7 @@ def main():
                     raise RuntimeError from None
                 time.sleep(2)
         # Capture diagnostics: migration/driver tracebacks may expose credentials.
+        archives = [os.environ["SEARCH_DATASET"]]
         import_corpus(os.environ["DATABASE_URL"], os.environ["SEARCH_DATASET"])
         if os.environ.get("PREPARE_ENRONQA") == "true":
             directory = os.environ["ENRONQA_DIRECTORY"]
@@ -41,7 +42,16 @@ def main():
                 with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
                     if not conn.scalar(text("SELECT 1 FROM pg_database WHERE datname = :name"), {"name": name}):
                         conn.exec_driver_sql(f'CREATE DATABASE "{name}"')
-                import_corpus(url.render_as_string(hide_password=False), f"{directory}/enronqa-{lang}-{lang}.zip")
+                archives.append(f"{directory}/enronqa-{lang}-{lang}.zip")
+                import_corpus(url.render_as_string(hide_password=False), archives[-1])
+        if os.environ.get("E5_MODEL_DIR"):
+            from mail_search.core.engine import load_e5
+            from mail_search.core.settings import Settings
+            from pathlib import Path
+
+            settings = Settings.from_env()
+            for archive in archives:
+                load_e5(settings.model_copy(update={"search_dataset": Path(archive)}))
         return 0
     except Exception:
         print("Preparation failed: check database access, corpus and migrations.", file=sys.stderr)

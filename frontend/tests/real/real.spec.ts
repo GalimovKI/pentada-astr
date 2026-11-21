@@ -122,7 +122,7 @@ test("dev mail reruns the submitted query with the selected model", async ({ pag
   test.skip(!features.ok() || !(await features.json()).mail_models, "Dev mail model selector only");
   await page.goto("/");
   const picker = page.getByLabel("Модель поиска писем");
-  await expect(picker.locator("option")).toHaveCount(4);
+  await expect(picker.locator("option")).toHaveCount((await features.json()).mail_models.length);
   await page.getByLabel("Почтовый ящик").selectOption("box-84bd433469cb");
   await page.getByLabel("Почта на дату", { exact: true }).fill("2028-09-11");
   const query = "Найди уведомления о завершении досмотра контейнеров, полученные вчера";

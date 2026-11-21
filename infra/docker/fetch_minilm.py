@@ -22,10 +22,10 @@ def digest(path: Path) -> str:
         return file_digest(stream, "sha256").hexdigest()
 
 
-def fetch(source: str, target: Path, expected: str):
+def fetch(source: str, target: Path, expected: str, *, model=MODEL, revision=REVISION):
     if target.is_file() and digest(target) == expected:
         return
-    url = f"https://huggingface.co/{MODEL}/resolve/{REVISION}/{source}?download=true"
+    url = f"https://huggingface.co/{model}/resolve/{revision}/{source}?download=true"
     for attempt in range(3):
         with NamedTemporaryFile(dir=target.parent, delete=False) as output:
             temporary = Path(output.name)
@@ -34,7 +34,7 @@ def fetch(source: str, target: Path, expected: str):
                     copyfileobj(response, output)
                 output.close()
                 if digest(temporary) != expected:
-                    raise ValueError(f"MiniLM digest mismatch for {source}")
+                    raise ValueError(f"Model asset digest mismatch for {source}")
                 temporary.chmod(0o644)
                 temporary.replace(target)
                 return
