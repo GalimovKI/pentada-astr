@@ -5,7 +5,7 @@ import json
 import platform
 import sys
 import zipfile
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from time import perf_counter_ns
 
@@ -13,6 +13,7 @@ from .benchmarks.latency import latency_summary
 from .core.errors import ValidationError
 from .core.paths import repository_root
 from .core.provenance import code_version
+from .domain.models import SearchRequest
 from .ingestion.dataset import load_dataset
 from .evaluation.runner import evaluate, format_report, read_predictions, run_engine, write_run
 
@@ -44,17 +45,23 @@ def compare_runs(left: Path, right: Path) -> str:
 def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(description="Validate mail-search data, evaluate an engine, compare runs.")
     commands = root.add_subparsers(dest="command", required=True)
-    for name in ("validate", "run", "score"):
+    for name in ("validate", "run", "score", "search"):
         command = commands.add_parser(name)
         command.add_argument("--dataset", type=Path, default=Path(DEFAULT_DATASET), help="Official ZIP or extracted directory")
+        if name in ("run", "search"):
+            command.add_argument("--engine", default=DEFAULT_ENGINE, help="Python module:factory; factory(documents, config)")
+            command.add_argument("--config", type=Path, help="JSON object passed to engine factory")
         if name == "validate":
+            continue
+        if name == "search":
+            command.add_argument("--mailbox", required=True, help="synthetic_user from the corpus")
+            command.add_argument("--as-of", required=True, metavar="YYYY-MM-DD", help="Query date for relative dates and visibility")
+            command.add_argument("--limit", type=int, default=10)
+            command.add_argument("query")
             continue
         command.add_argument("--output", type=Path, required=True, help="New run directory; existing directories are not overwritten")
         command.add_argument("--ks", nargs="+", type=int, default=DEFAULT_KS)
-        if name == "run":
-            command.add_argument("--engine", default=DEFAULT_ENGINE, help="Python module:factory; factory(documents, config)")
-            command.add_argument("--config", type=Path, help="JSON object passed to engine factory")
-        else:
+        if name == "score":
             command.add_argument("--predictions", type=Path, required=True)
     command = commands.add_parser("compare")
     command.add_argument("left", type=Path)
@@ -68,23 +75,22 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "compare":
             print(compare_runs(args.left, args.right))
             return 0
-        if args.command != "validate":
+        if args.command in ("run", "score"):
             if args.output.exists():
                 raise ValidationError(f"output already exists: {args.output}; choose a new directory")
             if any(k <= 0 for k in args.ks) or len(set(args.ks)) != len(args.ks):
                 raise ValidationError("K values must be distinct positive integers")
+        if args.command == "search":
+            query_date = date.fromisoformat(args.as_of)
+            if query_date.isoformat() != args.as_of:
+                raise ValidationError("--as-of must use YYYY-MM-DD")
+            if args.limit < 1:
+                raise ValidationError("--limit must be positive")
         dataset = load_dataset(args.dataset)
         if args.command == "validate":
             print(json.dumps(dataset.summary, ensure_ascii=False, indent=2))
             return 0
-        run = {
-            "format_version": 1, "created_at": datetime.now(timezone.utc).isoformat(),
-            "dataset": dataset.summary, "python": platform.python_version(),
-            "platform": platform.platform(), "machine": platform.machine(),
-            "ks": sorted(args.ks), "source": args.dataset.name,
-        }
-        durations, errors = {}, {}
-        if args.command == "run":
+        if args.command in ("run", "search"):
             config = json.loads(args.config.read_text(encoding="utf-8")) if args.config else {}
             if not isinstance(config, dict):
                 raise ValidationError("engine config must be a JSON object")
@@ -96,6 +102,20 @@ def main(argv: list[str] | None = None) -> int:
             start = perf_counter_ns()
             engine = factory(tuple(dataset.documents.values()), config)
             build_ms = (perf_counter_ns() - start) / 1_000_000
+        if args.command == "search":
+            request = SearchRequest(args.query, args.mailbox, query_date)
+            hits = engine.search(request, args.limit)
+            print(json.dumps([{"doc_id": hit.doc_id, "score": hit.score} for hit in hits],
+                             ensure_ascii=False, indent=2, allow_nan=False))
+            return 0
+        run = {
+            "format_version": 1, "created_at": datetime.now(timezone.utc).isoformat(),
+            "dataset": dataset.summary, "python": platform.python_version(),
+            "platform": platform.platform(), "machine": platform.machine(),
+            "ks": sorted(args.ks), "source": args.dataset.name,
+        }
+        durations, errors = {}, {}
+        if args.command == "run":
             predictions, durations, errors = run_engine(dataset, engine, max(args.ks))
             run.update(engine=args.engine, engine_config=getattr(engine, "config", config),
                        supplied_config=config, engine_build_ms=build_ms,
