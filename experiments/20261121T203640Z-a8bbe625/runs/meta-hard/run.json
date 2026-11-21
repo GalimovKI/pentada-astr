@@ -1,0 +1,67 @@
+{
+  "format_version": 1,
+  "created_at": "2026-11-21T20:42:22.620037+00:00",
+  "dataset": {
+    "fingerprint": "2fbf150de7ccbb001109a060c6036d33c8349d7e00fd01792c101cc7f699164e",
+    "sha256": {
+      "README.md": "ef1364069b4e27dc07b4896c87e087ff30161983ac0f5c48e383995d21745dfa",
+      "documents.jsonl": "06feb4791a52faeb777f1a8d4c22d99efd26a279943a19bdfbd0b14bc9c8daa5",
+      "queries_dev.jsonl": "ff0fb1524ef52fe806b1c39da6307a7272ca08d121561625e1983c639ee4abc5",
+      "qrels_dev.jsonl": "113238234c6b24f9217974fd3a8aa5373a772f17d0cadb15827f910d99a5ba12"
+    },
+    "documents": 16376,
+    "queries": 60,
+    "qrels": 222,
+    "mailboxes": 12,
+    "unknown_document_dates": 433,
+    "single_relevant_queries": 36,
+    "queries_without_relevant_documents": 0,
+    "documents_by_mailbox": {
+      "box-12259a301ee2": 2401,
+      "box-2d28af4e4602": 1784,
+      "box-84bd433469cb": 720,
+      "box-84dd8d9560e6": 902,
+      "box-90560850fd8e": 713,
+      "box-a55c522c6949": 561,
+      "box-a971835ab404": 980,
+      "box-d7961fc39a68": 1459,
+      "box-dfac33a7123c": 1094,
+      "box-f9410417c091": 3010,
+      "box-fad2b057e79a": 1955,
+      "box-fda57474896e": 797
+    },
+    "queries_by_mailbox": {
+      "box-12259a301ee2": 12,
+      "box-90560850fd8e": 12,
+      "box-a55c522c6949": 12,
+      "box-fad2b057e79a": 12,
+      "box-fda57474896e": 12
+    }
+  },
+  "python": "3.11.14",
+  "platform": "macOS-26.3.1-arm64-arm-64bit",
+  "machine": "arm64",
+  "ks": [
+    1,
+    5,
+    10,
+    20,
+    50,
+    100
+  ],
+  "source": "eval",
+  "engine": "meta-hard",
+  "engine_config": {
+    "mode": "hard_day",
+    "encoder": "e5:intfloat/multilingual-e5-small:614241f622f53c4eeff9890bdc4f31cfecc418b3:mean:512:onnx-fp32",
+    "date_bonus": 0.16,
+    "participant_bonus": 0.12
+  },
+  "source_code_ref": "33c38c4e8561faeeac973aa9f91a3248ada7742e",
+  "code": {
+    "sha256": "3cb23a4df6be815134f291f4d12e1e853d5cd3fe73014ef7752cc23015d17277",
+    "git_commit": "76c3dc7ca378a632da4503e990911d64effeab3d",
+    "git_dirty": false
+  },
+  "status": "completed"
+}

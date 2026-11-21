@@ -3,13 +3,13 @@
   "id": "20261121T203640Z-a8bbe625",
   "kind": "experiment",
   "owner": "evseevgrv",
-  "status": "running",
-  "updated_at": "2026-11-21T20:36:40.032868+00:00",
+  "status": "completed",
+  "updated_at": "2026-11-21T21:00:05.375197+00:00",
   "title": "Бейзлайны на 60 контрольных запросах",
   "hypothesis": "Прогоны на замороженном наборе покажут, устойчив ли выбор основного BM25 при сравнении с лексическими, нейросетевыми и гибридными вариантами.",
   "code_branch": "dev",
-  "code_commit": null,
+  "code_commit": "ea8c2f4b3cebb0b99b230eb9fe93f13d26def5f5",
   "baseline_ref": "20261121T201426Z-841b6b1d",
   "replicates": null,
-  "outcome": null
+  "outcome": "inconclusive"
 }
