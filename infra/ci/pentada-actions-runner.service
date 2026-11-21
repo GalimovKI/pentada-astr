@@ -1,5 +1,5 @@
 [Unit]
-Description=GitHub Actions runner for pentada main deployment
+Description=GitHub Actions runner for pentada main/dev deployment
 After=network-online.target docker.service
 Wants=network-online.target docker.service
 StartLimitIntervalSec=0

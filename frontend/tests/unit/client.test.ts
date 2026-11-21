@@ -2,9 +2,17 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { api, ApiError, errorMessage } from "../../src/api/client";
 import { queryError, validDate } from "../../src/app/validation";
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 const context = { mailbox: "box +?/#ю", date: "2028-09-11" };
 const signal = () => new AbortController().signal;
+
+it.each(["/main/", "/dev/"])("keeps API requests inside %s", async (base) => {
+  vi.stubEnv("BASE_URL", base);
+  const mock = vi.fn().mockResolvedValue(new Response('{"items":[]}'));
+  vi.stubGlobal("fetch", mock);
+  await api.mailboxes(signal());
+  expect(mock.mock.calls[0][0]).toBe(`${base}api/v1/mailboxes`);
+});
 
 it("encodes mailbox, message and opaque cursor without changing dates", async () => {
   const mock = vi.fn().mockResolvedValue(new Response("{}"));

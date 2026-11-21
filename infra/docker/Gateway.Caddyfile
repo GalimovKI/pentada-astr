@@ -1,0 +1,21 @@
+{
+	admin off
+}
+
+http://127.0.0.1:8081 {
+	bind 127.0.0.1
+	respond /health/web "live" 200
+}
+
+{$SITE_ADDRESS:http://:80} {
+	redir / /main/ 302
+	redir /main /main/ 308
+	redir /dev /dev/ 308
+	handle /main/* {
+		reverse_proxy 127.0.0.1:18080
+	}
+	handle /dev/* {
+		reverse_proxy 127.0.0.1:18090
+	}
+	respond 404
+}

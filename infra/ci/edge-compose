@@ -1,5 +1,14 @@
 #!/bin/sh
 set -eu
-release=$(readlink -f /opt/pentada/current)
-export APP_IMAGE_TAG=$(basename "$release")
-exec docker compose -p pentada-edge -f "$release/compose.edge.yaml" "$@"
+environment=main
+case "${1:-}" in main|dev) environment=$1; shift ;; esac
+case "$environment" in
+  main) port=18080; TUNNEL_PORT=18081; WEB_HEALTH_PORT=18082 ;;
+  dev) port=18090; TUNNEL_PORT=18091; WEB_HEALTH_PORT=18092 ;;
+esac
+release=$(readlink -f "/opt/pentada/environments/$environment/current")
+APP_IMAGE_TAG="$environment-$(basename "$release")"
+APP_BASE_PATH="/$environment/"
+SITE_ADDRESS="http://127.0.0.1:$port"
+export APP_IMAGE_TAG APP_BASE_PATH SITE_ADDRESS TUNNEL_PORT WEB_HEALTH_PORT
+exec docker compose -p "pentada-edge-$environment" -f "$release/compose.edge.yaml" "$@"

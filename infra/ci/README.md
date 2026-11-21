@@ -1,197 +1,220 @@
-# GitHub Actions: проверки и развёртывание на двух хостах
+# CI/CD: независимые `/main/` и `/dev/`
 
-Workflow: [`.github/workflows/ci-cd.yml`](../../.github/workflows/ci-cd.yml).
-Основа установки серверов, корпуса и туннеля — [DEPLOYMENT.md](../../DEPLOYMENT.md).
-Модель и поисковая конфигурация этим workflow не изменяются.
+| | main | dev |
+|---|---|---|
+| Ветка | `main` | `dev` |
+| Адрес | `http://176.12.68.100/main/` | `http://176.12.68.100/dev/` |
+| Учебный каталог | `~/pentada-astr` | `~/pentada-astr-dev` |
+| Compose backend/БД | `pentada-mailsearch` | `pentada-mailsearch-dev` |
+| Origin API (loopback) | 28081 | 28091 |
+| Туннель на VPS (loopback) | 18081 | 18091 |
+| Frontend на VPS (loopback) | 18080 | 18090 |
+| Frontend health (loopback) | 18082 | 18092 |
+| Compose frontend | `pentada-edge-main` | `pentada-edge-dev` |
 
-## Что запускается
+Корневой `/` перенаправляется на `/main/`, `/main` и `/dev` — на адреса с завершающим
+слешем. Общий Caddy gateway (`pentada-gateway`, порт 80) сохраняет префикс при
+проксировании. Caddy каждого frontend снимает только свой префикс перед чтением
+статики и обращением к backend. Frontend собирается с Vite base `/main/` или `/dev/`;
+его API, JS, favicon и шрифты остаются внутри соответствующего пути.
 
-Для PR в `main` и push в `main` GitHub-hosted runners проверяют backend
-с отдельным тестовым PostgreSQL, frontend unit tests, TypeScript/Vite build
-и Playwright на desktop/mobile. Корпус для этих тестов не нужен: используются fixtures.
+Всего работают семь контейнеров: gateway и два frontend на VPS, два backend и два
+PostgreSQL на учебном хосте. БД имеют отдельные volumes, роли и пароли. Корпус может
+быть общим read-only файлом. Конфигурация поиска каждого окружения задаётся его env;
+алгоритмы поиска этот change не меняет. Нагрузка на железо и gateway остаются общими.
 
-После успешных проверок push в `main` запускает `deploy` на `pentada-academic`.
-Есть ручной `Run workflow`, разрешённый для `main`. Прямой push в `main` также
-считается обновлением; для обязательного MR настройте branch protection.
-Устаревший запуск пропускается, если в `main` уже появился новый коммит.
-Деплои выполняются последовательно, начатый деплой не отменяется новым push.
+## Ветки и проверки
 
-Runner архивирует точный коммит, собирает backend на учебном хосте и frontend
-на VPS. До завершения обеих сборок работающие контейнеры не меняются. Затем
-создаётся `pg_dump`, выполняется prepare, обновляется backend, после его готовности
-— frontend. Проверяются публичные HTML/assets, readiness, API и список ящиков.
-На каждом хосте остаются `releases/<полный SHA>` и ссылка `current`.
+[Workflow](../../.github/workflows/ci-cd.yml) запускает проверки для PR в `main`/`dev`
+и push в обе ветки. Backend проверяется с отдельным тестовым PostgreSQL. Frontend
+проходит unit tests, TypeScript/Vite build и браузерные сценарии на desktop/mobile
+для **обоих** префиксов. Fixture-тестам не нужен настоящий корпус.
 
-При ошибке после начала переключения скрипт пытается вернуть прежние контейнеры
-и ссылки. БД автоматически не восстанавливается. Изменение файлов
-`backend/migrations/` останавливает автоматическое обновление: сначала выполните
-плановое ручное развёртывание по DEPLOYMENT.md, включая обновление `current`,
-затем повторите workflow. Обновление контейнера может дать короткий перерыв API;
-это не схема zero downtime.
+После успешных проверок push в `dev` обновляет только dev, push/merge в `main` —
+только main. Есть `Run workflow` для обеих веток. Прямой push также запускает деплой;
+обязательный MR обеспечивается настройками branch protection, не этим YAML.
+Устаревший SHA пропускается, если ветка уже продвинулась. Начатый deploy не отменяется
+новым push. Один runner выполняет задания последовательно; файлы блокировок также
+исключают конкурирующее изменение одного окружения и одновременную сборку на VPS.
 
-## Уже установленная конфигурация
+Ветки первоначально созданы от одного свежего main. Дальше в dev проверяются изменения,
+затем MR `dev → main` переносит проверенную версию в рабочее окружение. Миграция
+инфраструктуры установлена на обоих хостах вручную; для автоматизации новые workflow
+и скрипты должны попасть в **обе** ветки. До этого старый workflow main не совместим
+с новым протоколом receiver и остановится до изменения контейнеров.
 
-- Repo runner `pentada-academic`, Linux x64, label `pentada-production`.
-- Учебный хост: `~/actions-runner-pentada`, user systemd unit
-  `pentada-actions-runner.service`, автозапуск и linger включены.
-- Данные и пароль БД: `~/pentada-astr/shared`, вне `_work` runner.
-- Origin: `~/pentada-astr`, rootless Docker, проект `pentada-mailsearch`, порт 28081.
-- Edge: `176.12.68.100`, `/opt/pentada`, проект `pentada-edge`.
-- Настройки runner: `~/.config/pentada-ci.json` (600).
-- Отдельный ключ `~/.ssh/pentada-deploy` (600), SSH config
-  `~/.ssh/pentada-deploy-config`; host key проверяется по
-  `~/.ssh/pentada-edge-known_hosts`.
-- На VPS ключ разрешает только `/usr/local/sbin/pentada-edge-receive`.
-  Пароль root не нужен workflow и не хранится в GitHub Secrets.
-- Туннель `pentada-edge-tunnel.service` продолжает работать независимо от runner.
+## Что делает deploy
 
-Workflow начнёт работать только после публикации этой ветки и её merge в `main`.
-Установка runner сама по себе не публикует workflow.
+1. Архивирует точный коммит в `releases/<SHA>`, без checkout `.env`, корпуса и ключей.
+2. Проверяет миграции. Если они изменились относительно активного релиза, останавливается
+   до сборки и переключения: нужен отдельный план ручного обновления этого окружения.
+3. Собирает backend на учебном хосте, frontend на VPS. Теги содержат окружение и SHA.
+4. Сохраняет закрытый backup env и `pg_dump` существующей БД. Для первой установки
+   ещё нет БД для backup; этот случай явно отражён в `previous.json`.
+5. Запускает БД, prepare (миграции/импорт), backend и ждёт readiness.
+6. Обновляет только выбранный frontend, проверяет его локальный URL с префиксом,
+   затем публичный URL через gateway. После успеха переключает `current`.
 
-## Повторная установка runner
+При ошибке скрипт пытается вернуть предыдущий код **того же окружения**. Второе
+окружение не переключается. БД автоматически не восстанавливается; при ошибке
+самого отката job остаётся failed, требуется ручное восстановление. Возможен короткий
+перерыв API на время пересоздания backend: zero downtime здесь не обеспечивается.
 
-На GitHub откройте Settings → Actions → Runners → New self-hosted runner,
-выберите Linux / x64. Скачайте официальный архив в `~/actions-runner-pentada`,
-проверьте SHA256, распакуйте. Выполните предложенный `config.sh` с одноразовым
-registration token, добавив:
+## Файлы и секреты
 
-```bash
---name pentada-academic --labels pentada-production --work _work
-```
-
-Не сохраняйте token в репозитории или shell history. Постоянный PAT runner не нужен.
-Для первоначальной установки использован runner 2.338.2; автообновление оставлено
-включённым. Если отсутствуют системные зависимости, их устанавливает администратор
-учебного хоста по официальной инструкции GitHub.
-
-Из checkout на учебном хосте:
-
-```bash
-mkdir -p ~/.local/lib/pentada-ci ~/.config/systemd/user
-install -m 700 infra/ci/runner-guard.sh ~/.local/lib/pentada-ci/runner-guard.sh
-install -m 600 infra/ci/pentada-actions-runner.service ~/.config/systemd/user/
-install -m 755 infra/ci/origin ~/pentada-astr/origin
-systemctl --user daemon-reload
-systemctl --user enable --now pentada-actions-runner
-```
-
-Для работы после logout нужен `loginctl show-user "$USER" -p Linger` → `yes`.
-Если это не так, попросите администратора включить linger для вашей учётной записи.
-
-Создайте `~/.config/pentada-ci.json` с правами 600:
+- Runner: `~/actions-runner-pentada`, unit `pentada-actions-runner.service`.
+- Repo runner `pentada-academic`, label `pentada-production` используется для обоих
+  окружений (имя label сохранено для совместимости регистрации).
+- Настройки: `~/.config/pentada-ci.json`, права 600, без паролей.
+- Env БД: `<origin_root>/shared/.env.production`, права 600, parent 700.
+- Deploy key: `~/.ssh/pentada-deploy`, права 600; SSH config
+  `~/.ssh/pentada-deploy-config`, проверенный `~/.ssh/pentada-edge-known_hosts`.
+- Main tunnel key/unit: `~/.ssh/pentada-edge`, `pentada-edge-tunnel.service`.
+- Dev tunnel key/unit: `~/.ssh/pentada-edge-dev`, `pentada-dev-tunnel.service`.
+- VPS receiver: `/usr/local/sbin/pentada-edge-receive`, root-owned.
+- VPS releases: `/opt/pentada/environments/{main,dev}/releases/<SHA>` и отдельные `current`.
+- Gateway: `/opt/pentada/gateway-source/compose.gateway.yaml` и
+  `infra/docker/Gateway.Caddyfile` внутри этого каталога. Обычный deploy их не меняет.
 
 ```json
 {
-  "origin_root": "~/pentada-astr",
   "docker": "~/.local/lib/pentada-docker/bin/docker",
   "ssh_config": "~/.ssh/pentada-deploy-config",
-  "public_url": "http://176.12.68.100"
+  "environments": {
+    "main": {
+      "origin_root": "~/pentada-astr",
+      "origin_project": "pentada-mailsearch",
+      "public_url": "http://176.12.68.100/main"
+    },
+    "dev": {
+      "origin_root": "~/pentada-astr-dev",
+      "origin_project": "pentada-mailsearch-dev",
+      "public_url": "http://176.12.68.100/dev"
+    }
+  }
 }
 ```
 
-Адрес, пути и origin-порт должны соответствовать вашей установке. Скрипты
-используют существующий `shared/.env.production`, не печатая пароль БД.
-Тег образа выбирается по имени каталога релиза и перекрывает `APP_IMAGE_TAG` из env.
-Настройки поиска остаются теми, что заданы в production env.
+## Первичная установка и переход с одного окружения
 
-## Ключ и обработчик VPS
+Базовая установка Docker, rootless Docker, корпуса и main-туннеля описана в
+[DEPLOYMENT.md](../../DEPLOYMENT.md). Старый трёхконтейнерный запуск из этого документа
+не запускайте поверх работающего gateway: он занимает порт 80 и использует старые пути.
 
-На учебном хосте создайте отдельный ключ (не перезаписывайте существующий):
+1. На учебном хосте создайте `~/pentada-astr-dev/{releases,shared,backups}`. Для shared
+   установите 700. Создайте env dev на основе main с **новыми** `POSTGRES_DB`,
+   `POSTGRES_USER`, случайным `POSTGRES_PASSWORD` и согласованным `DATABASE_URL`
+   (`db:5432`). Укажите `ORIGIN_API_PORT=28091`, абсолютный `CORPUS_PATH` к общему
+   архиву. Main остаётся на 28081 и сохраняет прежние credentials/volume.
+2. В каждом origin-каталоге создайте файл `ENVIRONMENT`: `main` или `dev` соответственно.
+   Установите туда `infra/ci/origin` как `origin` с правами 755. Настройте JSON выше.
+3. Создайте отдельный ключ `~/.ssh/pentada-edge-dev` (ed25519, без passphrase для службы).
+   На VPS создайте пользователя `pentada-tunnel-dev` с shell `/usr/sbin/nologin`.
+   В его `authorized_keys` разрешите только remote forwarding порта 18091:
+
+   ```text
+   restrict,port-forwarding,permitlisten="127.0.0.1:18091",command="/bin/false" ssh-ed25519 <PUBLIC_KEY>
+   ```
+
+   Для этого пользователя настройте sshd `PasswordAuthentication no`,
+   `AllowTcpForwarding remote`, `PermitListen 127.0.0.1:18091`, `GatewayPorts no`,
+   `AllowAgentForwarding no`, `X11Forwarding no`, `PermitTTY no`, `PermitTunnel no`,
+   `MaxSessions 0`. Выполните `sshd -t` перед reload. Ключ main не расширяйте.
+4. Установите `infra/docker/pentada-dev-tunnel.service` в `~/.config/systemd/user/`,
+   создайте `~/.config/pentada-dev-tunnel.env` с `VPS_HOST=<IP>`, права 600.
+   Выполните `systemctl --user daemon-reload` и
+   `systemctl --user enable --now pentada-dev-tunnel`. Для службы нужен Linger=yes.
+5. На VPS установите `infra/ci/edge_receive.py` в `/usr/local/sbin/pentada-edge-receive`
+   (root:root, 755). Deploy key в root `authorized_keys` должен иметь ограничения:
+
+   ```text
+   restrict,command="/usr/local/sbin/pentada-edge-receive" ssh-ed25519 <DEPLOY_PUBLIC_KEY>
+   ```
+
+   Закрытый ключ остаётся на учебном хосте. Alias `pentada-deploy` в SSH config
+   указывает на root@VPS, отдельный IdentityFile, BatchMode=yes, IdentitiesOnly=yes,
+   StrictHostKeyChecking=yes и проверенный UserKnownHostsFile. Пароль SSH не нужен.
+6. Из чистого checkout нового коммита на учебном хосте выполните:
+
+   ```bash
+   python3 infra/ci/deploy.py --environment dev --bootstrap
+   python3 infra/ci/deploy.py --environment main --bootstrap
+   ```
+
+   Bootstrap нужен только до появления gateway: локальные frontend/API всё равно
+   проверяются, пропускается только публичный URL. В GitHub Actions флаг запрещён.
+7. На VPS скопируйте `compose.gateway.yaml` и `infra/docker/Gateway.Caddyfile` в
+   `/opt/pentada/gateway-source/`, сохранив относительные пути. Остановите старый
+   frontend проекта `pentada-edge` (без удаления volumes). Запустите:
+
+   ```bash
+   docker compose -p pentada-gateway -f /opt/pentada/gateway-source/compose.gateway.yaml up -d --wait
+   ```
+
+   Если gateway не поднялся, остановите его и верните старый frontend по сохранённому
+   Compose/env; до успешной проверки не удаляйте старые releases и образы.
+   Установите `infra/ci/edge-compose` как `/opt/pentada/compose` (755).
+8. С ноутбука проверьте оба URL командами ниже, а также redirect `/ → /main/`.
+9. Установите обновлённый runner guard и service:
+
+   ```bash
+   install -m 700 infra/ci/runner-guard.sh ~/.local/lib/pentada-ci/runner-guard.sh
+   install -m 600 infra/ci/pentada-actions-runner.service ~/.config/systemd/user/
+   systemctl --user daemon-reload
+   systemctl --user enable --now pentada-actions-runner
+   ```
+
+Если runner ещё не зарегистрирован, используйте Settings → Actions → Runners →
+New self-hosted runner, Linux x64. Скачайте официальный архив, проверьте SHA256,
+в каталоге `~/actions-runner-pentada` выполните предложенный config с одноразовым
+registration token, `--name pentada-academic --labels pentada-production --work _work`.
+Token не сохраняйте в Git/history. Автообновление runner включено.
+
+## Проверки и управление
 
 ```bash
-ssh-keygen -t ed25519 -N '' -C pentada-ci-deploy -f ~/.ssh/pentada-deploy
-cat ~/.ssh/pentada-deploy.pub
-```
+# С ноутбука, из checkout
+python3 scripts/check_production.py --url http://176.12.68.100/main
+python3 scripts/check_production.py --url http://176.12.68.100/dev
 
-На VPS от root установите из проверенного checkout:
-
-```bash
-install -o root -g root -m 755 infra/ci/edge_receive.py /usr/local/sbin/pentada-edge-receive
-install -m 755 infra/ci/edge-compose /opt/pentada/compose
-install -d -m 700 /root/.ssh
-```
-
-Добавьте в `/root/.ssh/authorized_keys` строку, подставив **публичную** часть нового
-ключа; остальные строки сохраните:
-
-```text
-restrict,command="/usr/local/sbin/pentada-edge-receive" ssh-ed25519 <PUBLIC_KEY> pentada-ci-deploy
-```
-
-SSH config на учебном хосте (`~/.ssh/pentada-deploy-config`, права 600):
-
-```sshconfig
-Host pentada-deploy
-  HostName 176.12.68.100
-  User root
-  IdentityFile ~/.ssh/pentada-deploy
-  IdentitiesOnly yes
-  BatchMode yes
-  StrictHostKeyChecking yes
-  UserKnownHostsFile ~/.ssh/pentada-edge-known_hosts
-  ServerAliveInterval 30
-  ServerAliveCountMax 3
-  ConnectTimeout 15
-```
-
-Host key сверяйте через доверенную консоль VPS, как в DEPLOYMENT.md. Проверка:
-
-```bash
-ssh -F ~/.ssh/pentada-deploy-config pentada-deploy current
-ssh -F ~/.ssh/pentada-deploy-config pentada-deploy id  # должен завершиться отказом
-```
-
-Обработчик принимает только `current`, `stage SHA` (архив через stdin) и
-`activate SHA`. Он блокирует traversal и ссылки в архиве. Но сборка и запуск
-контейнеров через root Docker означают доверие публикуемому коду: forced command
-не превращает вредоносный Dockerfile/Compose в безопасный. Файл обработчика и
-runner guard обновляются администратором отдельно, не самим деплоем.
-
-## Публичный репозиторий и доступ
-
-GitHub [не рекомендует self-hosted runners для публичных репозиториев](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/add-runners).
-В этом workflow PR работают на GitHub-hosted runners. Дополнительный
-[pre-job hook](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/run-scripts)
-на учебном хосте допускает только `deploy` из указанного workflow в `main`,
-события `push`/`workflow_dispatch`. Ошибка проверки останавливает job до checkout.
-Это дополнительная проверка, а не отдельная граница изоляции ОС.
-
-Runner работает с правами `rusikye` и доступом к production env. Право изменять
-`main` фактически даёт право развёртывать код на обоих хостах. Не подтверждайте
-запуски посторонних workflow на этом runner, проверяйте изменения CI и Compose
-в MR. Для команды с недоверенными участниками нужен изолированный deployment
-host/аккаунт или закрытый deployment repository.
-
-## Статус и ручное восстановление
-
-```bash
 # Учебный хост
-systemctl --user status pentada-actions-runner
-journalctl --user -u pentada-actions-runner -n 50 --no-pager
 ~/pentada-astr/origin ps
-systemctl --user status pentada-edge-tunnel
+~/pentada-astr-dev/origin ps
+systemctl --user status pentada-actions-runner pentada-edge-tunnel pentada-dev-tunnel
+journalctl --user -u pentada-actions-runner -n 50 --no-pager
+
 # VPS
-/opt/pentada/compose ps
+/opt/pentada/compose main ps
+/opt/pentada/compose dev ps
+/opt/pentada/gateway ps
 ```
 
-Backup: `~/pentada-astr/backups/<UTC>-<SHA12>/`: `database.dump`, копия env и
-`previous.json` с обоими предыдущими релизами. Для ручного отката origin
-переключите `current` на сохранённый путь и выполните
-`~/pentada-astr/origin up -d --no-build --wait db backend`. Edge можно вернуть
-командой `ssh -F ~/.ssh/pentada-deploy-config pentada-deploy 'activate <OLD_SHA>'`.
-Восстановление БД выполняйте отдельно по DEPLOYMENT.md после проверки backup.
+Receiver понимает `current ENV`, `check ENV`, `stage ENV SHA40`, `activate ENV SHA40`
+и `deactivate ENV SHA40`. Например:
+`ssh -F ~/.ssh/pentada-deploy-config pentada-deploy 'current dev'`.
+Произвольные команды и старый протокол без ENV отклоняются.
 
-Если автоматический откат также завершился ошибкой, job остаётся failed:
-проверьте контейнеры обоих хостов и восстановите их вручную. Runner не удаляет
-volumes, backups и старые образы. Следите за `df -h` и `docker system df`;
-периодически удаляйте только проверенные старые релизы/образы этого проекта,
-сохраняя текущий релиз и рабочий вариант для отката. Глобальный prune на общем
-учебном Docker не выполняйте.
+Backup находится в `<origin_root>/backups/<UTC>-<SHA12>/`. Для отката origin переключите
+его `current` на прежний путь из `previous.json`, затем выполните соответствующий
+`origin up -d --no-build --wait db backend`. Edge откатывается через
+`activate ENV OLD_SHA40`. БД восстанавливайте отдельно после проверки backup.
+Старые релизы и backups автоматически не удаляются; контролируйте место. Не запускайте
+глобальный prune на общем учебном хосте.
 
-Проверки инфраструктурного кода:
+Тесты инфраструктуры: `python3 -m unittest discover -s infra/ci/tests -v`,
+`bash -n infra/ci/{origin,edge-compose,runner-guard.sh}`, `actionlint`.
 
-```bash
-python3 -m unittest discover -s infra/ci/tests -v
-bash -n infra/ci/runner-guard.sh infra/ci/origin infra/ci/edge-compose
-actionlint
-```
+## Границы доступа
+
+PR выполняются на GitHub-hosted runners. Pre-job guard на учебном хосте принимает
+только deploy job этого workflow, main/dev и push/workflow_dispatch; другие события
+отклоняются до checkout. Однако runner работает от `rusikye` и обе ветки имеют доступ
+к production credentials. **Dev изолирован по данным и контейнерам, но не является
+песочницей для недоверенного кода.** Право менять main/dev фактически позволяет
+развёртывать код на хостах. Forced command тоже не изолирует вредоносный Dockerfile
+от root Docker. Для недоверенных участников нужен отдельный deployment account/host.
+
+[GitHub рекомендует закрытые репозитории для self-hosted runners](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/add-runners).
+[Pre-job hooks](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/run-scripts)
+дают дополнительную проверку, а не границу изоляции ОС. Guard и receiver обновляются
+администратором отдельно от application deploy.

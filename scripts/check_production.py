@@ -2,6 +2,7 @@
 import argparse
 import json
 import re
+from urllib.parse import urlsplit, urlunsplit
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -10,9 +11,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--url", default="http://localhost:8080")
     base = parser.parse_args().url.rstrip("/")
+    parsed = urlsplit(base)
+    origin = urlunsplit((parsed.scheme, parsed.netloc, "", "", ""))
+    prefix = parsed.path.rstrip("/")
 
-    def request(path, status=200, *, method="GET", body=None):
-        req = Request(base + path, data=body, method=method,
+    def request(path, status=200, *, method="GET", body=None, asset=False):
+        req = Request((origin if asset else base) + path, data=body, method=method,
                       headers={"Content-Type": "application/json"} if body else {})
         try:
             response = urlopen(req, timeout=30)
@@ -29,9 +33,10 @@ def main():
     headers, html = request("/")
     assert headers.get_content_type() == "text/html"
     assets = re.findall(r'(?:src|href)="(/[^"?]+)"', html.decode())
-    assets += ["/fonts/VKSansDisplay-Regular.woff2", "/fonts/VKSansDisplay-Medium.woff2"]
+    assets += [prefix + "/fonts/VKSansDisplay-Regular.woff2", prefix + "/fonts/VKSansDisplay-Medium.woff2"]
     for asset in assets:
-        headers, content = request(asset)
+        assert asset.startswith(prefix + "/"), ("asset escaped environment", asset)
+        headers, content = request(asset, asset=True)
         assert content and headers["Cache-Control"] == "no-cache"
     request("/assets/missing.js", 404)
     headers, body = request("/api/v1/does-not-exist", 404)

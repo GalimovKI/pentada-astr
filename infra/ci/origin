@@ -1,7 +1,16 @@
 #!/bin/sh
 set -eu
 export PATH="$HOME/.local/lib/pentada-docker/bin:$HOME/bin:$PATH"
-release=$(readlink -f "$HOME/pentada-astr/current")
-export APP_IMAGE_TAG=$(basename "$release")
-exec docker --context rootless compose --env-file "$HOME/pentada-astr/shared/.env.production" \
-  -p pentada-mailsearch -f "$release/compose.production.yaml" -f "$release/compose.origin.yaml" "$@"
+root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+environment=$(cat "$root/ENVIRONMENT")
+case "$environment" in
+  main) project=pentada-mailsearch ;;
+  dev) project=pentada-mailsearch-dev ;;
+  *) echo 'Unknown environment' >&2; exit 1 ;;
+esac
+release=$(readlink -f "$root/current")
+APP_IMAGE_TAG=$(basename "$release")
+if [ -f "$release/DEPLOYMENT_ENV" ]; then APP_IMAGE_TAG="$environment-$APP_IMAGE_TAG"; fi
+export APP_IMAGE_TAG
+exec docker --context rootless compose --env-file "$root/shared/.env.production" \
+  -p "$project" -f "$release/compose.production.yaml" -f "$release/compose.origin.yaml" "$@"

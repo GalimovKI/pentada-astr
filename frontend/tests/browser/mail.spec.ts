@@ -9,7 +9,7 @@ test("mailboxes, date, opaque pagination, opening and keyboard return", async ({
     requests.push(url);
     return false;
   });
-  await page.goto("/");
+  await page.goto("./");
   await expect(page.getByLabel("Почтовый ящик")).toHaveValue("box-a");
   await expect(cards(page)).toHaveCount(2);
   expect(
@@ -64,7 +64,7 @@ test("search by Enter and button preserves ranking, draft is separate, text is s
       queries.push(route.request().postDataJSON());
     return false;
   });
-  await page.goto("/");
+  await page.goto("./");
   await searchFor(page, "  Важное письмо вчера  ", true);
   await expect(cards(page)).toHaveCount(2);
   await expect(cards(page).first()).toContainText("z");
@@ -99,7 +99,7 @@ test("blank, whitespace, long query and missing date are rejected locally", asyn
     if (url.pathname.endsWith("/search")) searches++;
     return false;
   });
-  await page.goto("/");
+  await page.goto("./");
   await page.getByRole("button", { name: "Найти", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText(
     "Введите поисковый запрос",
@@ -131,7 +131,7 @@ test("empty mailbox and empty search are distinct", async ({ page }) => {
     }
     return false;
   });
-  await page.goto("/");
+  await page.goto("./");
   await expect(page.getByText("Здесь пока нет писем")).toBeVisible();
   await searchFor(page);
   await expect(
@@ -158,7 +158,7 @@ for (const [status, code, message] of [
       }
       return false;
     });
-    await page.goto("/");
+    await page.goto("./");
     await searchFor(page);
     await expect(page.getByRole("alert")).toContainText(message);
     await expect(
@@ -186,7 +186,7 @@ test("mailbox bootstrap and unavailable message can be retried", async ({
     }
     return false;
   });
-  await page.goto("/");
+  await page.goto("./");
   await expect(page.getByRole("alert")).toContainText("Сервис пока не готов");
   boxesFailing = false;
   await page.getByRole("button", { name: "Повторить" }).click();
@@ -211,7 +211,7 @@ test("pagination error keeps loaded messages and retries the same cursor", async
     }
     return false;
   });
-  await page.goto("/");
+  await page.goto("./");
   await page.getByRole("button", { name: "Загрузить ещё" }).click();
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(cards(page)).toHaveCount(2);
@@ -231,7 +231,7 @@ test("mailbox and date switches discard search, selection, cursor and delayed ol
     }
     return false;
   });
-  await page.goto("/");
+  await page.goto("./");
   await searchFor(page);
   await expect(cards(page).first()).toContainText("z");
   await cards(page).first().click();
@@ -270,7 +270,7 @@ test("late search cannot replace newer search or resurrect results after return"
     }
     return false;
   });
-  await page.goto("/");
+  await page.goto("./");
   await searchFor(page, "старый");
   await expect(page.getByRole("status")).toContainText("Выполняем поиск");
   await searchFor(page, "новый");
@@ -301,7 +301,7 @@ test("late message cannot replace a later selection", async ({ page }) => {
     }
     return false;
   });
-  await page.goto("/");
+  await page.goto("./");
   await cards(page).first().click();
   await expect(page.getByRole("article")).toContainText("Загружаем письмо");
   // On mobile the user returns to the list before selecting the next message.
@@ -332,7 +332,7 @@ test("long IDs and literal multiline text fit the layout", async ({ page }) => {
     }
     return false;
   });
-  await page.goto("/");
+  await page.goto("./");
   await expect(cards(page)).toHaveCount(1);
   expect(
     await page.evaluate(
