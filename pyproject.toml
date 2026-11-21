@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pentada-mail-search"
+version = "0.1.0"
+description = "Local mail-search evaluation and a reproducible BM25 baseline"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+mailsearch = "mailsearch.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["mailsearch*"]
