@@ -57,6 +57,16 @@ class CLITests(unittest.TestCase):
         self.assertIn("coverage mismatch", result.stderr)
         self.assertFalse((self.root / "bad").exists())
 
+    def test_search_returns_ranked_hits_for_explicit_mailbox_and_date(self):
+        config = self.root / "stemmed.json"
+        config.write_text('{"stemming": true, "date_mode": "contextual"}')
+        result = self.command("search", "--dataset", self.data, "--config", config,
+                              "--mailbox", "a", "--as-of", "2025-01-02", "чеками вчера")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        hits = json.loads(result.stdout)
+        self.assertEqual([hit["doc_id"] for hit in hits], ["d1"])
+        self.assertGreater(hits[0]["score"], 0)
+
     def test_duplicate_query_in_predictions_rejected(self):
         path = self.root / "predictions.jsonl"
         path.write_text('{"query_id":"q1","doc_ids":[]}\n' * 2)

@@ -1,4 +1,5 @@
 from collections import Counter, defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from ..domain.models import Document
@@ -12,7 +13,10 @@ class MailboxIndex:
     average_length: float
 
 
-def build_bm25_index(documents: tuple[Document, ...]) -> dict[str, MailboxIndex]:
+def build_bm25_index(
+    documents: tuple[Document, ...],
+    tokenizer: Callable[[str], list[str]] = tokenize,
+) -> dict[str, MailboxIndex]:
     boxes = {}
     grouped = defaultdict(list)
     for document in documents:
@@ -21,7 +25,7 @@ def build_bm25_index(documents: tuple[Document, ...]) -> dict[str, MailboxIndex]
         postings = defaultdict(list)
         lengths = {}
         for document in items:
-            tokens = tokenize(document.doc)
+            tokens = tokenizer(document.doc)
             lengths[document.doc_id] = len(tokens)
             for term, frequency in Counter(tokens).items():
                 postings[term].append((document.doc_id, frequency))

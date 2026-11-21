@@ -45,3 +45,22 @@ git diff --check
 Код и запись командного журнала не отправлялись: push исключён пользовательским
 запросом. Локальный `.env` с новым случайным паролем и данные volume сохранены,
 контейнер оставлен запущенным. Секреты и корпус не включены в Git.
+
+## Объединение со свежим main
+
+После `daa8c4f` объединён `main` на `48a2ea3` (Snowball и команда одиночного
+поиска). Конфликты в CLI, зависимостях, README и COMPONENTS разрешены с
+сохранением обоих решений; lock-файл пересобран через `uv lock` без обновления
+существующих версий. Теперь доступны и `search`, и `import-postgres`.
+
+Проверки объединённого рабочего дерева перед merge-коммитом:
+
+- `python3 -m uv sync --project backend --locked` — успешно.
+- Полный unittest с `--env-file .env` — **34 теста пройдены**, включая 8 PostgreSQL-тестов.
+- `mailsearch validate` — manifest и fingerprint прежние.
+- `mailsearch import-postgres` — `already_imported`, 16 376 писем / 12 ящиков / 433 NULL-даты.
+- `mailsearch run --config configs/search/bm25-stemmed.json --output reports/quality/runs/wendigo-main-merge-stemmed` — 99 запросов, 0 ошибок.
+- Весь `metrics.json` совпал с записью `experiments/20261121T120349Z-10730634` из `origin/team-memory`: Recall@10 = 0.861505, nDCG@10 = 0.891021.
+
+Это проверка совместимости при merge, а не изменение поискового алгоритма.
+Отдельная запись командного журнала не публиковалась; push не выполнялся.
