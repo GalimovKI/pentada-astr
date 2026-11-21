@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "id": "20261121T180649Z-b3149308",
+  "kind": "experiment",
+  "owner": "Fu22210",
+  "status": "running",
+  "updated_at": "2026-11-21T18:06:49.650874+00:00",
+  "title": "Четыре пресета dev-почты на EnronQA-RU",
+  "hypothesis": "Изменение весов и учёт событий меняют ранжирование русских вопросов о деловой переписке.",
+  "code_branch": "timofey",
+  "code_commit": "8972fa0d4e3d487c3a4fe63927e477a9f35e546e",
+  "baseline_ref": "bm25",
+  "replicates": "20261121T151050Z-b17d6715",
+  "outcome": null,
+  "summary": "Полный русский архив 9d714d3, одинаковый API и PostgreSQL для всех пресетов."
+}
