@@ -146,6 +146,12 @@ button,
   line-height: 1.1;
 }
 
+.brand-logo {
+  display: block;
+  width: 172px;
+  height: auto;
+}
+
 .brand-subtitle {
   display: block;
   font-size: 11px;

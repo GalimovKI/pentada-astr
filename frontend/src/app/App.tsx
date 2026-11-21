@@ -6,6 +6,7 @@ import { EvaluationPanel } from "../features/evaluations/EvaluationPanel";
 import { MailSession } from "./MailSession";
 import { useTask } from "./useTask";
 import { validDate } from "./validation";
+import smartmailLogo from "../assets/smartmail-logo-vk.png";
 
 export function App() {
   const { data, pending, error, run } = useTask<Mailboxes>();
@@ -35,9 +36,14 @@ export function App() {
     <div className="app-shell">
       <header className="app-header">
         <a className="brand" href="#main">
-          <span>
-            Почта<span className="brand-subtitle">{dev ? "Dev-версия" : "Умный поиск"}</span>
-          </span>
+          {dev ? (
+            <>
+              <img className="brand-logo" src={smartmailLogo} alt="smartmail" width="1881" height="408" />
+              <span className="brand-subtitle">Dev-версия</span>
+            </>
+          ) : (
+            <span>Почта<span className="brand-subtitle">Умный поиск</span></span>
+          )}
         </a>
       </header>
       {dev && (
