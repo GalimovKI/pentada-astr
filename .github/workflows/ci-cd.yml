@@ -2,9 +2,9 @@ name: CI and deployment
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, dev]
   push:
-    branches: [main]
+    branches: [main, dev]
   workflow_dispatch:
 
 permissions:
@@ -40,6 +40,11 @@ jobs:
   frontend:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      matrix:
+        base: ["/main/", "/dev/"]
+    env:
+      APP_BASE_PATH: ${{ matrix.base }}
     defaults:
       run:
         working-directory: frontend
@@ -62,16 +67,18 @@ jobs:
     needs: [backend, frontend]
     if: >-
       github.repository == 'GalimovKI/pentada-astr' &&
-      github.ref == 'refs/heads/main' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: [self-hosted, Linux, X64, pentada-production]
     timeout-minutes: 40
     concurrency:
-      group: pentada-production
+      group: pentada-${{ github.ref_name }}
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
       - name: Build and deploy both hosts
+        env:
+          DEPLOY_ENVIRONMENT: ${{ github.ref_name }}
         run: python3 infra/ci/deploy.py

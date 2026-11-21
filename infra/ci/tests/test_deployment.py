@@ -12,14 +12,20 @@ SCRIPTS = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('edge', SCRIPTS / 'edge_receive.py')
 edge = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(edge)
+deploy_spec = importlib.util.spec_from_file_location('deploy', SCRIPTS / 'deploy.py')
+deploy = importlib.util.module_from_spec(deploy_spec)
+deploy_spec.loader.exec_module(deploy)
 
 
 class DeploymentTests(unittest.TestCase):
     def test_forced_command_rejects_shell_and_path_input(self):
-        for value in ('sh', 'stage ../../etc', 'activate aabbccd;id', 'current\nid', ''):
+        for value in ('sh', 'stage dev ../../etc', 'activate main aabbccd;id', 'current\nid',
+                      'current other', 'stage ' + 'a' * 40, ''):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 edge.command(value)
-        self.assertEqual(edge.command('stage ' + 'a' * 40), ('stage', 'a' * 40))
+        for environment in ('main', 'dev'):
+            self.assertEqual(edge.command('stage ' + environment + ' ' + 'a' * 40), ('stage', environment, 'a' * 40))
+            self.assertEqual(edge.command('current ' + environment), ('current', environment, None))
 
     def archive(self, name, kind=tarfile.REGTYPE):
         data = io.BytesIO()
@@ -46,17 +52,60 @@ class DeploymentTests(unittest.TestCase):
     def test_failed_edge_health_restores_previous_container_and_pointer(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
-            old, new = root / 'old', root / 'new'
+            env_root = root / 'environments' / 'dev'
+            env_root.mkdir(parents=True)
+            old, new = env_root / 'old', env_root / 'new'
             old.mkdir()
             new.mkdir()
             (new / 'compose.edge.yaml').touch()
-            (root / 'current').symlink_to(old)
+            (env_root / 'current').symlink_to(old)
             failure = subprocess.CalledProcessError(1, 'compose')
             with patch.object(edge, 'ROOT', root), patch.object(edge, 'compose', side_effect=[failure, None]) as compose:
                 with self.assertRaises(subprocess.CalledProcessError):
-                    edge.activate(new)
-                self.assertEqual(compose.call_args_list[1].args[0], old)
-                self.assertEqual((root / 'current').resolve(), old)
+                    edge.activate('dev', new)
+                self.assertEqual(compose.call_args_list[1].args[:2], ('dev', old))
+                self.assertEqual((env_root / 'current').resolve(), old)
+
+    def test_dev_activation_does_not_change_main_pointer(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            for environment in ('main', 'dev'):
+                env_root = root / 'environments' / environment
+                (env_root / 'old').mkdir(parents=True)
+                (env_root / 'current').symlink_to(env_root / 'old')
+            new = root / 'environments/dev/new'
+            new.mkdir()
+            (new / 'compose.edge.yaml').touch()
+            with patch.object(edge, 'ROOT', root), patch.object(edge, 'compose'), patch.object(edge, 'check'):
+                edge.activate('dev', new)
+            self.assertEqual((root / 'environments/dev/current').resolve(), new)
+            self.assertEqual((root / 'environments/main/current').resolve(), root / 'environments/main/old')
+
+    def test_compose_ports_images_and_projects_are_separate(self):
+        configs = []
+        for environment in ('main', 'dev'):
+            with patch.object(edge.subprocess, 'run') as run:
+                edge.compose(environment, Path('/releases/' + 'a' * 40), 'build', 'web')
+                configs.append(run.call_args)
+        self.assertNotEqual(configs[0].args[0][3], configs[1].args[0][3])
+        for key in ('APP_IMAGE_TAG', 'APP_BASE_PATH', 'SITE_ADDRESS', 'TUNNEL_PORT', 'WEB_HEALTH_PORT'):
+            self.assertNotEqual(configs[0].kwargs['env'][key], configs[1].kwargs['env'][key])
+        for config in configs:
+            self.assertEqual(config.kwargs['env']['WEB_BIND'], '127.0.0.1')
+
+    def test_duplicate_origin_project_or_root_is_rejected(self):
+        for dev_root, dev_project in (('/tmp/main', 'dev'), ('/tmp/dev', 'main')):
+            config = {'environments': {'main': {'origin_root': '/tmp/main', 'origin_project': 'main'},
+                                      'dev': {'origin_root': dev_root, 'origin_project': dev_project}}}
+            with self.assertRaises(ValueError):
+                deploy.settings(config, 'dev')
+
+    def test_old_origin_image_tag_remains_usable_for_rollback(self):
+        with tempfile.TemporaryDirectory() as directory:
+            release = Path(directory)
+            self.assertEqual(deploy.image_tag(release, 'main'), release.name)
+            (release / 'DEPLOYMENT_ENV').write_text('main\n')
+            self.assertEqual(deploy.image_tag(release, 'main'), 'main-' + release.name)
 
     def test_runner_guard_blocks_prs_branches_and_other_workflows(self):
         env = {**os.environ, 'GITHUB_REPOSITORY': 'GalimovKI/pentada-astr',
@@ -68,6 +117,8 @@ class DeploymentTests(unittest.TestCase):
                                   env={**env, **extra}, capture_output=True).returncode
         self.assertEqual(check({}), 0)
         self.assertEqual(check({'GITHUB_EVENT_NAME': 'workflow_dispatch'}), 0)
+        self.assertEqual(check({'GITHUB_REF': 'refs/heads/dev',
+                                'GITHUB_WORKFLOW_REF': 'GalimovKI/pentada-astr/.github/workflows/ci-cd.yml@refs/heads/dev'}), 0)
         for extra in ({'GITHUB_EVENT_NAME': 'pull_request'},
                       {'GITHUB_REF': 'refs/heads/feature'},
                       {'GITHUB_WORKFLOW_REF': 'another-workflow'},

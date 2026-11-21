@@ -50,7 +50,7 @@ async function request<T>(
 ): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`/api/v1${path}`, {
+    response = await fetch(`${import.meta.env.BASE_URL}api/v1${path}`, {
       signal,
       ...(body
         ? {

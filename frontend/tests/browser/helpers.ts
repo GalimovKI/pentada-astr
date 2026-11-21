@@ -18,6 +18,12 @@ export async function mockApi(
 ) {
   await page.route("**/api/v1/**", async (route) => {
     const url = new URL(route.request().url());
+    const base = process.env.APP_BASE_PATH || "/";
+    if (base !== "/") {
+      if (!url.pathname.startsWith(base + "api/"))
+        throw new Error(`API request escaped environment: ${url.pathname}`);
+      url.pathname = "/" + url.pathname.slice(base.length);
+    }
     if (custom && (await custom(route, url))) return;
     if (url.pathname === "/api/v1/mailboxes")
       return reply(route, { items: ["box-a", "box-b"] });

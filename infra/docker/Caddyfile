@@ -2,22 +2,26 @@
 	admin off
 }
 
-http://127.0.0.1:8081 {
+http://127.0.0.1:{$WEB_HEALTH_PORT:8081} {
 	bind 127.0.0.1
 	respond /health/web "live" 200
 }
 
 {$SITE_ADDRESS:http://:80} {
+	bind {$WEB_BIND:0.0.0.0}
 	# Access logging is intentionally disabled: URLs contain mailbox/message IDs.
 	encode gzip
-	@api path /api /api/* /health /health/* /docs /docs/* /redoc /openapi.json
-	handle @api {
-		header Cache-Control "no-store"
-		reverse_proxy {$API_UPSTREAM:backend:8000}
+	handle_path {$APP_BASE_PATH:/}* {
+		@api path /api /api/* /health /health/* /docs /docs/* /redoc /openapi.json
+		handle @api {
+			header Cache-Control "no-store"
+			reverse_proxy {$API_UPSTREAM:backend:8000}
+		}
+		handle {
+			root * /srv
+			header Cache-Control "no-cache"
+			file_server
+		}
 	}
-	handle {
-		root * /srv
-		header Cache-Control "no-cache"
-		file_server
-	}
+	respond 404
 }
