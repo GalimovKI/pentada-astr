@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "20261121T201157Z-15adbe56",
+  "kind": "finding",
+  "owner": "Fu22210",
+  "status": "running",
+  "updated_at": "2026-11-21T20:11:57.420491+00:00",
+  "title": "Серверный E5 с точным косинусным поиском в dev",
+  "hypothesis": null,
+  "code_branch": "dev",
+  "code_commit": "ea8c2f4b3cebb0b99b230eb9fe93f13d26def5f5",
+  "baseline_ref": null,
+  "replicates": null,
+  "outcome": null
+}
