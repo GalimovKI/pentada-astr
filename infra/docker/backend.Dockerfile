@@ -1,10 +1,18 @@
+ARG DEPENDENCIES_SEED_IMAGE=empty-dependency-seed
 FROM ghcr.io/astral-sh/uv:0.9.11@sha256:5aa820129de0a600924f166aec9cb51613b15b68f1dcd2a02f31a500d2ede568 AS uv
 FROM python:3.12.12-slim-bookworm@sha256:593bd06efe90efa80dc4eee3948be7c0fde4134606dd40d8dd8dbcade98e669c AS python-base
+
+# A trusted previous backend image can supply already installed CUDA wheels.
+# Copy only its venv; keep the OS/Python/runtime settings pinned above.
+FROM python-base AS empty-dependency-seed
+RUN mkdir -p /app/backend/.venv
+FROM ${DEPENDENCIES_SEED_IMAGE} AS dependency-seed
 
 FROM python-base AS dependencies
 COPY --from=uv /uv /usr/local/bin/uv
 ENV UV_LINK_MODE=copy UV_HTTP_TIMEOUT=120
 WORKDIR /app/backend
+COPY --from=dependency-seed /app/backend/.venv ./.venv
 COPY backend/pyproject.toml backend/uv.lock ./
 ARG TARGETARCH
 ARG INCLUDE_MINILM=0
@@ -16,11 +24,30 @@ RUN --mount=type=cache,id=pentada-uv-${TARGETARCH},target=/root/.cache/uv \
     elif [ "$INCLUDE_MINILM" = "1" ]; then set -- --extra minilm; else set --; fi; \
     uv sync --locked --no-dev --no-editable --no-install-project --python /usr/local/bin/python "$@"
 
-# Source edits rebuild only the installed application, not its dependencies.
-FROM dependencies AS build
+# Resolve build tools once per pyproject, not on every source edit. Keep them
+# outside the runtime venv, and prefer the local cache when PyPI is unreachable.
+FROM dependencies AS build-tools
+RUN --mount=type=cache,id=pentada-uv-${TARGETARCH},target=/root/.cache/uv /usr/local/bin/python - <<'PY'
+import subprocess
+import tomllib
+from pathlib import Path
+
+subprocess.run(["uv", "venv", "--python", "/usr/local/bin/python", "/opt/build-env"], check=True)
+requirements = tomllib.loads(Path("pyproject.toml").read_text())["build-system"]["requires"]
+command = ["uv", "pip", "install", "--python", "/opt/build-env/bin/python", *requirements]
+cached = subprocess.run([*command, "--offline"], capture_output=True, text=True)
+if cached.returncode:
+    print("Build tools are not cached; fetching build-system.requires", flush=True)
+    subprocess.run(command, check=True)
+else:
+    print(cached.stdout + cached.stderr, end="")
+PY
+
+# Source edits rebuild only our wheel. No package index access is needed here.
+FROM build-tools AS build
 COPY backend/src ./src
-RUN --mount=type=cache,id=pentada-uv-${TARGETARCH},target=/root/.cache/uv \
-    uv build --wheel --out-dir /dist
+RUN --network=none uv build --offline --no-build-isolation \
+    --python /opt/build-env/bin/python --wheel --out-dir /dist
 
 # Model stages depend only on the fetch scripts, platform and model arguments.
 # Keep MiniLM and E5 independent of each other and of the Python environment.

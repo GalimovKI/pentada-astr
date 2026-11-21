@@ -4,6 +4,8 @@ x-backend: &backend
   build:
     context: .
     dockerfile: infra/docker/backend.Dockerfile
+    args:
+      DEPENDENCIES_SEED_IMAGE: ${BACKEND_DEPENDENCIES_SEED_IMAGE:-empty-dependency-seed}
   environment:
     DATABASE_URL: ${DATABASE_URL:?Set container DATABASE_URL with host db}
     SEARCH_ENGINE_FACTORY: ${SEARCH_ENGINE_FACTORY:-mail_search.core.engine:load_event_aware}
