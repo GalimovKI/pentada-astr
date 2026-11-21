@@ -703,3 +703,20 @@ mark {
   background: #ffeb9e;
   border-radius: 2px;
 }
+
+.app-layout[hidden] { display: none; }
+.dev-nav { display: flex; gap: 4px; }
+.dev-nav a { padding: 7px 10px; color: #515964; text-decoration: none; border-radius: 6px; }
+.dev-nav a[aria-current="page"] { background: #e5efff; color: #174f97; }
+.eval-page { max-width: 920px; margin: 28px auto; padding: clamp(16px, 4vw, 32px); background: white; border-radius: 12px; }
+.eval-form { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin: 22px 0; }
+.eval-form label { flex: 1 1 180px; }
+.eval-form select { display: block; margin-top: 6px; }
+.eval-result { border-top: 1px solid #e3e6ea; padding-top: 20px; }
+.eval-result p { margin: 6px 0; }
+.eval-result progress { width: 100%; }
+.eval-table { overflow-x: auto; margin: 20px 0; }
+.eval-table table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.eval-table caption { text-align: left; margin-bottom: 8px; font-weight: 600; }
+.eval-table td, .eval-table th { text-align: right; padding: 8px; border-bottom: 1px solid #e5e7eb; }
+.eval-table thead { background: #f6f8fb; }

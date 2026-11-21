@@ -91,3 +91,9 @@ def page_integer(value):
 
 
 PageLimit = Annotated[int, BeforeValidator(page_integer)]
+
+
+class EvaluationSelection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    model: str = Field(max_length=64)
+    dataset: str = Field(max_length=64)

@@ -32,6 +32,32 @@ class ApiTests(PostgreSQLTestCase):
         return client.post("/api/v1/mailboxes/a/search", json={
             **dict(query="чек", query_date="2025-01-02", limit=3), **changes})
 
+    def test_evaluation_modes_and_artifacts(self):
+        from pathlib import Path
+        import json
+        import time
+
+        with self.client() as client:
+            self.assertFalse(client.get("/api/v1/features").json()["evaluations"])
+            self.assertEqual(client.get("/api/v1/evaluations").status_code, 404)
+        folder = Path(self.temp.name) / "runs"
+        settings = Settings(database_url=self.engine.url.render_as_string(hide_password=False),
+                            search_dataset=self.path, evaluation_dir=folder, enable_evaluations=True)
+        with TestClient(create_app(settings)) as client:
+            url = "/api/v1/evaluations"
+            self.assertTrue(client.get("/api/v1/features").json()["evaluations"])
+            self.assertEqual(client.post(url, json={"model": "unknown", "dataset": "mail-public"}).status_code, 422)
+            reply = client.post(url, json={"model": "bm25", "dataset": "mail-public"})
+            self.assertEqual(reply.status_code, 202)
+            deadline = time.monotonic() + 20
+            while (job := client.get(url).json()["run"])["status"] == "running" and time.monotonic() < deadline:
+                time.sleep(.05)
+            self.assertEqual(job["status"], "completed")
+            self.assertEqual(job["metrics"]["failed_queries"], 0)
+            self.assertEqual(job["samples"], job["total"])
+            self.assertGreater(job["p99_ms"], 0)
+            self.assertEqual(json.loads((folder / job["id"] / "metrics.json").read_text()), job["metrics"])
+
     def test_http_flow(self):
         with self.client() as c:
             self.assertEqual(c.get("/health/live").json(), {"status": "live"})

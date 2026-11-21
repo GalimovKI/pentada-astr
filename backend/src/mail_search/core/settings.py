@@ -11,6 +11,8 @@ LEGACY_SEARCH_CONFIG = repository_root() / "configs/search/bm25-stemmed.json"
 
 class Settings(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    enable_evaluations: bool = False
+    evaluation_dir: Path = Path.home() / ".local/state/pentada/evaluations"
     database_url: SecretStr
     search_engine_factory: str = Field(default=DEFAULT_SEARCH_FACTORY, pattern=r"^[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*:[A-Za-z_]\w*$")
     search_config: Path = DEFAULT_SEARCH_CONFIG

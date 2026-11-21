@@ -39,6 +39,23 @@ export interface SearchBody {
   query_date: string;
   limit: number;
 }
+type EvalSelection = { model: string; dataset: string };
+type MetricRow = { recall: number; ndcg: number; mrr: number; mrr_single: number | null };
+type EvalOption = { id: string; name: string };
+export interface EvaluationCatalog {
+  models: EvalOption[];
+  datasets: EvalOption[];
+  run: (EvalSelection & {
+    id: string;
+    status: "running" | "completed" | "partial" | "failed";
+    phase: string;
+    completed: number;
+    total: number | null;
+    metrics?: { failed_queries: number; single_relevant_queries: number; by_k: Record<string, MetricRow> };
+    p99_ms?: number | null;
+    samples?: number;
+  }) | null;
+}
 export const QUERY_MAX_LENGTH = 4000;
 
 export class ApiError extends Error {
@@ -53,7 +70,7 @@ export class ApiError extends Error {
 async function request<T>(
   path: string,
   signal: AbortSignal,
-  body?: SearchBody,
+  body?: SearchBody | EvalSelection,
 ): Promise<T> {
   let response: Response;
   try {
@@ -104,6 +121,10 @@ async function request<T>(
 const mailboxPath = (context: Context) =>
   `/mailboxes/${encodeURIComponent(context.mailbox)}`;
 export const api = {
+  features: (signal: AbortSignal) => request<{ evaluations: boolean }>("/features", signal),
+  evaluations: (signal: AbortSignal) => request<EvaluationCatalog>("/evaluations", signal),
+  startEvaluation: (model: string, dataset: string, signal: AbortSignal) =>
+    request<EvaluationCatalog>("/evaluations", signal, { model, dataset }),
   mailboxes: (signal: AbortSignal) => request<Mailboxes>("/mailboxes", signal),
   messages: (context: Context, signal: AbortSignal, cursor?: string) => {
     const params = new URLSearchParams({
@@ -134,6 +155,7 @@ export const api = {
 export function errorMessage(error: unknown): string {
   if (!(error instanceof ApiError))
     return "Не удалось получить ответ сервиса. Повторите попытку.";
+  if (error.code === "evaluation_running") return "На сервере уже идёт прогон. Обновите статус.";
   if (error.code === "mailbox_not_found")
     return "Ящик не найден. Выберите другой ящик.";
   if (error.code === "message_not_found" || error.status === 404)

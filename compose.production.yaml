@@ -9,6 +9,7 @@ x-backend: &backend
     SEARCH_ENGINE_FACTORY: ${SEARCH_ENGINE_FACTORY:-mail_search.core.engine:load_event_aware}
     SEARCH_CONFIG: ${SEARCH_CONFIG:-/app/configs/search/bm25-event-aware.json}
     SEARCH_DATASET: ${SEARCH_DATASET:-/data/corpus.zip}
+    ENABLE_EVALUATIONS: ${ENABLE_EVALUATIONS:-false}
   volumes:
     - type: bind
       source: ${CORPUS_PATH:?Set host CORPUS_PATH}

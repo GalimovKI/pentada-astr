@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, type Mailboxes } from "../api/client";
 import { Failure, Loading } from "../components/Status";
 import { MailboxPicker } from "../features/mailboxes/MailboxPicker";
+import { EvaluationPanel } from "../features/evaluations/EvaluationPanel";
 import { MailSession } from "./MailSession";
 import { useTask } from "./useTask";
 import { validDate } from "./validation";
@@ -13,6 +14,16 @@ export function App() {
   useEffect(() => {
     void run(api.mailboxes);
   }, [run]);
+  const features = useTask<{ evaluations: boolean }>();
+  const { run: loadFeatures } = features;
+  const [view, setView] = useState(window.location.hash);
+  useEffect(() => {
+    void loadFeatures(api.features);
+    const update = () => setView(window.location.hash);
+    window.addEventListener("hashchange", update);
+    return () => window.removeEventListener("hashchange", update);
+  }, [loadFeatures]);
+  const showEvaluation = features.data?.evaluations === true && view === "#evaluations";
   const selected = mailbox || data?.items[0] || "";
   const dateValid = validDate(date);
   return (
@@ -23,8 +34,13 @@ export function App() {
             Почта<span className="brand-subtitle">Умный поиск</span>
           </span>
         </a>
+        {features.data?.evaluations === true && <nav className="dev-nav" aria-label="Разделы dev-сайта">
+          <a href="#main" aria-current={showEvaluation ? undefined : "page"}>Почта</a>
+          <a href="#evaluations" aria-current={showEvaluation ? "page" : undefined}>Оценка моделей</a>
+        </nav>}
       </header>
-      <main id="main" className="app-layout">
+      {showEvaluation && <EvaluationPanel />}
+      <main id="main" className="app-layout" hidden={showEvaluation}>
         <aside className="sidebar" aria-label="Контекст сценария">
           <div>
             <span className="eyebrow">Почта</span>

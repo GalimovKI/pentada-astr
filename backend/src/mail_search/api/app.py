@@ -11,6 +11,7 @@ from starlette.exceptions import HTTPException
 from starlette.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 from sqlalchemy.exc import SQLAlchemyError
+from ..application.evaluations import Evaluations
 from ..application.mail import MailService, ServiceError
 from ..core.engine import LoadedEngine
 from ..core.settings import Settings
@@ -18,7 +19,7 @@ from ..storage.database import database_engine
 from ..storage.repository import MailStore, UnknownMailbox
 from . import cursors
 from .models import (ErrorResponse, Health, Mailboxes, Messages, MessageResponse,
-                     SearchResponse, SearchBody, ScenarioDate, PageLimit)
+                     SearchResponse, SearchBody, ScenarioDate, PageLimit, EvaluationSelection)
 
 logger = logging.getLogger("mail_search.api")
 
@@ -29,10 +30,13 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
         executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="search-engine")
         db = loaded = None
         app.state.service = None
+        app.state.evaluations = None
         try:
             stage = "settings"
             try:
                 config = settings if settings is not None else Settings.from_env()
+                if config.enable_evaluations:
+                    app.state.evaluations = Evaluations(config, create_app)
                 stage = "database_configuration"
                 db = database_factory(config.database_url.get_secret_value())
                 def initialize():
@@ -58,6 +62,8 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
                 if loaded is not None:
                     await run_in_threadpool(lambda: executor.submit(loaded.close).result())
             finally:
+                if app.state.evaluations is not None:
+                    await run_in_threadpool(app.state.evaluations.close)
                 await run_in_threadpool(executor.shutdown)
                 if db is not None:
                     await run_in_threadpool(db.dispose)
@@ -111,6 +117,25 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
             raise ServiceError(503, "service_unavailable")
         result.ready()
         return result
+
+    @app.get("/api/v1/features")
+    def features():
+        return {"evaluations": app.state.evaluations is not None}
+
+    def evaluations():
+        if app.state.evaluations is None:
+            raise ServiceError(404, "evaluations_disabled")
+        return app.state.evaluations
+
+    @app.get("/api/v1/evaluations")
+    def evaluation_catalog():
+        return evaluations().catalog()
+
+    @app.post("/api/v1/evaluations", status_code=202)
+    def start_evaluation(selection: EvaluationSelection):
+        manager = evaluations()
+        manager.start(selection.model, selection.dataset)
+        return manager.catalog()
 
     @app.get("/health/live", response_model=Health)
     async def live():
