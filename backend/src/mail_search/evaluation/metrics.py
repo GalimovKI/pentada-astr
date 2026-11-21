@@ -17,12 +17,3 @@ def metrics_at_k(ranking: Sequence[str], qrels: Mapping[str, int], k: int) -> di
         "ndcg": dcg / ideal if ideal else 0.0,
         "mrr": next((1 / (rank + 1) for rank, gain in enumerate(gains) if gain), 0.0),
     }
-
-
-def percentile(values: Sequence[float], quantile: float) -> float | None:
-    """Empirical nearest-rank percentile; 99 observations make p99 their maximum."""
-    if not 0 < quantile <= 1:
-        raise ValueError("quantile must be in (0, 1]")
-    if not values:
-        return None
-    return sorted(values)[math.ceil(quantile * len(values)) - 1]

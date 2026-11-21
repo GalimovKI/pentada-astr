@@ -3,40 +3,22 @@ import hashlib
 import importlib
 import json
 import platform
-import subprocess
 import sys
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from time import perf_counter_ns
 
-from .data import ValidationError, load_dataset
-from .evaluation import evaluate, format_report, latency_summary, read_predictions, run_engine, write_run
+from .benchmarks.latency import latency_summary
+from .core.errors import ValidationError
+from .core.paths import repository_root
+from .core.provenance import code_version
+from .ingestion.dataset import load_dataset
+from .evaluation.runner import evaluate, format_report, read_predictions, run_engine, write_run
 
-DEFAULT_DATASET = "data/raw/mipt_mail_search_participants.zip"
-DEFAULT_ENGINE = "mailsearch.baseline:create_engine"
+DEFAULT_DATASET = repository_root() / "data/raw/mipt_mail_search_participants.zip"
+DEFAULT_ENGINE = "mail_search.search.bm25:create_engine"
 DEFAULT_KS = [1, 5, 10, 20, 50, 100]
-
-
-def code_version(engine_module=None) -> dict:
-    files = {p.name: p for p in Path(__file__).parent.glob("*.py")}
-    if engine_module is not None and getattr(engine_module, "__file__", None):
-        path = Path(engine_module.__file__)
-        if path not in files.values():
-            files[f"engine:{engine_module.__name__}"] = path
-    digest = hashlib.sha256()
-    for name, path in sorted(files.items()):
-        digest.update(name.encode() + b"\0" + path.read_bytes())
-    result = {"sha256": digest.hexdigest(), "git_commit": None, "git_dirty": None}
-    root = Path(__file__).resolve().parent.parent
-    try:
-        commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True, timeout=5)
-        status = subprocess.run(["git", "status", "--porcelain"], cwd=root, capture_output=True, text=True, timeout=5)
-        if commit.returncode == status.returncode == 0:
-            result.update(git_commit=commit.stdout.strip(), git_dirty=bool(status.stdout.strip()))
-    except (OSError, subprocess.TimeoutExpired):
-        pass
-    return result
 
 
 def compare_runs(left: Path, right: Path) -> str:

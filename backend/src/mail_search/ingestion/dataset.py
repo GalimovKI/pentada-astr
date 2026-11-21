@@ -9,13 +9,10 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-from .models import Document, Query
+from ..core.errors import ValidationError
+from ..domain.models import Document, Query
 
 FILES = ("README.md", "documents.jsonl", "queries_dev.jsonl", "qrels_dev.jsonl")
-
-
-class ValidationError(ValueError):
-    pass
 
 
 @dataclass(frozen=True)

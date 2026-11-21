@@ -6,9 +6,10 @@ from pathlib import Path
 from statistics import fmean
 from time import perf_counter_ns
 
-from .data import Dataset, ValidationError
-from .metrics import metrics_at_k, percentile
-from .models import Query, SearchEngine
+from ..core.errors import ValidationError
+from ..domain.models import Query, SearchEngine
+from ..ingestion.dataset import Dataset
+from .metrics import metrics_at_k
 
 
 def validate_ranking(dataset: Dataset, query: Query, ranking: list[str]) -> None:
@@ -64,17 +65,6 @@ def run_engine(dataset: Dataset, engine: SearchEngine, k: int) -> tuple[dict, di
             errors[query.query_id] = f"{type(exc).__name__}: {exc}"
             predictions[query.query_id] = []
     return predictions, durations, errors
-
-
-def latency_summary(durations: dict[str, float]) -> dict:
-    values = list(durations.values())
-    return {
-        "scope": "in_process_engine_call", "mode": "sequential_one_pass_no_explicit_warmup",
-        "unit": "ms", "samples": len(values), "percentile_method": "nearest_rank",
-        "p50": percentile(values, 0.5), "p95": percentile(values, 0.95),
-        "p99": percentile(values, 0.99), "max": max(values) if values else None,
-        "official_server_p99_measured": False,
-    }
 
 
 def evaluate(dataset: Dataset, predictions: dict[str, list[str]], ks: list[int],

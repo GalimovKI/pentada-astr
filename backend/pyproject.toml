@@ -10,7 +10,8 @@ requires-python = ">=3.11"
 dependencies = []
 
 [project.scripts]
-mailsearch = "mailsearch.cli:main"
+mailsearch = "mail_search.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["mailsearch*"]
+where = ["src"]
+include = ["mail_search*"]

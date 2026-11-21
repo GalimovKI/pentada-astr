@@ -1,44 +1,13 @@
 """A lexical BM25 baseline with mailbox and query-date constraints."""
 
 import math
-import re
-import unicodedata
-from collections import Counter, defaultdict
-from datetime import date, timedelta
+from collections import defaultdict
 from heapq import nsmallest
 
-from .models import Document, SearchHit, SearchRequest
-
-MONTHS = {name: i for i, name in enumerate(("января", "февраля", "марта", "апреля", "мая",
-          "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"), 1)}
-RUSSIAN_DATE = re.compile(r"\b(\d{1,2})\s+(" + "|".join(MONTHS) + r")\s+(\d{4})(?:\s+года)?\b")
-ISO_DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
-RELATIVE = re.compile(r"\b(позавчера|вчера|сегодня)\b")
-
-
-def normalize(text: str) -> str:
-    return unicodedata.normalize("NFKC", text).casefold().replace("ё", "е")
-
-
-def tokenize(text: str) -> list[str]:
-    return re.findall(r"[^\W_]+", normalize(text))
-
-
-def target_day(text: str, anchor: date) -> tuple[date | None, str]:
-    """Recognize a single day. Ambiguous/multiple dates are left to lexical search."""
-    text = normalize(text)
-    matches = []
-    for match in RELATIVE.finditer(text):
-        delta = {"сегодня": 0, "вчера": 1, "позавчера": 2}[match[1]]
-        matches.append((anchor - timedelta(days=delta), match.span()))
-    for match in RUSSIAN_DATE.finditer(text):
-        matches.append((date(int(match[3]), MONTHS[match[2]], int(match[1])), match.span()))
-    for match in ISO_DATE.finditer(text):
-        matches.append((date.fromisoformat(match[0]), match.span()))
-    if len(matches) != 1:
-        return None, text
-    day, (start, end) = matches[0]
-    return day, text[:start] + " " + text[end:]
+from ..domain.models import Document, SearchHit, SearchRequest
+from ..indexing.bm25 import build_bm25_index
+from ..indexing.text import tokenize
+from .dates import target_day
 
 
 class BM25Engine:
@@ -52,19 +21,7 @@ class BM25Engine:
             raise ValueError("date_filter must be a boolean")
         self.config = {"k1": k1, "b": b, "date_filter": date_filter}
         self.documents = {d.doc_id: d for d in documents}
-        self.boxes = {}
-        grouped = defaultdict(list)
-        for document in documents:
-            grouped[document.synthetic_user].append(document)
-        for user, items in grouped.items():
-            postings = defaultdict(list)
-            lengths = {}
-            for document in items:
-                tokens = tokenize(document.doc)
-                lengths[document.doc_id] = len(tokens)
-                for term, frequency in Counter(tokens).items():
-                    postings[term].append((document.doc_id, frequency))
-            self.boxes[user] = (postings, lengths, sum(lengths.values()) / len(items) or 1.0)
+        self.boxes = build_bm25_index(documents)
 
     def search(self, request: SearchRequest, k: int) -> list[SearchHit]:
         if not request.query.strip() or k < 1:
@@ -73,7 +30,8 @@ class BM25Engine:
             raise ValueError(f"unknown mailbox: {request.synthetic_user}")
         day, text = (target_day(request.query, request.query_date) if self.config["date_filter"]
                      else (None, request.query))
-        postings, lengths, average = self.boxes[request.synthetic_user]
+        index = self.boxes[request.synthetic_user]
+        postings, lengths, average = index.postings, index.lengths, index.average_length
         scores = defaultdict(float)
         for term in sorted(set(tokenize(text))):
             entries = postings.get(term, ())
