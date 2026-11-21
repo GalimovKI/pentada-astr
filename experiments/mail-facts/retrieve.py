@@ -50,7 +50,7 @@ def tagged_days(row):
 def describe(ids, facts):
     rows = [facts[i] for i in ids]
     return dict(rows=len(rows), errors=sum("error" in r for r in rows),
-                finish_reasons=dict(Counter(r["finish_reason"] for r in rows)),
+                finish_reasons=dict(Counter(r.get("finish_reason", "transformers") for r in rows)),
                 senders=dict(Counter(r["sender_source"] for r in rows if r.get("sender"))),
                 any_normalized_day=sum(bool(tagged_days(r)) for r in rows),
                 dates_by_role=dict(Counter(role for r in rows for role, _ in tagged_days(r))),
@@ -129,7 +129,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     for name in ("archive","index","facts","out"):
         p.add_argument(name, type=Path)
-    p.add_argument("--repairs", type=Path)
+    p.add_argument("--repairs", type=Path, action="append", default=[])
     args = p.parse_args()
     groups = datasets(args.archive)
     required = set()
@@ -137,9 +137,9 @@ def main():
         required.update(ds.documents)
         required.update(q.query_id for q in ds.queries)
     facts = load_facts(args.facts, required)
-    if args.repairs:
+    for repairs in args.repairs:
         failed = {i for i, r in facts.items() if "error" in r}
-        facts.update(load_facts(args.repairs, failed))
+        facts.update(load_facts(repairs, failed))
     encoder = Encoder("e5", "cuda")
     with np.load(args.index) as idx:
         if (str(idx["archive_sha"]) != hashlib.sha256(args.archive.read_bytes()).hexdigest()
