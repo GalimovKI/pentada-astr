@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "20261121T205700Z-51ff8eac",
+  "kind": "experiment",
+  "owner": "Fu22210",
+  "status": "running",
+  "updated_at": "2026-11-21T20:57:00.797170+00:00",
+  "title": "Пороги отбора писем отдельно для каждого dev-движка",
+  "hypothesis": "Подбор порога по macro-F1 улучшит набор показанных писем относительно top-10.",
+  "code_branch": "dev",
+  "code_commit": null,
+  "baseline_ref": "d2ca7bd5b401f4ca6805f3f8e9772db0267a067f",
+  "replicates": null,
+  "outcome": null
+}
