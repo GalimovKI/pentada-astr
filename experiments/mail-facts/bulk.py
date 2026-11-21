@@ -34,7 +34,7 @@ def main():
         manifest.write_text(json.dumps(signature))
     tokenizer = AutoTokenizer.from_pretrained(args.model)
     model = LLM(model=str(args.model), dtype="bfloat16", max_model_len=16384, seed=0,
-                gpu_memory_utilization=args.gpu_fraction, max_num_seqs=96, max_num_batched_tokens=8192,
+                gpu_memory_utilization=args.gpu_fraction, kv_cache_memory_bytes=8 * 1024**3, max_num_seqs=96, max_num_batched_tokens=8192,
                 enable_prefix_caching=True, enforce_eager=True)
     sampling = SamplingParams(temperature=0, max_tokens=512, seed=0)
     start = time.monotonic()
