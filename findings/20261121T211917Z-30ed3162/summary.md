@@ -29,3 +29,20 @@ GPUrebuild8.367s, экспорт0.7s (один замер с прогретым 
 GPUинференс/eval не повторялись: изменена только упаковка. Серверы не тронуты.
 Кеш требует постоянного builder; первая новая сборка/очистка/новые версии требуют
 загрузок. Типичные правки исходников больше не требуют загрузки CUDA/моделей.
+
+## First CI deployment after publication
+
+Run 44951289621 (e5355d1): backend and both frontend test jobs succeeded.
+Deploy started 2026-11-21T21:24:29Z; at 21:46 UTC it was still downloading GPU
+dependencies into the new server cache mount. E5 fetch took 8.5s; model fetch
+processes had exited. uv is making progress: 7,455,739 bytes written over 12s.
+A subsequent 6.06s sample of its TCP connection received 2,284,408 bytes
+(368.2 KiB/s). This is a cold cache fill on the academic host; the local cache
+was not transferred there. Job timeout is 40 minutes; completion is not yet
+confirmed. The 8.37s result above applies only to the local warm rebuild.
+
+Deployed dev remains d2ca7bd; main/dev backend and DB containers healthy, API
+readiness ready, public /dev/ and /dev/api/v1/mailboxes HTTP200. /home has
+92GiB available, memory available 120GiB. No job cancellation/restart or server
+configuration/code changes were made during this read-only investigation.
+Source: https://github.com/GalimovKI/pentada-astr/actions/runs/44951289621
