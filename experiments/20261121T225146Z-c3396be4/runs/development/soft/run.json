@@ -1,0 +1,81 @@
+{
+  "format_version": 1,
+  "created_at": "2026-11-21T22:54:13.599720+00:00",
+  "dataset": {
+    "fingerprint": "4ea402a5a545fbdfb8287884e22ed74a48846d49be057ef55729d9d76225197f",
+    "sha256": {
+      "README.md": "c940338786f66cf1202174ef16c903ecdd6c4dec27b2224ca1141030e75b877f",
+      "documents.jsonl": "06feb4791a52faeb777f1a8d4c22d99efd26a279943a19bdfbd0b14bc9c8daa5",
+      "queries_dev.jsonl": "b696e16e5de3703d61f076d397b64b88cc11a507cbd7d675e89cb9e9d431f1ee",
+      "qrels_dev.jsonl": "96a9a667f459661f4d0a98e9bd0f05ae31004c2608f25e37b072a20091004948"
+    },
+    "documents": 16376,
+    "queries": 190,
+    "qrels": 6278,
+    "mailboxes": 12,
+    "unknown_document_dates": 433,
+    "single_relevant_queries": 4,
+    "queries_without_relevant_documents": 0,
+    "documents_by_mailbox": {
+      "box-12259a301ee2": 2401,
+      "box-2d28af4e4602": 1784,
+      "box-84bd433469cb": 720,
+      "box-84dd8d9560e6": 902,
+      "box-90560850fd8e": 713,
+      "box-a55c522c6949": 561,
+      "box-a971835ab404": 980,
+      "box-d7961fc39a68": 1459,
+      "box-dfac33a7123c": 1094,
+      "box-f9410417c091": 3010,
+      "box-fad2b057e79a": 1955,
+      "box-fda57474896e": 797
+    },
+    "queries_by_mailbox": {
+      "box-2d28af4e4602": 28,
+      "box-84bd433469cb": 28,
+      "box-84dd8d9560e6": 24,
+      "box-a971835ab404": 28,
+      "box-d7961fc39a68": 28,
+      "box-dfac33a7123c": 28,
+      "box-f9410417c091": 26
+    }
+  },
+  "python": "3.14.7",
+  "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+  "machine": "arm64",
+  "ks": [
+    1,
+    5,
+    10,
+    20,
+    50,
+    100
+  ],
+  "source": "development",
+  "engine": "mail_search.search.receipt_period:create_engine",
+  "engine_config": {
+    "mode": "soft"
+  },
+  "supplied_config": {
+    "mode": "soft"
+  },
+  "engine_build_ms": 8969.843,
+  "engine_latency": {
+    "scope": "in_process_engine_call",
+    "mode": "sequential_one_pass_no_explicit_warmup",
+    "unit": "ms",
+    "samples": 190,
+    "percentile_method": "nearest_rank",
+    "p50": 2.275417,
+    "p95": 7.516041,
+    "p99": 9.843042,
+    "max": 10.248125,
+    "official_server_p99_measured": false
+  },
+  "code": {
+    "sha256": "18dffc62c0198f524fbc50a8ffcd172a930f77ad9c7c8f5b194fdd6799a674a6",
+    "git_commit": "fb964f0765000ec96b3c80375c9cf0b86cb522dc",
+    "git_dirty": true
+  },
+  "status": "ok"
+}

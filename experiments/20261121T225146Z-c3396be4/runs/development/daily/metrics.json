@@ -1,0 +1,44 @@
+{
+  "queries": 190,
+  "failed_queries": 0,
+  "single_relevant_queries": 4,
+  "aggregation": "macro; no-relevant queries receive zero; failed queries retained",
+  "by_k": {
+    "1": {
+      "recall": 0.11925933336720644,
+      "ndcg": 0.7,
+      "mrr": 0.7,
+      "mrr_single": 1.0
+    },
+    "5": {
+      "recall": 0.39102306403397463,
+      "ndcg": 0.6722640343544825,
+      "mrr": 0.7533333333333333,
+      "mrr_single": 1.0
+    },
+    "10": {
+      "recall": 0.5365755652294291,
+      "ndcg": 0.6854161674051095,
+      "mrr": 0.7608667502088554,
+      "mrr_single": 1.0
+    },
+    "20": {
+      "recall": 0.6467558873636904,
+      "ndcg": 0.7086227396945131,
+      "mrr": 0.7646611783785892,
+      "mrr_single": 1.0
+    },
+    "50": {
+      "recall": 0.7827947873126063,
+      "ndcg": 0.7479113163475575,
+      "mrr": 0.7654658890188261,
+      "mrr_single": 1.0
+    },
+    "100": {
+      "recall": 0.870874860748046,
+      "ndcg": 0.7745382807084924,
+      "mrr": 0.7656208092865283,
+      "mrr_single": 1.0
+    }
+  }
+}

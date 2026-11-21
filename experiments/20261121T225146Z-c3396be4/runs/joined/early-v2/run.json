@@ -1,0 +1,79 @@
+{
+  "format_version": 1,
+  "created_at": "2026-11-21T22:56:38.803568+00:00",
+  "dataset": {
+    "fingerprint": "95b74f88c3f80786b663a55a300e0f7169e7049fba277b1ff8c8aa0b6ebafd53",
+    "sha256": {
+      "README.md": "0c34690e2db553db8e36a81d3eb4cfd05c5b7b8405035119b94b8b673b36ba94",
+      "documents.jsonl": "06feb4791a52faeb777f1a8d4c22d99efd26a279943a19bdfbd0b14bc9c8daa5",
+      "queries_dev.jsonl": "7af356277207760e1cdcb934ae54fbee78c3e5a9b175509a1f6d8bfd214b9703",
+      "qrels_dev.jsonl": "63dedc862e4358bfdbabef1416ef0f13114e32badcf647f3c5bbf2161436ed42"
+    },
+    "documents": 16376,
+    "queries": 67,
+    "qrels": 1619,
+    "mailboxes": 12,
+    "unknown_document_dates": 433,
+    "single_relevant_queries": 0,
+    "queries_without_relevant_documents": 0,
+    "documents_by_mailbox": {
+      "box-12259a301ee2": 2401,
+      "box-2d28af4e4602": 1784,
+      "box-84bd433469cb": 720,
+      "box-84dd8d9560e6": 902,
+      "box-90560850fd8e": 713,
+      "box-a55c522c6949": 561,
+      "box-a971835ab404": 980,
+      "box-d7961fc39a68": 1459,
+      "box-dfac33a7123c": 1094,
+      "box-f9410417c091": 3010,
+      "box-fad2b057e79a": 1955,
+      "box-fda57474896e": 797
+    },
+    "queries_by_mailbox": {
+      "box-2d28af4e4602": 10,
+      "box-84bd433469cb": 21,
+      "box-a971835ab404": 15,
+      "box-dfac33a7123c": 5,
+      "box-f9410417c091": 16
+    }
+  },
+  "python": "3.14.7",
+  "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+  "machine": "arm64",
+  "ks": [
+    1,
+    5,
+    10,
+    20,
+    50,
+    100
+  ],
+  "source": "joined",
+  "engine": "mail_search.search.receipt_period:create_engine",
+  "engine_config": {
+    "mode": "early-v2"
+  },
+  "supplied_config": {
+    "mode": "early-v2"
+  },
+  "engine_build_ms": 8970.741959,
+  "engine_latency": {
+    "scope": "in_process_engine_call",
+    "mode": "sequential_one_pass_no_explicit_warmup",
+    "unit": "ms",
+    "samples": 67,
+    "percentile_method": "nearest_rank",
+    "p50": 0.39725,
+    "p95": 3.080833,
+    "p99": 5.410834,
+    "max": 5.410834,
+    "official_server_p99_measured": false
+  },
+  "code": {
+    "sha256": "67b98d411492476eb3b19d3ff977b62017a7616f233b5ee54cb40f668018daf4",
+    "git_commit": "f6e91b925a37f0ed70018c18ef0c0f06be617ab7",
+    "git_dirty": false
+  },
+  "status": "ok"
+}

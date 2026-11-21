@@ -1,0 +1,91 @@
+{
+  "format_version": 1,
+  "created_at": "2026-11-21T22:57:20.708473+00:00",
+  "dataset": {
+    "fingerprint": "49cb57740c53b66f1f7ec34b3679e5adecd067c533745b3209150c3ecf3cff1b",
+    "sha256": {
+      "README.md": "c940338786f66cf1202174ef16c903ecdd6c4dec27b2224ca1141030e75b877f",
+      "documents.jsonl": "06feb4791a52faeb777f1a8d4c22d99efd26a279943a19bdfbd0b14bc9c8daa5",
+      "queries_dev.jsonl": "40614953d55da97d48dd22e1fe194f4de8f31f750395559a777c990d8eda4b1d",
+      "qrels_dev.jsonl": "210b1c11308360d8231b350542f40b1c1905edce189a6be484875bd76e5690f3"
+    },
+    "documents": 16376,
+    "queries": 136,
+    "qrels": 5425,
+    "mailboxes": 12,
+    "unknown_document_dates": 433,
+    "single_relevant_queries": 5,
+    "queries_without_relevant_documents": 0,
+    "documents_by_mailbox": {
+      "box-12259a301ee2": 2401,
+      "box-2d28af4e4602": 1784,
+      "box-84bd433469cb": 720,
+      "box-84dd8d9560e6": 902,
+      "box-90560850fd8e": 713,
+      "box-a55c522c6949": 561,
+      "box-a971835ab404": 980,
+      "box-d7961fc39a68": 1459,
+      "box-dfac33a7123c": 1094,
+      "box-f9410417c091": 3010,
+      "box-fad2b057e79a": 1955,
+      "box-fda57474896e": 797
+    },
+    "queries_by_mailbox": {
+      "box-12259a301ee2": 28,
+      "box-90560850fd8e": 26,
+      "box-a55c522c6949": 28,
+      "box-fad2b057e79a": 26,
+      "box-fda57474896e": 28
+    }
+  },
+  "python": "3.14.7",
+  "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+  "machine": "arm64",
+  "ks": [
+    1,
+    5,
+    10,
+    20,
+    50,
+    100
+  ],
+  "source": "heldout",
+  "engine": "proximity_control:create_engine",
+  "engine_config": {
+    "k1": 1.2,
+    "b": 0.75,
+    "date_filter": true,
+    "stemming": true,
+    "date_mode": "contextual",
+    "statistics_scope": "corpus",
+    "query_wrapper_weight": 0.1
+  },
+  "supplied_config": {
+    "k1": 1.2,
+    "b": 0.75,
+    "date_filter": true,
+    "stemming": true,
+    "date_mode": "contextual",
+    "statistics_scope": "corpus",
+    "query_wrapper_weight": 0.1
+  },
+  "engine_build_ms": 1331.077584,
+  "engine_latency": {
+    "scope": "in_process_engine_call",
+    "mode": "sequential_one_pass_no_explicit_warmup",
+    "unit": "ms",
+    "samples": 136,
+    "percentile_method": "nearest_rank",
+    "p50": 4.648375,
+    "p95": 14.947417,
+    "p99": 19.506792,
+    "max": 59.604084,
+    "official_server_p99_measured": false
+  },
+  "code": {
+    "sha256": "e06d2f41f2b47ce6050f6e13ce496aba0c07d731b77eea1ed85b52bcc3f7c2d8",
+    "git_commit": "f6e91b925a37f0ed70018c18ef0c0f06be617ab7",
+    "git_dirty": true
+  },
+  "status": "ok"
+}

@@ -3,13 +3,13 @@
   "id": "20261121T225146Z-c3396be4",
   "kind": "experiment",
   "owner": "Fu22210",
-  "status": "running",
-  "updated_at": "2026-11-21T22:55:45.920375+00:00",
+  "status": "completed",
+  "updated_at": "2026-11-21T23:01:40.751567+00:00",
   "title": "Отбор по периоду получения до BM25: строгий, мягкий и поздний варианты",
   "hypothesis": "Ранний отбор по явно названному интервалу получения вернёт релевантные письма за пределами лексического top-100. Поздний фильтр и мягкий бонус проверяются раздельно. Даты событий сохраняются в тексте.",
   "code_branch": "codex/receipt-period-research",
-  "code_commit": "f6e91b9",
+  "code_commit": "12ebbd0090c7a02ed120ea58f436e51a407ad18a",
   "baseline_ref": "20261121T201426Z-841b6b1d; 20261121T203640Z-a8bbe625",
   "replicates": null,
-  "outcome": null
+  "outcome": "improved"
 }

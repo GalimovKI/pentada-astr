@@ -1,0 +1,82 @@
+{
+  "format_version": 1,
+  "created_at": "2026-11-21T22:59:05.387134+00:00",
+  "dataset": {
+    "fingerprint": "d9032ea03bf92075c04fb938250d1ed07dcdcd8892a0b5936a59de0ce8ed7821",
+    "sha256": {
+      "README.md": "96595353e94695a16d591c5aae1aa5d8c602459d0eee9a519e862432f4a9f1bf",
+      "documents.jsonl": "f55c6bf28f76aab24636474a1d2854ffdbb50425e467c098fc59ca1307e9f8f9",
+      "queries_dev.jsonl": "d189149b385a935471742e0a22d7536de6fc0ffcdc2d132753989f2d48986b58",
+      "qrels_dev.jsonl": "238c4f0883116b5636d35985309a402e4c62496479cc5a5fd8b10b28163ada1b"
+    },
+    "documents": 1000,
+    "queries": 2432,
+    "qrels": 2432,
+    "mailboxes": 10,
+    "unknown_document_dates": 1000,
+    "single_relevant_queries": 2432,
+    "queries_without_relevant_documents": 0,
+    "documents_by_mailbox": {
+      "dasovich-j": 100,
+      "horton-s": 100,
+      "jones-t": 100,
+      "may-l": 100,
+      "sager-e": 100,
+      "sanders-r": 100,
+      "scholtes-d": 100,
+      "skilling-j": 100,
+      "whalley-l": 100,
+      "ybarbo-p": 100
+    },
+    "queries_by_mailbox": {
+      "dasovich-j": 258,
+      "horton-s": 254,
+      "jones-t": 228,
+      "may-l": 234,
+      "sager-e": 244,
+      "sanders-r": 248,
+      "scholtes-d": 238,
+      "skilling-j": 236,
+      "whalley-l": 246,
+      "ybarbo-p": 246
+    }
+  },
+  "python": "3.14.7",
+  "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+  "machine": "arm64",
+  "ks": [
+    1,
+    5,
+    10,
+    20,
+    50,
+    100
+  ],
+  "source": "enronqa-en-en.zip",
+  "engine": "mail_search.search.receipt_period:create_engine",
+  "engine_config": {
+    "mode": "daily"
+  },
+  "supplied_config": {
+    "mode": "daily"
+  },
+  "engine_build_ms": 372.630875,
+  "engine_latency": {
+    "scope": "in_process_engine_call",
+    "mode": "sequential_one_pass_no_explicit_warmup",
+    "unit": "ms",
+    "samples": 2432,
+    "percentile_method": "nearest_rank",
+    "p50": 0.422083,
+    "p95": 0.649917,
+    "p99": 0.79625,
+    "max": 1.2575,
+    "official_server_p99_measured": false
+  },
+  "code": {
+    "sha256": "67b98d411492476eb3b19d3ff977b62017a7616f233b5ee54cb40f668018daf4",
+    "git_commit": "0329c2e31a08411c3b22fef3e12c8251db85ac8c",
+    "git_dirty": false
+  },
+  "status": "ok"
+}
