@@ -46,6 +46,7 @@ export interface Features { evaluations: boolean; mail_models?: EvalOption[] }
 export interface EvaluationCatalog {
   models: EvalOption[];
   datasets: EvalOption[];
+  comparisons: (EvalSelection & MetricRow & { fingerprint: string; created_at: string; p99_ms: number | null })[];
   run: (EvalSelection & {
     id: string;
     status: "running" | "completed" | "partial" | "failed";

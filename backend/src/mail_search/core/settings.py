@@ -13,6 +13,9 @@ class Settings(BaseModel):
     model_config = ConfigDict(extra="forbid")
     enable_evaluations: bool = False
     evaluation_dir: Path = Path.home() / ".local/state/pentada/evaluations"
+    enronqa_ru_database_url: SecretStr | None = None
+    enronqa_en_database_url: SecretStr | None = None
+    enronqa_directory: Path = repository_root() / "data/benchmarks/enronqa-ru"
     database_url: SecretStr
     search_engine_factory: str = Field(default=DEFAULT_SEARCH_FACTORY, pattern=r"^[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*:[A-Za-z_]\w*$")
     search_config: Path = DEFAULT_SEARCH_CONFIG

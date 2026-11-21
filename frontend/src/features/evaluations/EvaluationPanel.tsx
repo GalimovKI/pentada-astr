@@ -13,6 +13,9 @@ export function EvaluationPanel({ visible }: { visible: boolean }) {
   const active = current?.status === "running";
   const selectedModel = model || current?.model || data?.models[0]?.id || "";
   const selectedDataset = dataset || current?.dataset || data?.datasets[0]?.id || "";
+  const results = (data?.comparisons ?? []).filter(row => row.dataset === selectedDataset);
+  const fingerprint = results.slice().sort((a, b) => b.created_at.localeCompare(a.created_at))[0]?.fingerprint;
+  const comparison = results.filter(row => row.fingerprint === fingerprint).sort((a, b) => b.ndcg - a.ndcg);
   const refresh = () => void run(api.evaluations, { keepData: true });
   useEffect(() => {
     if (visible) void run(api.evaluations, { keepData: true });
@@ -40,7 +43,19 @@ export function EvaluationPanel({ visible }: { visible: boolean }) {
       </form>
       {error != null && <Failure error={error} retry={refresh} />}
       {!data && pending && <p role="status">Загружаем список моделей…</p>}
-      {data && current && <section className="eval-result" aria-label="Результат прогона">
+      {data && comparison.length > 0 && <section className="eval-result">
+        <h2>Сравнение моделей</h2>
+        <div className="eval-table"><table>
+          <caption>{data.datasets.find(option => option.id === selectedDataset)?.name} · последние успешные прогоны</caption>
+          <thead><tr><th>Модель</th><th>Recall@10</th><th>nDCG@10</th><th>MRR@10</th><th>p99, мс</th></tr></thead>
+          <tbody>{comparison.map(row => <tr key={row.model}>
+            <th scope="row">{data.models.find(option => option.id === row.model)?.name}</th>
+            {[row.recall, row.ndcg, row.mrr, row.p99_ms].map((value, i) =>
+              <td key={i}>{value == null ? "—" : decimal.format(value)}</td>)}
+          </tr>)}</tbody>
+        </table></div>
+      </section>}
+      {data && current && current.dataset === selectedDataset && <section className="eval-result" aria-label="Результат прогона">
         <h2>{data.models.find(option => option.id === current.model)?.name}</h2>
         <p role="status">{current.phase}{current.total != null && ` · ${current.completed} из ${current.total} запросов`}</p>
         {active && <progress aria-label="Обработано запросов" max={current.total || 1} value={current.total ? current.completed : undefined} />}
