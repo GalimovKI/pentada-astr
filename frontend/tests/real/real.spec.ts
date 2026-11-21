@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { parseLetter } from "../../src/features/messages/parseLetter";
 import { cards } from "../browser/helpers";
 import type {
   Mailboxes,
@@ -30,7 +31,7 @@ test("prepared local corpus: browse, paginate, search, read and change context",
     await request.get(`${path}/messages?query_date=2028-09-11&limit=50`)
   ).json()) as Messages;
   await expect(cards(page)).toHaveCount(messages.items.length);
-  await expect(cards(page).first()).toContainText(messages.items[0].doc_id);
+  await expect(cards(page).first()).toHaveId(`message-${messages.items[0].doc_id}`);
   await page.getByRole("button", { name: "Загрузить ещё" }).click();
   await expect(cards(page)).toHaveCount(100);
   const query =
@@ -45,7 +46,7 @@ test("prepared local corpus: browse, paginate, search, read and change context",
   await page.getByLabel("Найти письмо своими словами").press("Enter");
   await expect(cards(page)).toHaveCount(expected.items.length);
   for (let i = 0; i < expected.items.length; i++)
-    await expect(cards(page).nth(i)).toContainText(expected.items[i].doc_id);
+    await expect(cards(page).nth(i)).toHaveId(`message-${expected.items[i].doc_id}`);
   await page.screenshot({
     path: testInfo.outputPath("search.png"),
     fullPage: true,
@@ -57,9 +58,10 @@ test("prepared local corpus: browse, paginate, search, read and change context",
       `${path}/messages/${encodeURIComponent(expected.items[0].doc_id)}?query_date=2028-09-11`,
     )
   ).json()) as MessageResponse;
-  await expect(page.locator(".message-body")).toHaveJSProperty("textContent", full.item.doc);
+  const letter = parseLetter(full.item.doc);
+  await expect(page.locator(".message-body")).toHaveJSProperty("textContent", letter.body);
   await expect(
-    page.getByRole("heading", { name: "Письмо", exact: true }),
+    page.getByRole("heading", { name: letter.subject || "Без темы", exact: true }),
   ).toBeFocused();
   expect(
     await page.evaluate(
