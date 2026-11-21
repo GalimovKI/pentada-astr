@@ -93,3 +93,24 @@ class MailStore:
                 *filters, messages.c.doc_id.in_(list(dict.fromkeys(ids))))).mappings()
             found = {r["doc_id"]: Document(**r) for r in rows}
         return [found[doc_id] for doc_id in ids if doc_id in found]
+
+    def import_fingerprint(self):
+        """A committed import row also probes DB/schema availability."""
+        from .schema import corpus_import
+        with self.engine.connect() as connection:
+            row = connection.execute(select(corpus_import.c.fingerprint,
+                                            corpus_import.c.format_version)).first()
+            return row.fingerprint if row and row.format_version == 1 else None
+
+    def get_previews(self, synthetic_user, doc_ids, *, query_date):
+        """One scoped batch; full message bodies never leave PostgreSQL."""
+        ids = list(doc_ids)
+        with self.engine.connect() as connection:
+            filters = self._scope(connection, synthetic_user, query_date)
+            if not ids:
+                return []
+            rows = connection.execute(select(messages.c.doc_id, messages.c.synthetic_user,
+                messages.c.doc_dt, func.left(messages.c.doc, 200).label("snippet"))
+                .where(*filters, messages.c.doc_id.in_(ids))).mappings()
+            found = {r["doc_id"]: MessagePreview(**r) for r in rows}
+        return [found[did] for did in ids if did in found]
