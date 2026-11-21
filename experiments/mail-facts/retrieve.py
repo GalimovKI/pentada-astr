@@ -115,6 +115,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     for name in ("archive","index","facts","out"):
         p.add_argument(name, type=Path)
+    p.add_argument("--repairs", type=Path)
     args = p.parse_args()
     groups = datasets(args.archive)
     required = set()
@@ -122,6 +123,9 @@ def main():
         required.update(ds.documents)
         required.update(q.query_id for q in ds.queries)
     facts = load_facts(args.facts, required)
+    if args.repairs:
+        failed = {i for i, r in facts.items() if "error" in r}
+        facts.update(load_facts(args.repairs, failed))
     encoder = Encoder("e5", "cuda")
     with np.load(args.index) as idx:
         if (str(idx["archive_sha"]) != hashlib.sha256(args.archive.read_bytes()).hexdigest()
