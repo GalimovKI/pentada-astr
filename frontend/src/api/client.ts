@@ -41,7 +41,8 @@ export interface SearchBody {
 }
 type EvalSelection = { model: string; dataset: string };
 type MetricRow = { recall: number; ndcg: number; mrr: number; mrr_single: number | null };
-type EvalOption = { id: string; name: string };
+export type EvalOption = { id: string; name: string };
+export interface Features { evaluations: boolean; mail_models?: EvalOption[] }
 export interface EvaluationCatalog {
   models: EvalOption[];
   datasets: EvalOption[];
@@ -121,7 +122,7 @@ async function request<T>(
 const mailboxPath = (context: Context) =>
   `/mailboxes/${encodeURIComponent(context.mailbox)}`;
 export const api = {
-  features: (signal: AbortSignal) => request<{ evaluations: boolean }>("/features", signal),
+  features: (signal: AbortSignal) => request<Features>("/features", signal),
   evaluations: (signal: AbortSignal) => request<EvaluationCatalog>("/evaluations", signal),
   startEvaluation: (model: string, dataset: string, signal: AbortSignal) =>
     request<EvaluationCatalog>("/evaluations", signal, { model, dataset }),
@@ -144,12 +145,15 @@ export const api = {
       signal,
     );
   },
-  search: (context: Context, query: string, signal: AbortSignal) =>
-    request<SearchResponse>(`${mailboxPath(context)}/search?explain=true`, signal, {
+  search: (context: Context, query: string, signal: AbortSignal, model?: string) => {
+    const params = new URLSearchParams({ explain: "true" });
+    if (model) params.set("model", model);
+    return request<SearchResponse>(`${mailboxPath(context)}/search?${params}`, signal, {
       query,
       query_date: context.date,
       limit: 10,
-    }),
+    });
+  },
 };
 
 export function errorMessage(error: unknown): string {

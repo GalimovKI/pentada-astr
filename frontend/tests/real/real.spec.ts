@@ -107,11 +107,36 @@ test("dev tabs preserve the open letter and evaluation selection", async ({ page
   await evaluation.click();
   await expect(evaluation).toHaveAttribute("aria-current", "page");
   await expect(body).toBeHidden();
-  const model = page.getByLabel("Модель поиска");
+  const model = page.locator("#evaluations").getByLabel("Модель поиска");
   await model.selectOption("bm25-stemmed");
   await mail.click();
   await expect(body).toBeVisible();
   await expect(body).toHaveJSProperty("textContent", original);
+  await expect(page.getByLabel("Модель поиска писем")).toHaveValue("bm25-event-aware");
   await page.goBack();
   await expect(model).toHaveValue("bm25-stemmed");
+});
+
+test("dev mail reruns the submitted query with the selected model", async ({ page, request }) => {
+  const features = await request.get("/api/v1/features");
+  test.skip(!features.ok() || !(await features.json()).mail_models, "Dev mail model selector only");
+  await page.goto("/");
+  const picker = page.getByLabel("Модель поиска писем");
+  await expect(picker.locator("option")).toHaveCount(4);
+  await page.getByLabel("Почтовый ящик").selectOption("box-84bd433469cb");
+  const query = "Найди уведомления о завершении досмотра контейнеров, полученные вчера";
+  const field = page.getByLabel("Найти письмо своими словами");
+  await field.fill(query);
+  await field.press("Enter");
+  await expect(cards(page).first()).toBeVisible();
+  await field.fill("черновик");
+  const response = page.waitForResponse(r => new URL(r.url()).searchParams.get("model") === "bm25");
+  await picker.selectOption("bm25");
+  const reply = await response;
+  expect(reply.ok()).toBe(true);
+  expect(reply.request().postDataJSON().query).toBe(query);
+  const hits = (await reply.json()).items;
+  expect(hits.length).toBeGreaterThan(0);
+  await expect(cards(page).first()).toHaveId(`message-${hits[0].doc_id}`);
+  await expect(field).toHaveValue("черновик");
 });

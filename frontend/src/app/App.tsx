@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, type Mailboxes } from "../api/client";
+import { api, type Features, type Mailboxes } from "../api/client";
 import { Failure, Loading } from "../components/Status";
 import { MailboxPicker } from "../features/mailboxes/MailboxPicker";
 import { EvaluationPanel } from "../features/evaluations/EvaluationPanel";
@@ -14,7 +14,8 @@ export function App() {
   useEffect(() => {
     void run(api.mailboxes);
   }, [run]);
-  const features = useTask<{ evaluations: boolean }>();
+  const [mailModel, setMailModel] = useState("");
+  const features = useTask<Features>();
   const { run: loadFeatures } = features;
   const [view, setView] = useState(window.location.hash);
   useEffect(() => {
@@ -104,6 +105,9 @@ export function App() {
             <MailSession
               key={JSON.stringify([selected, date])}
               context={{ mailbox: selected, date }}
+              models={features.data?.mail_models}
+              model={mailModel || features.data?.mail_models?.[0]?.id}
+              onModelChange={setMailModel}
             />
           )}
           {!dateValid && (

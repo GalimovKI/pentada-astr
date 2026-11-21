@@ -14,6 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from ..application.evaluations import Evaluations
 from ..application.mail import MailService, ServiceError
 from ..core.engine import LoadedEngine
+from ..core.presets import MODELS, model_options, model_settings
 from ..core.settings import Settings
 from ..storage.database import database_engine
 from ..storage.repository import MailStore, UnknownMailbox
@@ -29,6 +30,7 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
     async def lifespan(app):
         executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="search-engine")
         db = loaded = None
+        cached_models = {}
         app.state.service = None
         app.state.evaluations = None
         try:
@@ -39,18 +41,30 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
                     app.state.evaluations = Evaluations(config, create_app)
                 stage = "database_configuration"
                 db = database_factory(config.database_url.get_secret_value())
-                def initialize():
-                    factory = loader
+                def initialize(settings, factory=None):
                     if factory is None:
-                        module, name = config.search_engine_factory.split(":")
+                        module, name = settings.search_engine_factory.split(":")
                         factory = getattr(importlib.import_module(module), name)
-                    result = factory(config)
+                    result = factory(settings)
                     if not isinstance(result, LoadedEngine):
                         raise ValueError("Loader must return LoadedEngine")
                     return result
                 stage = "engine_loading"
-                loaded = await run_in_threadpool(lambda: executor.submit(initialize).result())
+                loaded = await run_in_threadpool(lambda: executor.submit(initialize, config, loader).result())
                 app.state.service = MailService(store_factory(db), loaded, executor)
+                def select_model(model):
+                    if model not in MODELS:
+                        raise ServiceError(422, "unknown_search_model")
+                    chosen = model_settings(config, model)
+                    if (chosen.search_config == config.search_config and
+                            chosen.search_engine_factory == config.search_engine_factory):
+                        return app.state.service
+                    # Called only on the search executor, including concurrent first use.
+                    if model not in cached_models:
+                        cached_models[model] = initialize(chosen)
+                    return MailService(app.state.service.store, cached_models[model], executor)
+
+                app.state.mail_model = lambda model: executor.submit(select_model, model).result()
                 stage = "compatibility"
                 await run_in_threadpool(app.state.service.ready)
             except Exception as exc:
@@ -59,6 +73,8 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
             yield
         finally:
             try:
+                for preset in cached_models.values():
+                    await run_in_threadpool(lambda: executor.submit(preset.close).result())
                 if loaded is not None:
                     await run_in_threadpool(lambda: executor.submit(loaded.close).result())
             finally:
@@ -120,7 +136,9 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
 
     @app.get("/api/v1/features")
     def features():
-        return {"evaluations": app.state.evaluations is not None}
+        if app.state.evaluations is None:
+            return {"evaluations": False}
+        return {"evaluations": True, "mail_models": model_options()}
 
     def evaluations():
         if app.state.evaluations is None:
@@ -167,7 +185,13 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
 
     @app.post("/api/v1/mailboxes/{synthetic_user}/search", response_model=SearchResponse,
               response_model_exclude_unset=True)
-    def search(synthetic_user: str, body: SearchBody, explain: bool = False):
-        return service().search(synthetic_user, body.query, body.query_date, body.limit, explain=explain)
+    def search(synthetic_user: str, body: SearchBody, explain: bool = False,
+               model: Annotated[str | None, Query(max_length=64)] = None):
+        active = service()
+        if model is not None:
+            if app.state.evaluations is None:
+                raise ServiceError(422, "model_selection_disabled")
+            active = app.state.mail_model(model)
+        return active.search(synthetic_user, body.query, body.query_date, body.limit, explain=explain)
 
     return app

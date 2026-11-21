@@ -15,20 +15,13 @@ import httpx
 
 from ..benchmarks.latency import percentile
 from ..cli import DEFAULT_KS
-from ..core.paths import repository_root
+from ..core.presets import MODELS, model_options, model_settings
 from ..core.provenance import code_version
-from ..core.settings import DEFAULT_SEARCH_FACTORY, LEGACY_SEARCH_FACTORY
 from ..evaluation.runner import evaluate, validate_ranking, write_run
 from ..ingestion.dataset import load_dataset
 from .mail import ServiceError
 
 DATASET = "mail-public"
-MODELS = {
-    "bm25-event-aware": ("BM25 с учётом событий", DEFAULT_SEARCH_FACTORY),
-    "bm25-improved": ("BM25 с весами запроса", LEGACY_SEARCH_FACTORY),
-    "bm25-stemmed": ("BM25 со стеммингом", LEGACY_SEARCH_FACTORY),
-    "bm25": ("BM25 базовый", LEGACY_SEARCH_FACTORY),
-}
 
 
 class Evaluations:
@@ -41,7 +34,7 @@ class Evaluations:
 
     def catalog(self):
         with self.lock:
-            return dict(models=[dict(id=k, name=v[0]) for k, v in MODELS.items()],
+            return dict(models=model_options(),
                         datasets=[dict(id=DATASET, name="Почтовый поиск · публичный dev")],
                         run=self.latest)
 
@@ -69,9 +62,7 @@ class Evaluations:
 
     async def _evaluate(self, job):
         model = job["model"]
-        path = repository_root() / "configs/search" / (model + ".json")
-        settings = self.settings.model_copy(update=dict(search_engine_factory=MODELS[model][1],
-                                                        search_config=path, enable_evaluations=False))
+        settings = model_settings(self.settings, model)
         ds = load_dataset(settings.search_dataset)
         self._update(total=len(ds.queries))
         predictions, times, errors = {}, {}, {}
@@ -107,7 +98,7 @@ class Evaluations:
         latency = dict(samples=len(samples), p99=percentile(samples, .99),
                        scope="ASGI Server-Timing, sequential, no explicit warmup, limit=100")
         metadata = dict(created_at=datetime.now(timezone.utc).isoformat(), status="failed" if errors else "ok",
-                        engine=model, engine_config=json.loads(path.read_text()), ks=DEFAULT_KS,
+                        engine=model, engine_config=json.loads(settings.search_config.read_text()), ks=DEFAULT_KS,
                         dataset=ds.summary, code=code_version(), server_latency=latency)
         root = settings.evaluation_dir
         root.mkdir(parents=True, exist_ok=True)

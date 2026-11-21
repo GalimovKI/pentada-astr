@@ -58,6 +58,27 @@ class ApiTests(PostgreSQLTestCase):
             self.assertGreater(job["p99_ms"], 0)
             self.assertEqual(json.loads((folder / job["id"] / "metrics.json").read_text()), job["metrics"])
 
+    def test_dev_mail_presets_match_their_engines(self):
+        from mail_search.core.presets import model_settings
+
+        path = "/api/v1/mailboxes/a/search"
+        body = dict(query="чеки", query_date="2025-01-02", limit=3)
+        with self.client() as client:
+            self.assertEqual(client.post(path, params={"model": "bm25"}, json=body).status_code, 422)
+        settings = Settings(database_url=self.engine.url.render_as_string(hide_password=False),
+                            search_dataset=self.path, enable_evaluations=True)
+        with TestClient(create_app(settings)) as client:
+            self.assertEqual(client.post(path, params={"model": "unknown"}, json=body).status_code, 422)
+            for preset in client.get("/api/v1/features").json()["mail_models"]:
+                model = preset["id"]
+                config = model_settings(settings, model)
+                engine = (load_event_aware if model == "bm25-event-aware" else load_bm25)(config)
+                hits = engine.engine.search(SearchRequest(body["query"], "a", date(2025, 1, 2)), 3)
+                response = client.post(path, params={"model": model}, json=body)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual([(item["doc_id"], item["score"]) for item in response.json()["items"]],
+                                 [(hit.doc_id, hit.score) for hit in hits])
+
     def test_http_flow(self):
         with self.client() as c:
             self.assertEqual(c.get("/health/live").json(), {"status": "live"})

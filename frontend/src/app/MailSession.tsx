@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   api,
   type Context,
+  type EvalOption,
   type Messages,
   type SearchResponse,
 } from "../api/client";
@@ -11,7 +12,12 @@ import { MessageList } from "../features/messages/MessageList";
 import { MessageReader } from "../features/messages/MessageReader";
 import { Empty, Failure, Loading } from "../components/Status";
 
-export function MailSession({ context }: { context: Context }) {
+export function MailSession({ context, models, model, onModelChange }: {
+  context: Context;
+  models?: EvalOption[];
+  model?: string;
+  onModelChange: (model: string) => void;
+}) {
   const list = useTask<Messages>();
   const search = useTask<SearchResponse>();
   const [submitted, setSubmitted] = useState<string | null>(null);
@@ -32,10 +38,10 @@ export function MailSession({ context }: { context: Context }) {
       }),
     });
   }
-  function find(query: string) {
+  function find(query: string, selectedModel = model) {
     setSubmitted(query);
     setSelected(null);
-    void search.run((signal) => api.search(context, query, signal));
+    void search.run((signal) => api.search(context, query, signal, selectedModel));
   }
   function backToList() {
     search.reset();
@@ -57,6 +63,18 @@ export function MailSession({ context }: { context: Context }) {
   return (
     <>
       <section className="search-area" aria-label="Поиск">
+        {!!models?.length && (
+          <div className="mail-model field">
+            <label htmlFor="mail-model">Модель поиска писем</label>
+            <select id="mail-model" value={model} onChange={event => {
+              const next = event.target.value;
+              onModelChange(next);
+              if (submitted !== null) find(submitted, next);
+            }}>
+              {models.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
+            </select>
+          </div>
+        )}
         <SearchForm onSearch={find} pending={search.pending} />
       </section>
       <div className={`mail-workspace ${selected ? "reading" : ""}`}>
