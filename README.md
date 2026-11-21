@@ -42,6 +42,7 @@ uv run --project backend --locked mailsearch search \
 
 ## Документация и источники
 
+- [DEPLOYMENT.md](DEPLOYMENT.md) — пошаговое развёртывание frontend на VPS и backend с PostgreSQL на учебном хосте: запуск, SSH-туннель, обновление и откат.
 - [AGENTS.md](AGENTS.md) — общие правила работы агентов команды.
 - [TEAM_MEMORY.md](TEAM_MEMORY.md) — самостоятельное подключение к журналу, регистрация экспериментов и публикация выводов; в конце есть сообщение для первого подключения агента.
 - [PROJECT.md](PROJECT.md) — требования организаторов, ограничения, принятые решения и открытые вопросы.
@@ -57,7 +58,7 @@ uv run --project backend --locked mailsearch search \
 ## Архитектура приложения
 
 Раздельный запуск frontend на VPS и backend с PostgreSQL на учебном хосте
-описан в [infra/docker/EDGE.md](infra/docker/EDGE.md).
+описан в [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ```mermaid
 flowchart LR
