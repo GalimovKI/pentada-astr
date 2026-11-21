@@ -105,6 +105,8 @@ class Evaluations:
         async with app.router.lifespan_context(app), httpx.AsyncClient(
                 transport=transport, base_url="http://benchmark") as client:
             (await client.get("/health/ready")).raise_for_status()
+            loaded = app.state.services[job["dataset"]].loaded
+            engine_config = getattr(loaded.engine, "config", json.loads(settings.search_config.read_text()))
             for i, query in enumerate(ds.queries, 1):
                 qid = query.query_id
                 response = await client.post(f"/api/v1/mailboxes/{quote(query.synthetic_user, safe='')}/search",
@@ -130,7 +132,7 @@ class Evaluations:
         latency = dict(samples=len(samples), p99=percentile(samples, .99),
                        scope="ASGI Server-Timing, sequential, no explicit warmup, limit=100")
         metadata = dict(created_at=datetime.now(timezone.utc).isoformat(), status="failed" if errors else "ok",
-                        engine=model, engine_config=json.loads(settings.search_config.read_text()), ks=DEFAULT_KS,
+                        engine=model, engine_config=engine_config, ks=DEFAULT_KS,
                         dataset_id=job["dataset"], dataset=ds.summary, code=code_version(), server_latency=latency)
         root = settings.evaluation_dir
         root.mkdir(parents=True, exist_ok=True)

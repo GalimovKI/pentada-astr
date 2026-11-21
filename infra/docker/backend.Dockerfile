@@ -5,7 +5,8 @@ WORKDIR /app/backend
 COPY backend/pyproject.toml backend/uv.lock ./
 COPY backend/src ./src
 ARG INCLUDE_MINILM=0
-RUN if [ "$INCLUDE_MINILM" = "1" ]; then set -- --extra minilm; else set --; fi; \
+ARG MINILM_DEVICE=cpu
+RUN if [ "$INCLUDE_MINILM" = "1" ]; then if [ "$MINILM_DEVICE" = "cuda" ]; then set -- --extra minilm-gpu; else set -- --extra minilm; fi; else set --; fi; \
     uv sync --locked --no-dev --no-editable --no-cache --python /usr/local/bin/python "$@"
 
 FROM python:3.12.12-slim-bookworm@sha256:593bd06efe90efa80dc4eee3948be7c0fde4134606dd40d8dd8dbcade98e669c AS runtime
@@ -20,10 +21,11 @@ COPY backend/migrations /app/backend/migrations
 COPY configs/search /app/configs/search
 COPY infra/docker/prepare.py /app/infra/docker/prepare.py
 ARG INCLUDE_MINILM=0
+ARG MINILM_DEVICE=cpu
 ARG TARGETARCH
 COPY infra/docker/fetch_minilm.py /tmp/fetch_minilm.py
 RUN if [ "$INCLUDE_MINILM" = "1" ]; then \
-      python /tmp/fetch_minilm.py --arch "${TARGETARCH:-$(uname -m)}" --output /opt/mailsearch/minilm; \
+      python /tmp/fetch_minilm.py --arch "${TARGETARCH:-$(uname -m)}" --device "$MINILM_DEVICE" --output /opt/mailsearch/minilm; \
     fi
 COPY infra/docker/fetch_e5.py /tmp/fetch_e5.py
 RUN if [ "$INCLUDE_MINILM" = "1" ]; then python /tmp/fetch_e5.py --output /opt/mailsearch/e5; fi

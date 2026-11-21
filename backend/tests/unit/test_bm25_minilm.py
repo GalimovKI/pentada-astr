@@ -3,11 +3,13 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import Mock, patch
+import sys
+from types import SimpleNamespace
 
 from mail_search.core.presets import available_models
 from mail_search.core.settings import Settings
 from mail_search.domain.models import Document, SearchHit, SearchRequest
-from mail_search.search.bm25_minilm import BM25MiniLMEngine
+from mail_search.search.bm25_minilm import BM25MiniLMEngine, MiniLM
 
 
 class BM25MiniLMTests(TestCase):
@@ -48,3 +50,42 @@ class BM25MiniLMTests(TestCase):
                 self.assertNotIn("bm25-minilm", available_models(settings))
             with patch("mail_search.core.presets.find_spec", return_value=object()):
                 self.assertIn("bm25-minilm", available_models(settings))
+
+
+class MiniLMDeviceTests(TestCase):
+    def runtime(self, available, active):
+        runtime = Mock(__version__="test")
+        runtime.get_available_providers.return_value = available
+        runtime.InferenceSession.return_value.get_providers.return_value = active
+        runtime.InferenceSession.return_value.get_inputs.return_value = []
+        tokenizer = Mock()
+        tokenizer.from_file.return_value.token_to_id.return_value = 1
+        return runtime, {"numpy": Mock(), "onnxruntime": runtime,
+                         "tokenizers": SimpleNamespace(Tokenizer=tokenizer)}
+
+    def test_cpu_does_not_load_cuda_libraries(self):
+        runtime, modules = self.runtime(["CPUExecutionProvider"], ["CPUExecutionProvider"])
+        with patch.dict(sys.modules, modules):
+            MiniLM(Path("model.onnx"), 4)
+        runtime.preload_dlls.assert_not_called()
+
+    def test_cuda_rejects_missing_provider(self):
+        runtime, modules = self.runtime(["CPUExecutionProvider"], ["CPUExecutionProvider"])
+        with patch.dict(sys.modules, modules), self.assertRaisesRegex(RuntimeError, "requires"):
+            MiniLM(Path("model.onnx"), 4, device="cuda")
+        runtime.InferenceSession.assert_not_called()
+
+    def test_cuda_rejects_silent_initialization_fallback(self):
+        _, modules = self.runtime(["CUDAExecutionProvider"], ["CPUExecutionProvider"])
+        with patch.dict(sys.modules, modules), self.assertRaisesRegex(RuntimeError, "refusing"):
+            MiniLM(Path("model.onnx"), 4, device="cuda")
+
+    def test_cuda_limits_arena_and_disables_runtime_fallback(self):
+        runtime, modules = self.runtime(["CUDAExecutionProvider"], ["CUDAExecutionProvider", "CPUExecutionProvider"])
+        with patch.dict(sys.modules, modules):
+            MiniLM(Path("model.onnx"), 4, device="cuda", gpu_memory_mb=1024)
+        options = runtime.InferenceSession.call_args.kwargs["providers"][0][1]
+        self.assertEqual(options["gpu_mem_limit"], 1024**3)
+        self.assertEqual(options["device_id"], 0)
+        self.assertEqual(options["use_tf32"], 0)
+        runtime.InferenceSession.return_value.disable_fallback.assert_called_once()

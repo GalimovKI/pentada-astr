@@ -12,6 +12,14 @@ release=$(readlink -f "$root/current")
 APP_IMAGE_TAG=$(basename "$release")
 if [ -f "$release/DEPLOYMENT_ENV" ]; then APP_IMAGE_TAG="$environment-$APP_IMAGE_TAG"; fi
 export APP_IMAGE_TAG
+if [ -f "$root/shared/gpu-device" ] && [ -f "$release/compose.gpu.yaml" ]; then
+  GPU_CDI_DEVICE=$(cat "$root/shared/gpu-device")
+  if ! printf '%s\n' "$GPU_CDI_DEVICE" | grep -Eq '^nvidia\.com/gpu=([0-9]+|GPU-[0-9a-fA-F-]+)$'; then
+    echo 'gpu-device must select exactly one NVIDIA CDI device' >&2; exit 1
+  fi
+  export GPU_CDI_DEVICE
+  set -- -f "$release/compose.gpu.yaml" "$@"
+fi
 if [ "$environment" = dev ] && [ -f "$release/compose.dev-evaluations.yaml" ]; then
   set -- -f "$release/compose.dev-evaluations.yaml" "$@"
 fi

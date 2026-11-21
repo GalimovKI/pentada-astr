@@ -1,0 +1,14 @@
+# Optional overlay LAST, after production/origin/dev-evaluations.
+# Requires NVIDIA CDI in the Docker daemon. Expose exactly one host GPU.
+services:
+  backend:
+    build:
+      args:
+        INCLUDE_MINILM: "1"
+        MINILM_DEVICE: cuda
+    devices:
+      - "${GPU_CDI_DEVICE:?Set a single nvidia.com/gpu=UUID device}"
+    environment:
+      MINILM_DEVICE: cuda
+      MINILM_MODEL_DIR: /opt/mailsearch/minilm
+      MINILM_GPU_MEMORY_MB: ${MINILM_GPU_MEMORY_MB:-2048}

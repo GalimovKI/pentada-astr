@@ -107,6 +107,23 @@ class DeploymentTests(unittest.TestCase):
             (release / 'DEPLOYMENT_ENV').write_text('main\n')
             self.assertEqual(deploy.image_tag(release, 'main'), 'main-' + release.name)
 
+    def test_gpu_opt_in_is_per_root_and_rollback_compatible(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'shared').mkdir()
+            version = root / 'release'
+            version.mkdir()
+            (version / 'compose.gpu.yaml').touch()
+            self.assertEqual(deploy.gpu_environment(root, version), {})
+            device = root / 'shared/gpu-device'
+            device.write_text('nvidia.com/gpu=0\n')
+            self.assertEqual(deploy.gpu_environment(root, version), {'GPU_CDI_DEVICE': 'nvidia.com/gpu=0'})
+            device.write_text('nvidia.com/gpu=all')
+            with self.assertRaises(ValueError):
+                deploy.gpu_environment(root, version)
+            (version / 'compose.gpu.yaml').unlink()
+            self.assertEqual(deploy.gpu_environment(root, version), {})
+
     def test_runner_guard_blocks_prs_branches_and_other_workflows(self):
         env = {**os.environ, 'GITHUB_REPOSITORY': 'GalimovKI/pentada-astr',
                'GITHUB_REF': 'refs/heads/main', 'GITHUB_JOB': 'deploy',
