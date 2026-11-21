@@ -10,12 +10,12 @@ Eval проверяет корректность данных и выдачи, �
 uv sync --project backend --locked
 uv run --project backend --locked python -m unittest discover -s backend/tests -t backend -v
 uv run --project backend --locked mailsearch validate
-uv run --project backend --locked mailsearch run --output reports/quality/runs/bm25-reproduction
+uv run --project backend --locked mailsearch run --output reports/quality/runs/bm25-event-aware
 ```
 
 Команда `validate` проверяет manifest, SHA-256, количество строк, поля, даты, идентификаторы, ссылки разметки, ящики и доступность релевантных писем на дату запроса. Она печатает JSON со статистикой и fingerprint данных. ZIP читается напрямую без распаковки.
 
-Команда `run` загружает проверенный набор, строит движок по корпусу и выполняет все запросы. Параметры BM25 по умолчанию совпадают с `configs/search/bm25.json`; этот файл можно передать явно:
+Команда `run` загружает проверенный набор, строит движок по корпусу и выполняет все запросы. По умолчанию `run` и `search` используют выбор BM25 по дате с учётом статуса действия и конфигурацию `configs/search/bm25-event-aware.json`. Для конфигурации другого движка укажите его фабрику через `--engine`. Передача одного `--config` сохраняет прежний запуск классического BM25.
 
 ```bash
 uv run --project backend --locked mailsearch run --config configs/search/bm25.json --output reports/quality/runs/bm25-explicit-config
@@ -27,7 +27,7 @@ uv run --project backend --locked mailsearch run --config configs/search/bm25.js
 
 ```bash
 uv run --project backend --locked mailsearch run --config configs/search/bm25-stemmed.json --output reports/quality/runs/bm25-stemmed
-uv run --project backend --locked mailsearch compare reports/quality/runs/bm25-reproduction reports/quality/runs/bm25-stemmed
+uv run --project backend --locked mailsearch compare reports/quality/runs/bm25-stemmed reports/quality/runs/bm25-event-aware
 ```
 
 ## 2. Метрики и правила локальной оценки
@@ -140,3 +140,27 @@ uv run --project backend --locked mailsearch run --engine mail_search.search.my_
 Конфигурации поиска находятся в `configs/search/`, короткие сводки — в `reports/quality/`. API и PostgreSQL подключаются к тому же пакету, когда начинается разработка приложения; для офлайн-eval база не требуется.
 
 Команды выше выполняются из корня репозитория. Из каталога `backend/` можно использовать `uv run --locked mailsearch ...` и `uv run --locked python -m unittest discover -s tests -t . -v`. Путь архива по умолчанию определяется от checkout, независимо от текущего каталога; явно заданные относительные пути `--dataset`, `--config` и `--output` считаются от рабочего каталога команды.
+
+## 9. Основной метод поиска
+
+Если в запросе распознан день получения, нечёткий BM25 ищет письма в этом
+дне. Среди первых 20 кандидатов балл снижается, когда искомое действие
+упомянуто только в конструкции разрешения или заявки. Без дня получения
+работает улучшенный BM25. Правила видимости писем и границы ящика одинаковы.
+
+У нового метода nDCG@10 **0,9976** и MRR@10 **1,0000** на 99 публичных запросах.
+Исходные и контрольные прогоны доступны в журнале команды.
+[Оценка и замер](https://github.com/GalimovKI/pentada-astr/tree/fcf4a6c/experiments/20261121T153555Z-fe582042)
+
+Для явного выбора или замены настроек укажите движок и конфигурацию вместе.
+
+```bash
+uv run --project backend --locked mailsearch run \
+  --engine mail_search.search.event_aware:create_engine \
+  --config configs/search/bm25-event-aware.json \
+  --output reports/quality/runs/bm25-event-aware-explicit
+```
+
+Режим без фильтра дня для EnronQA использует
+`mail_search.search.bm25:create_engine` и копию `bm25-improved.json` с
+`date_filter: false`.
