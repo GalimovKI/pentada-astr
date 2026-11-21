@@ -3,14 +3,14 @@
   "id": "20261121T180649Z-b3149308",
   "kind": "experiment",
   "owner": "Fu22210",
-  "status": "running",
-  "updated_at": "2026-11-21T18:06:49.650874+00:00",
+  "status": "completed",
+  "updated_at": "2026-11-21T18:13:40.800931+00:00",
   "title": "Четыре пресета dev-почты на EnronQA RU и EN",
   "hypothesis": "Изменение весов и учёт событий меняют ранжирование русских вопросов о деловой переписке.",
   "code_branch": "timofey",
-  "code_commit": "8972fa0d4e3d487c3a4fe63927e477a9f35e546e",
+  "code_commit": "6e88be835bbfdf9d1ed678b7fae9e98b111ee3ce",
   "baseline_ref": "bm25",
   "replicates": "20261121T151050Z-b17d6715",
-  "outcome": null,
-  "summary": "Восемь прогонов: оригинал EN и перевод RU с одинаковыми qrels."
+  "outcome": "improved",
+  "summary": "19 456 запросов, 0 ошибок. Веса запроса и событийный BM25 делят первое место: nDCG@10 RU 0,88336 и EN 0,94833. Базовый BM25: RU 0,74724 и EN 0,94258. Оба архива размечены одинаково."
 }

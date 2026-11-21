@@ -1,0 +1,69 @@
+{
+  "created_at": "2026-11-21T18:11:43.882712+00:00",
+  "status": "ok",
+  "engine": "bm25-event-aware",
+  "engine_config": {
+    "rerank_depth": 20,
+    "prospective_penalty": 0.55,
+    "subject_bonus": 0.0
+  },
+  "ks": [
+    1,
+    5,
+    10,
+    20,
+    50,
+    100
+  ],
+  "dataset_id": "enronqa-en",
+  "dataset": {
+    "fingerprint": "d9032ea03bf92075c04fb938250d1ed07dcdcd8892a0b5936a59de0ce8ed7821",
+    "sha256": {
+      "README.md": "96595353e94695a16d591c5aae1aa5d8c602459d0eee9a519e862432f4a9f1bf",
+      "documents.jsonl": "f55c6bf28f76aab24636474a1d2854ffdbb50425e467c098fc59ca1307e9f8f9",
+      "queries_dev.jsonl": "d189149b385a935471742e0a22d7536de6fc0ffcdc2d132753989f2d48986b58",
+      "qrels_dev.jsonl": "238c4f0883116b5636d35985309a402e4c62496479cc5a5fd8b10b28163ada1b"
+    },
+    "documents": 1000,
+    "queries": 2432,
+    "qrels": 2432,
+    "mailboxes": 10,
+    "unknown_document_dates": 1000,
+    "single_relevant_queries": 2432,
+    "queries_without_relevant_documents": 0,
+    "documents_by_mailbox": {
+      "dasovich-j": 100,
+      "horton-s": 100,
+      "jones-t": 100,
+      "may-l": 100,
+      "sager-e": 100,
+      "sanders-r": 100,
+      "scholtes-d": 100,
+      "skilling-j": 100,
+      "whalley-l": 100,
+      "ybarbo-p": 100
+    },
+    "queries_by_mailbox": {
+      "dasovich-j": 258,
+      "horton-s": 254,
+      "jones-t": 228,
+      "may-l": 234,
+      "sager-e": 244,
+      "sanders-r": 248,
+      "scholtes-d": 238,
+      "skilling-j": 236,
+      "whalley-l": 246,
+      "ybarbo-p": 246
+    }
+  },
+  "code": {
+    "sha256": "a3f074343cc31d405e04a2340a39b901c06b209cc2cf15649c53b9f383983989",
+    "git_commit": "6e88be835bbfdf9d1ed678b7fae9e98b111ee3ce",
+    "git_dirty": false
+  },
+  "server_latency": {
+    "samples": 2432,
+    "p99": 20.741,
+    "scope": "ASGI Server-Timing, sequential, no explicit warmup, limit=100"
+  }
+}
