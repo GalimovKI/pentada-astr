@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, type Features, type Mailboxes } from "../api/client";
+import { api, type Context, type Features, type Mailboxes } from "../api/client";
 import { Failure, Loading } from "../components/Status";
 import { MailboxPicker } from "../features/mailboxes/MailboxPicker";
 import { EvaluationPanel } from "../features/evaluations/EvaluationPanel";
@@ -9,7 +9,7 @@ import { validDate } from "./validation";
 
 export function App() {
   const { data, pending, error, run } = useTask<Mailboxes>();
-  const [mailbox, setMailbox] = useState("");
+  const [box, setBox] = useState<Pick<Context, "mailbox" | "dataset">>({ mailbox: "" });
   const [date, setDate] = useState("2028-09-11");
   useEffect(() => {
     void run(api.mailboxes);
@@ -26,7 +26,7 @@ export function App() {
   }, [loadFeatures]);
   const dev = features.data?.evaluations === true;
   const showEvaluation = dev && view === "#evaluations";
-  const selected = mailbox || data?.items[0] || "";
+  const selected = box.mailbox || data?.items[0] || "";
   const dateValid = validDate(date);
   return (
     <div className="app-shell">
@@ -60,9 +60,10 @@ export function App() {
           )}
           {data && data.items.length > 0 && (
             <MailboxPicker
-              items={data.items}
-              value={selected}
-              onChange={setMailbox}
+              boxes={data}
+              mailbox={selected}
+              dataset={box.dataset}
+              onChange={setBox}
             />
           )}
           <div className="field">
@@ -87,7 +88,7 @@ export function App() {
           </div>
           <div className="context-note">
             <span className="note-dot" aria-hidden="true" />
-            Синтетические ящики
+            {box.dataset ? "Архив EnronQA" : "Синтетические ящики"}
             <p>
               Выбор ящика задаёт контекст демонстрации. Вход в реальную почту не
               требуется.
@@ -103,8 +104,8 @@ export function App() {
           </div>
           {selected && dateValid && data && (
             <MailSession
-              key={JSON.stringify([selected, date])}
-              context={{ mailbox: selected, date }}
+              key={JSON.stringify([box.dataset, selected, date])}
+              context={{ mailbox: selected, date, dataset: box.dataset }}
               models={features.data?.mail_models}
               model={mailModel || features.data?.mail_models?.[0]?.id}
               onModelChange={setMailModel}

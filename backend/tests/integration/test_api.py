@@ -142,6 +142,25 @@ class ApiTests(PostgreSQLTestCase):
             self.assertEqual(self.search(c, query_date="2028-09-11").status_code, 200)
             self.fake.search.assert_called_once()
 
+    def test_dev_corpus_picker_and_scoped_pagination(self):
+        import_corpus(self.engine, self.path)
+        # Use identical mailbox and document IDs on both sides, as in paired EnronQA.
+        url = self.engine.url.render_as_string(hide_password=False)
+        for lang in ("ru", "en"):
+            fixture(self.path / f"enronqa-{lang}-{lang}.zip")
+        settings = Settings(database_url=url, search_dataset=self.path, enable_evaluations=True,
+                            enronqa_directory=self.path, enronqa_ru_database_url=url, enronqa_en_database_url=url,
+                            evaluation_dir=self.path / "runs")
+        with TestClient(create_app(settings)) as client:
+            groups = client.get("/api/v1/mailboxes").json()["groups"]
+            self.assertEqual([(g["id"], g["items"]) for g in groups],
+                             [("enronqa-ru", ["a", "b"]), ("enronqa-en", ["a", "b"])])
+            path = "/api/v1/mailboxes/a/messages"
+            params = {"query_date": "2025-01-02", "limit": 1, "dataset": "enronqa-ru"}
+            params["cursor"] = client.get(path, params=params).json()["next_cursor"]
+            self.assertEqual(client.get(path, params=params).status_code, 200)
+            self.assertEqual(client.get(path, params={**params, "dataset": "enronqa-en"}).status_code, 422)
+
     def test_cursor_context(self):
         with self.client() as c:
             cursor = c.get("/api/v1/mailboxes/a/messages?query_date=2025-01-02&limit=1").json()["next_cursor"]

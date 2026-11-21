@@ -22,7 +22,7 @@ export function MessageReader({
   useEffect(() => {
     void run((signal) => api.message(context, id, signal));
     heading.current?.focus();
-  }, [context.mailbox, context.date, id, run]);
+  }, [context.dataset, context.mailbox, context.date, id, run]);
   const letter = data && parseLetter(data.item.doc);
   const reader = useRef<HTMLElement>(null);
   useEffect(() => {

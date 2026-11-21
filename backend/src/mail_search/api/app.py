@@ -1,6 +1,7 @@
 """Uvicorn entry point: mail_search.api.app:create_app --factory."""
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
+import asyncio
 import importlib
 import logging
 from time import perf_counter
@@ -12,6 +13,7 @@ from starlette.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 from sqlalchemy.exc import SQLAlchemyError
 from ..application.evaluations import Evaluations
+from ..core.datasets import mail_datasets, PUBLIC_DATASET
 from ..application.mail import MailService, ServiceError
 from ..core.engine import LoadedEngine
 from ..core.presets import MODELS, model_options, model_settings
@@ -29,9 +31,12 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
     @asynccontextmanager
     async def lifespan(app):
         executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="search-engine")
-        db = loaded = None
+        databases = []
+        engines = []
+        configs = {}
         cached_models = {}
-        app.state.service = None
+        app.state.services = {}
+        app.state.mail_groups = []
         app.state.evaluations = None
         try:
             stage = "settings"
@@ -40,7 +45,8 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
                 if config.enable_evaluations:
                     app.state.evaluations = Evaluations(config, create_app)
                 stage = "database_configuration"
-                db = database_factory(config.database_url.get_secret_value())
+                datasets = mail_datasets(config)
+
                 def initialize(settings, factory=None):
                     if factory is None:
                         module, name = settings.search_engine_factory.split(":")
@@ -49,39 +55,50 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
                     if not isinstance(result, LoadedEngine):
                         raise ValueError("Loader must return LoadedEngine")
                     return result
-                stage = "engine_loading"
-                loaded = await run_in_threadpool(lambda: executor.submit(initialize, config, loader).result())
-                app.state.service = MailService(store_factory(db), loaded, executor)
-                def select_model(model):
+                def select_model(dataset, model):
                     if model not in MODELS:
                         raise ServiceError(422, "unknown_search_model")
-                    chosen = model_settings(config, model)
-                    if (chosen.search_config == config.search_config and
-                            chosen.search_engine_factory == config.search_engine_factory):
-                        return app.state.service
-                    # Called only on the search executor, including concurrent first use.
-                    if model not in cached_models:
-                        cached_models[model] = initialize(chosen)
-                    return MailService(app.state.service.store, cached_models[model], executor)
+                    scoped = configs[dataset]
+                    active = app.state.services[dataset]
+                    chosen = model_settings(scoped, model)
+                    if (chosen.search_config == scoped.search_config and
+                            chosen.search_engine_factory == scoped.search_engine_factory):
+                        return active
+                    key = (dataset, model)
+                    if key not in cached_models:
+                        cached_models[key] = initialize(chosen)
+                    return MailService(active.store, cached_models[key], executor)
 
-                app.state.mail_model = lambda model: executor.submit(select_model, model).result()
-                stage = "compatibility"
-                await run_in_threadpool(app.state.service.ready)
+                app.state.mail_model = lambda dataset, model: executor.submit(select_model, dataset, model).result()
+
+                for dataset, (label, archive, url) in datasets.items():
+                    scoped = config.model_copy(update=dict(search_dataset=archive, database_url=url))
+                    db = database_factory(url.get_secret_value())
+                    databases.append(db)
+                    stage = "engine_loading"
+                    loaded = await asyncio.wrap_future(executor.submit(initialize, scoped, loader))
+                    engines.append(loaded)
+                    active = MailService(store_factory(db), loaded, executor)
+                    app.state.services[dataset] = active
+                    configs[dataset] = scoped
+                    stage = "compatibility"
+                    await run_in_threadpool(active.ready)
+                    if dataset != PUBLIC_DATASET:
+                        users = await run_in_threadpool(active.store.list_mailboxes)
+                        app.state.mail_groups.append(dict(id=dataset, name=label, items=users))
             except Exception as exc:
                 # Never log exception text, paths, SQL, query text or credentials.
                 logger.error("startup_not_ready stage=%s category=%s", stage, type(exc).__name__)
             yield
         finally:
             try:
-                for preset in cached_models.values():
-                    await run_in_threadpool(lambda: executor.submit(preset.close).result())
-                if loaded is not None:
-                    await run_in_threadpool(lambda: executor.submit(loaded.close).result())
+                for preset in [*cached_models.values(), *engines]:
+                    await asyncio.wrap_future(executor.submit(preset.close))
             finally:
                 if app.state.evaluations is not None:
                     await run_in_threadpool(app.state.evaluations.close)
                 await run_in_threadpool(executor.shutdown)
-                if db is not None:
+                for db in databases:
                     await run_in_threadpool(db.dispose)
 
     errors = {status: {"model": ErrorResponse} for status in (404, 422, 500, 503)}
@@ -127,8 +144,10 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
             logger.info("search_response status=%d duration_ms=%.3f", response.status_code, elapsed)
         return response
 
-    def service():
-        result = app.state.service
+    def service(dataset=PUBLIC_DATASET):
+        if dataset != PUBLIC_DATASET and dataset not in app.state.services:
+            raise ServiceError(404, "unknown_mail_dataset")
+        result = app.state.services.get(dataset)
         if result is None:
             raise ServiceError(503, "service_unavailable")
         result.ready()
@@ -162,23 +181,25 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
     @app.get("/health/ready", response_model=Health)
     def ready():
         service()
+        if app.state.evaluations and len(app.state.mail_groups) + 1 != len(app.state.evaluations.datasets):
+            raise ServiceError(503, "mail_datasets_unavailable")
         return {"status": "ready"}
 
-    @app.get("/api/v1/mailboxes", response_model=Mailboxes)
+    @app.get("/api/v1/mailboxes", response_model=Mailboxes, response_model_exclude_none=True)
     def mailboxes():
-        return {"items": service().store.list_mailboxes()}
+        return {"items": service().store.list_mailboxes(), "groups": app.state.mail_groups or None}
 
     @app.get("/api/v1/mailboxes/{synthetic_user}/messages", response_model=Messages)
     def messages(synthetic_user: str, query_date: ScenarioDate,
                  limit: Annotated[PageLimit, Query(ge=1, le=500)] = 50,
-                 cursor: Annotated[str | None, Query(max_length=4096)] = None):
-        after = cursors.decode(cursor, synthetic_user, query_date)
-        page = service().store.list_messages(synthetic_user, query_date=query_date, limit=limit, after=after)
-        return {"items": page.items, "next_cursor": cursors.encode(page.next_cursor)}
+                 cursor: Annotated[str | None, Query(max_length=4096)] = None, dataset: str = PUBLIC_DATASET):
+        after = cursors.decode(cursor, synthetic_user, query_date, dataset)
+        page = service(dataset).store.list_messages(synthetic_user, query_date=query_date, limit=limit, after=after)
+        return {"items": page.items, "next_cursor": cursors.encode(page.next_cursor, dataset)}
 
-    @app.get("/api/v1/mailboxes/{synthetic_user}/messages/{doc_id}", response_model=MessageResponse)
-    def message(synthetic_user: str, doc_id: str, query_date: ScenarioDate):
-        result = service().store.get_message(synthetic_user, doc_id, query_date=query_date)
+    @app.get("/api/v1/mailboxes/{synthetic_user}/messages/{doc_id:path}", response_model=MessageResponse)
+    def message(synthetic_user: str, doc_id: str, query_date: ScenarioDate, dataset: str = PUBLIC_DATASET):
+        result = service(dataset).store.get_message(synthetic_user, doc_id, query_date=query_date)
         if result is None:
             raise ServiceError(404, "message_not_found")
         return {"item": result}
@@ -186,12 +207,12 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
     @app.post("/api/v1/mailboxes/{synthetic_user}/search", response_model=SearchResponse,
               response_model_exclude_unset=True)
     def search(synthetic_user: str, body: SearchBody, explain: bool = False,
-               model: Annotated[str | None, Query(max_length=64)] = None):
-        active = service()
+               model: Annotated[str | None, Query(max_length=64)] = None, dataset: str = PUBLIC_DATASET):
+        active = service(dataset)
         if model is not None:
             if app.state.evaluations is None:
                 raise ServiceError(422, "model_selection_disabled")
-            active = app.state.mail_model(model)
+            active = app.state.mail_model(dataset, model)
         return active.search(synthetic_user, body.query, body.query_date, body.limit, explain=explain)
 
     return app

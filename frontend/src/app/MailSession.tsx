@@ -25,7 +25,7 @@ export function MailSession({ context, models, model, onModelChange }: {
   const { run: loadList } = list;
   useEffect(() => {
     void loadList((signal) => api.messages(context, signal));
-  }, [context.mailbox, context.date, loadList]);
+  }, [context.dataset, context.mailbox, context.date, loadList]);
 
   function nextPage() {
     const cursor = list.data?.next_cursor;

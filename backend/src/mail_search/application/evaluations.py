@@ -15,13 +15,13 @@ import httpx
 
 from ..benchmarks.latency import percentile
 from ..cli import DEFAULT_KS
+from ..core.datasets import mail_datasets, PUBLIC_DATASET
 from ..core.presets import MODELS, model_options, model_settings
 from ..core.provenance import code_version
 from ..evaluation.runner import evaluate, validate_ranking, write_run
 from ..ingestion.dataset import load_dataset
 from .mail import ServiceError
 
-PUBLIC_DATASET = "mail-public"
 PUBLIC_FINGERPRINT = "0daa664136d798c1ed2fe50802a7d236f93b4891d56f2353bc5b807b56601665"
 
 
@@ -32,12 +32,7 @@ class Evaluations:
         self.worker = ThreadPoolExecutor(max_workers=1, thread_name_prefix="evaluation")
         self.lock = Lock()
         self.latest = None
-        self.datasets = {PUBLIC_DATASET: ("Почтовый поиск · публичный dev", settings.search_dataset, settings.database_url)}
-        for lang, name, url in (("ru", "русский перевод", settings.enronqa_ru_database_url),
-                                ("en", "английский оригинал", settings.enronqa_en_database_url)):
-            if url:
-                archive = settings.enronqa_directory / f"enronqa-{lang}-{lang}.zip"
-                self.datasets[f"enronqa-{lang}"] = (f"EnronQA · {name}", archive, url)
+        self.datasets = mail_datasets(settings)
         self.comparisons = {}
         reference = settings.enronqa_directory / "comparisons.json"
         if reference.is_file():

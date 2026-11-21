@@ -18,6 +18,7 @@ export interface Hit extends Preview {
 }
 export interface Mailboxes {
   items: string[];
+  groups?: { id: string; name: string; items: string[] }[];
 }
 export interface Messages {
   items: Preview[];
@@ -31,6 +32,7 @@ export interface MessageResponse {
   item: Message;
 }
 export interface Context {
+  dataset?: string;
   mailbox: string;
   date: string;
 }
@@ -122,6 +124,12 @@ async function request<T>(
 
 const mailboxPath = (context: Context) =>
   `/mailboxes/${encodeURIComponent(context.mailbox)}`;
+function contextParams(context: Context) {
+  const params = new URLSearchParams({ query_date: context.date });
+  if (context.dataset) params.set("dataset", context.dataset);
+  return params;
+}
+
 export const api = {
   features: (signal: AbortSignal) => request<Features>("/features", signal),
   evaluations: (signal: AbortSignal) => request<EvaluationCatalog>("/evaluations", signal),
@@ -129,10 +137,8 @@ export const api = {
     request<EvaluationCatalog>("/evaluations", signal, { model, dataset }),
   mailboxes: (signal: AbortSignal) => request<Mailboxes>("/mailboxes", signal),
   messages: (context: Context, signal: AbortSignal, cursor?: string) => {
-    const params = new URLSearchParams({
-      query_date: context.date,
-      limit: "50",
-    });
+    const params = contextParams(context);
+    params.set("limit", "50");
     if (cursor !== undefined) params.set("cursor", cursor);
     return request<Messages>(
       `${mailboxPath(context)}/messages?${params}`,
@@ -140,7 +146,7 @@ export const api = {
     );
   },
   message: (context: Context, id: string, signal: AbortSignal) => {
-    const params = new URLSearchParams({ query_date: context.date });
+    const params = contextParams(context);
     return request<MessageResponse>(
       `${mailboxPath(context)}/messages/${encodeURIComponent(id)}?${params}`,
       signal,
@@ -148,6 +154,7 @@ export const api = {
   },
   search: (context: Context, query: string, signal: AbortSignal, model?: string) => {
     const params = new URLSearchParams({ explain: "true" });
+    if (context.dataset) params.set("dataset", context.dataset);
     if (model) params.set("model", model);
     return request<SearchResponse>(`${mailboxPath(context)}/search?${params}`, signal, {
       query,

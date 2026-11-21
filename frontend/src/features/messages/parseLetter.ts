@@ -6,7 +6,7 @@ export function parseLetter(text: string) {
   let recipient = "";
   let body = text;
   const offsets = { sender: 0, subject: 0, recipient: 0, body: 0 };
-  const header = /^(от|отправитель|from|кому|to|тема|subject):[ \t]*([^\r\n]*)(?:\r?\n|$)/i;
+  const header = /^(от|отправитель|sender|from|получатели|recipients|кому|to|тема|subject):[ \t]*([^\r\n]*)(?:\r?\n|$)/i;
   while (true) {
     const match = header.exec(body);
     if (!match) break;
@@ -18,7 +18,7 @@ export function parseLetter(text: string) {
       if (subject) break;
       subject = value;
       offsets.subject = offset;
-    } else if (field === "кому" || field === "to") {
+    } else if (["кому", "to", "получатели", "recipients"].includes(field)) {
       if (recipient) break;
       recipient = value;
       offsets.recipient = offset;
@@ -29,7 +29,10 @@ export function parseLetter(text: string) {
     }
     body = body.slice(match[0].length);
   }
-  if (body !== text) body = body.replace(/^([ \t]*\r?\n)+/, "");
+  if (body !== text) {
+    body = body.replace(/^(?:файл|file):[^\r\n]*\r?\n={3,}[ \t]*\r?\n/i, "");
+    body = body.replace(/^([ \t]*\r?\n)+/, "");
+  }
   body = body.replace(/^текст письма:[ \t]*/i, "");
   offsets.body = text.length - body.length;
   return { sender, subject, recipient, body, offsets };

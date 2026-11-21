@@ -52,8 +52,15 @@ class Hit(Preview):
     score: float
 
 
+class MailboxGroup(BaseModel):
+    id: str
+    name: str
+    items: list[str]
+
+
 class Mailboxes(BaseModel):
     items: list[str]
+    groups: list[MailboxGroup] | None = None
 
 
 class Messages(BaseModel):
