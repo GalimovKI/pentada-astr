@@ -1,0 +1,93 @@
+{
+  "code_commit": "37a9b8b335e78713bad43cdb2ff73c3d474f8fc5",
+  "seed": 42,
+  "counts": {
+    "documents": 8104,
+    "events": 12959,
+    "facts": 77,
+    "messages": 15515,
+    "parties": 26,
+    "people": 32,
+    "questions": 326,
+    "threads": 3882
+  },
+  "config": {
+    "amend_prob": 0.25,
+    "category_counts": {
+      "1": 55,
+      "2": 55,
+      "3": 55,
+      "4": 55,
+      "5": 55,
+      "6": 55
+    },
+    "contact_change_frac": 0.25,
+    "credit_note_prob": 0.08,
+    "dispute_prob": 0.12,
+    "format_drift": true,
+    "months": 12,
+    "n_customers": 10,
+    "n_questions": null,
+    "n_vendors": 14,
+    "near_dup_invoices": 0.15,
+    "person_move_count": 1,
+    "pos_per_vendor_month": [
+      4,
+      6
+    ],
+    "quoted_replies": true,
+    "renegotiate_frac": 0.5,
+    "sales_per_customer_month": [
+      3,
+      4
+    ],
+    "second_amend_prob": 0.3,
+    "seed": 42,
+    "truncate_references": true,
+    "year": 2024,
+    "years": 3
+  },
+  "sha256": {
+    "manifest.json": "b532b612bd8763949a5e44f9226e85c4830e4b2b667ddf756984e457031493b7",
+    "questions.jsonl": "cb73e8dbbd1baf2d09ee73d09f96dd691e12af02bce571a0ae5394ea31efdcec",
+    "ground_truth/messages.jsonl": "e297efb7b78eaa2d98d903b37bff74efc542528878512a64b236cbb05831eac0"
+  },
+  "questions_by_category": {
+    "1": {
+      "questions": 55,
+      "questions_with_message_evidence": 55,
+      "message_pairs": 55,
+      "unresolved_message_pairs": 0
+    },
+    "2": {
+      "questions": 55,
+      "questions_with_message_evidence": 55,
+      "message_pairs": 72,
+      "unresolved_message_pairs": 0
+    },
+    "3": {
+      "questions": 55,
+      "questions_with_message_evidence": 55,
+      "message_pairs": 55,
+      "unresolved_message_pairs": 0
+    },
+    "4": {
+      "questions": 55,
+      "questions_with_message_evidence": 55,
+      "message_pairs": 406,
+      "unresolved_message_pairs": 0
+    },
+    "5": {
+      "questions": 51,
+      "questions_with_message_evidence": 51,
+      "message_pairs": 5057,
+      "unresolved_message_pairs": 0
+    },
+    "6": {
+      "questions": 55,
+      "questions_with_message_evidence": 0,
+      "message_pairs": 0,
+      "unresolved_message_pairs": 0
+    }
+  }
+}

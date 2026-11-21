@@ -1,0 +1,97 @@
+{
+  "sha256": {
+    "emails": "62ebbfeabea3b65bb5dd7ba89b37828e4bdba056affeea02437c3fca576e293b",
+    "train": "cb6b56d03c3f37c06e76f33212ae63d436e1978090ae04b4b3588998330ec889",
+    "eval": "69619cbb725fc4d02dde7bcd411c6e2e0d4ed30c531967f450af1918f272a5d7"
+  },
+  "unique_messages": 1964,
+  "messages_with_send_date": 1964,
+  "send_date_range": [
+    "2025-01-06",
+    "2026-06-30"
+  ],
+  "cross_split_overlap": {
+    "inboxes": 51,
+    "source_messages": 277,
+    "task_ids": 184
+  },
+  "eval": {
+    "tasks": 184,
+    "task_mailboxes": 51,
+    "query_ids_unique": 184,
+    "levels": {
+      "0": 73,
+      "1": 61,
+      "2": 40,
+      "3": 10
+    },
+    "source_pairs": 422,
+    "duplicate_source_pairs": 0,
+    "missing_source_pairs": 0,
+    "out_of_mailbox_pairs": 0,
+    "unknown_date_pairs": 0,
+    "future_pairs": 0,
+    "same_day_pairs": 4,
+    "previous_day_pairs": 248,
+    "queries_with_future_source": 0,
+    "queries_with_same_day_source": 4,
+    "queries_all_sources_previous_day": 126,
+    "queries_with_one_source": 76,
+    "queries_with_calendar_cue": 7,
+    "queries_no_detected_cue_all_sources_previous_day": 123,
+    "strict_prior_mailbox_candidates_min_median_max": [
+      3,
+      118.5,
+      618
+    ],
+    "previous_day_mailbox_candidates_min_median_max": [
+      0,
+      2.0,
+      8
+    ],
+    "previous_day_only_macro_recall_ceiling": 0.7450581121776775,
+    "source_age_days_min_median_max": [
+      0,
+      1.0,
+      181
+    ]
+  },
+  "eval_level_0": {
+    "tasks": 73,
+    "task_mailboxes": 34,
+    "query_ids_unique": 73,
+    "levels": {
+      "0": 73
+    },
+    "source_pairs": 74,
+    "duplicate_source_pairs": 0,
+    "missing_source_pairs": 0,
+    "out_of_mailbox_pairs": 0,
+    "unknown_date_pairs": 0,
+    "future_pairs": 0,
+    "same_day_pairs": 3,
+    "previous_day_pairs": 65,
+    "queries_with_future_source": 0,
+    "queries_with_same_day_source": 3,
+    "queries_all_sources_previous_day": 64,
+    "queries_with_one_source": 72,
+    "queries_with_calendar_cue": 5,
+    "queries_no_detected_cue_all_sources_previous_day": 61,
+    "strict_prior_mailbox_candidates_min_median_max": [
+      3,
+      96,
+      575
+    ],
+    "previous_day_mailbox_candidates_min_median_max": [
+      0,
+      1,
+      6
+    ],
+    "previous_day_only_macro_recall_ceiling": 0.8767123287671232,
+    "source_age_days_min_median_max": [
+      0,
+      1.0,
+      16
+    ]
+  }
+}

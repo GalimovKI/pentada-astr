@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "20261121T200235Z-4e491295",
+  "kind": "finding",
+  "owner": "evseevgrv",
+  "status": "completed",
+  "updated_at": "2026-11-21T20:02:35.113782+00:00",
+  "title": "Дополнительные корпуса для поиска писем: Vectrix ART-E и PaperTrail-Bench",
+  "hypothesis": null,
+  "code_branch": "dev",
+  "code_commit": "0c77d7f386cd5f0d5a989da903364bbb0937149a",
+  "baseline_ref": "20261121T180649Z-b3149308",
+  "replicates": null,
+  "outcome": null
+}
