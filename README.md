@@ -9,15 +9,14 @@
 Реализованы локальный eval, проверка официального архива и первый BM25-бейзлайн
 с учётом ящика и даты запроса. Код находится в Python-проекте `backend/`,
 общий интерфейс движка пригоден для будущего API. В пустых каталогах будущих
-компонент сохраняются `.gitkeep`. Backend API, frontend и Docker-запуск предстоит реализовать.
+компонент сохраняются `.gitkeep`. PostgreSQL-хранилище, импорт и локальный Docker Compose реализованы; Backend API и frontend предстоит реализовать.
 
 PostgreSQL выбран для хранения писем, ящиков и метаданных. Остальной стек ниже —
 предлагаемая основа реализации. Модели и параметры поиска окончательно выбираются
 по результатам оценки качества и скорости на предоставленном корпусе.
 
 Локальный eval читает ZIP или распакованные JSONL напрямую: PostgreSQL для него
-не требуется. Нужны Python 3.11+ и `uv`; внешних зависимостей времени выполнения у
-текущего движка нет. Команды из корня репозитория:
+не требуется. Нужны Python 3.11+ и `uv`; сам движок использует стандартную библиотеку; зависимости PostgreSQL устанавливаются вместе с backend. Команды из корня репозитория:
 
 ```bash
 uv sync --project backend --locked
@@ -75,7 +74,7 @@ Frontend обращается только к API. Доступ к PostgreSQL в
 | Хранилище | PostgreSQL | Принятое решение: письма, ящики и метаданные. |
 | Frontend | React, TypeScript, Vite, CSS | Предлагается для интерфейса и его сборки. |
 | Backend | Python, FastAPI, Pydantic, Uvicorn | Предлагается для API, валидации и HTTP-сервера. |
-| Доступ к БД | Драйвер PostgreSQL; инструмент миграций выбирается при реализации | SQL и соединения изолируются в `storage/`; изменения схемы — в `migrations/`. |
+| Доступ к БД | SQLAlchemy 2, Psycopg 3, Alembic | SQL и соединения изолируются в `storage/`; изменения схемы — в `migrations/`. |
 | Поиск по словам | BM25 на стандартной библиотеке Python | Реализованный исходный бейзлайн; BM25S можно оценить как дальнейшую оптимизацию. |
 | Поиск по смыслу | Sentence Transformers, NumPy | Локальная модель, заранее вычисленные векторы и поиск в памяти. |
 | Объединение результатов | RRF | Стартовый алгоритм объединения двух ранжированных списков. |
@@ -247,8 +246,7 @@ Frontend собирается во время сборки образа; отд�
 поисковых представлений соответствующие артефакты перестраиваются.
 
 Целевая команда обычного запуска после подготовки — `docker compose up -d`.
-**Она станет применима после добавления `compose.yaml`; сейчас запускать её для
-этого проекта рано.**
+Сейчас `compose.yaml` запускает только PostgreSQL; инструкции ниже уже применимы.
 
 ### Файлы реализации
 
@@ -257,7 +255,7 @@ Frontend собирается во время сборки образа; отд�
 | `backend/pyproject.toml`, `backend/uv.lock` | Уже созданы: Python-проект и lock-файл. |
 | `frontend/package.json`, `frontend/package-lock.json` | Frontend-проект, команды и версии пакетов. |
 | `backend/src/mail_search/main.py` | Создание приложения и его жизненный цикл. |
-| `backend/src/mail_search/cli.py` | Уже доступны validate, run, score, compare; команды БД и серверной нагрузки добавятся позже. |
+| `backend/src/mail_search/cli.py` | Доступны validate, run, score, compare, import-postgres; серверная нагрузка добавится позже. |
 | `compose.yaml` | Сервисы, сеть, volumes и проверки готовности. |
 | `infra/docker/Dockerfile` | Сборка backend и готового frontend. |
 | `.env.example` | Шаблон переменных окружения без рабочих секретов. |
@@ -295,10 +293,151 @@ Frontend собирается во время сборки образа; отд�
 1. Реализовать проверку корпуса и независимый eval — готово.
 2. Запустить BM25 через общий интерфейс и сохранить исходный результат — готово.
 3. Улучшать поиск и сравнивать варианты через тот же eval.
-4. Реализовать схему PostgreSQL, импорт и хранилище для просмотра писем.
+4. Реализовать схему PostgreSQL, импорт и хранилище для просмотра писем — готово.
 5. Добавить API и нагрузочную проверку, подобрать конфигурацию по качеству и скорости.
 6. Реализовать интерфейс и проверить полный пользовательский сценарий.
 7. Завершить Docker-сборку, инструкции запуска, официальный экспорт и публичную демонстрацию.
 
 Минимальные инструкции запуска и фиксация зависимостей добавляются с первой
 реализацией и уточняются на каждом этапе.
+
+## PostgreSQL: локальный запуск и импорт
+
+Команды выполняются из корня checkout. Нужны Docker Compose v2, Python 3.11+
+и `uv`. Архив передаётся отдельно и должен лежать в
+`data/raw/mipt_mail_search_participants.zip`. Зафиксирован образ
+`postgres:17.12-bookworm` из поддерживаемой ветки 17
+([политика поддержки PostgreSQL](https://www.postgresql.org/support/versioning/)).
+
+```bash
+cp .env.example .env
+chmod 600 .env
+# Замените replace_with_random_password в ОБОИХ местах .env одним своим паролем.
+# Например, сгенерируйте его командой: openssl rand -hex 24
+uv sync --project backend --locked
+docker compose up -d --wait
+uv run --project backend --locked --env-file .env alembic -c backend/alembic.ini upgrade head
+uv run --project backend --locked --env-file .env mailsearch import-postgres
+```
+
+Compose читает `.env` автоматически; Python-команды получают его через
+`uv --env-file`. Для пароля с особыми символами в `DATABASE_URL` требуется
+URL-кодирование. При занятом порте измените `POSTGRES_PORT` и порт в URL.
+Пароль, архив и дампы не коммитятся. Порт доступен только на `127.0.0.1`.
+Переменные `POSTGRES_*` инициализируют только новый volume: изменение пароля
+в `.env` не меняет пароль уже созданной роли PostgreSQL.
+
+Импорт сначала выполняет существующую проверку manifest, хешей и схемы всего
+набора, затем одной транзакцией пакетно записывает ящики, письма и метаданные.
+В рабочие таблицы не попадают запросы и qrels. Fingerprint совпадает с eval:
+это SHA-256 набора хешей четырёх исходных файлов, включая README и разметку.
+Изменение любого из них означает другой набор и требует отдельной БД.
+`corpus_import` хранит fingerprint, время, количества и версию формата.
+Повторный импорт возвращает `already_imported`, другой набор отклоняется.
+Конкурентные импорты сериализуются блокировкой таблиц; ошибка откатывает всю запись.
+Схема создаётся только Alembic, автоматически при импорте она не создаётся.
+
+### Чтение через Python
+
+```bash
+uv run --project backend --locked --env-file .env python - <<'PY'
+from datetime import date
+from mail_search.storage import MailStore, open_database
+
+with open_database() as engine:
+    store = MailStore(engine)
+    mailbox = store.list_mailboxes()[0]
+    page = store.list_messages(mailbox, query_date=date(2028, 1, 1), limit=20)
+    print(page.items)  # doc_id, synthetic_user, doc_dt, snippet (до 200 символов)
+    if page.items:
+        message = store.get_message(mailbox, page.items[0].doc_id,
+                                    query_date=date(2028, 1, 1))
+        print(message.doc)
+    if page.next_cursor:
+        next_page = store.list_messages(mailbox, query_date=date(2028, 1, 1),
+                                        limit=20, after=page.next_cursor)
+    ranked = store.get_messages(mailbox, [item.doc_id for item in page.items],
+                                query_date=date(2028, 1, 1))
+PY
+```
+
+Список ящиков отсортирован по идентификатору. Письма сортируются по
+`doc_dt DESC NULLS LAST, doc_id ASC` с фиксированной collation `C` для ID.
+Пагинация использует курсор последнего письма, без offset; лимит 1–500.
+Курсор привязан к ящику и `query_date`; для следующей страницы сохраняйте
+оба параметра. Корпус после импорта неизменяемый. При отсутствии `query_date`
+доступны все даты; при заданной дате будущие письма исключаются во всех операциях.
+NULL остаётся NULL и допускается фильтром доступности. Периоды вроде «вчера»
+интерпретирует поисковый движок, а не хранилище.
+
+Неизвестный ящик вызывает `UnknownMailbox`, отсутствующее, чужое или будущее
+письмо даёт `None`. Пакетный метод делает один запрос писем, пропускает недоступные
+ID и сохраняет порядок и повторы входных ID. Пустой список также проверяет ящик.
+Список выдаёт фрагменты, одиночное и пакетное чтение — domain `Document` с полным
+текстом. Проверка контекста ящика не заменяет будущую авторизацию HTTP API.
+`open_database` закрывает пул при выходе; в приложении держите один engine
+на процесс, а не создавайте его для каждого запроса. Пул: 5 соединений,
+до 5 дополнительных, ожидание до 30 секунд, проверка живого соединения.
+
+### Проверки и остановка
+
+Офлайн-команды не требуют `.env`, `DATABASE_URL` или запущенной БД:
+
+```bash
+uv run --project backend --locked python -m unittest discover -s backend/tests -t backend -v
+uv run --project backend --locked mailsearch validate
+```
+
+Для интеграционных тестов раскомментируйте `TEST_DATABASE_ADMIN_URL` в `.env`
+и укажите действительный пароль. Роль должна иметь `CREATEDB` (локальная роль
+Compose имеет это право). Тесты создают отдельную случайно названную БД
+`mailsearch_test_<uuid>` на каждый тест и удаляют только её; рабочая БД не очищается.
+Без этой переменной PostgreSQL-тесты явно пропускаются. SQLite не используется.
+
+```bash
+uv run --project backend --locked --env-file .env python -m unittest discover -s backend/tests -t backend -v
+docker compose restart db
+docker compose up -d --wait
+uv run --project backend --locked --env-file .env mailsearch import-postgres
+# Остановка и удаление контейнера с СОХРАНЕНИЕМ named volume:
+docker compose down
+# Последующий запуск использует прежние данные:
+docker compose up -d --wait
+```
+
+### Перенос на отдельный сервер
+
+Используйте логический custom-format дамп, а не копирование файлов volume.
+Остановите операции записи на время финального переноса. Локальный дамп:
+
+```bash
+mkdir -p data/backups
+docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom --no-owner --no-acl' > data/backups/mailsearch.dump
+```
+
+На сервере заранее создайте пустую БД UTF-8 и роль-владельца. Передайте дамп
+по защищённому каналу. В следующем примере стандартные libpq-переменные
+`PGHOST`, `PGPORT`, `PGUSER`, `PGDATABASE`, `PGSSLMODE=verify-full`,
+`PGSSLROOTCERT` задаются для целевого сервера, пароль — через защищённый
+`PGPASSFILE` (права 0600), а не аргумент командной строки:
+
+```bash
+pg_restore --exit-on-error --single-transaction --no-owner --no-acl \
+  --dbname="$PGDATABASE" data/backups/mailsearch.dump
+```
+
+`pg_dump` должен быть не старше major-версии источника; предпочтительно
+использовать инструменты целевой версии. `pg_restore` берите той же версии,
+что создала дамп, или совместимой более новой. Целевой PostgreSQL должен быть
+той же либо более новой major-версии; перенос на старую версию не гарантируется.
+Сначала проверьте восстановление в отдельную пустую БД. Роли и права доступа
+настраиваются отдельно: этот дамп их не переносит.
+
+Замените только `DATABASE_URL`, например
+`postgresql+psycopg://USER:PASSWORD@db.example.org:5432/mailsearch?sslmode=verify-full&sslrootcert=/path/to/ca.pem`.
+Hostname, порт, TLS и сертификат передаются без изменения кода. Затем выполните
+`alembic ... upgrade head` и `mailsearch import-postgres` командами выше:
+восстановленный набор должен вернуть `already_imported` и прежний fingerprint.
+Сверьте `corpus_import`, фактические количества в `mailboxes`/`messages`, NULL-даты
+и чтение писем с исходным набором. Проверьте сетевые правила и доверенный CA.
+Не направляйте восстановление в заполненную рабочую БД.

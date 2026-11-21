@@ -44,10 +44,10 @@ def compare_runs(left: Path, right: Path) -> str:
 def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(description="Validate mail-search data, evaluate an engine, compare runs.")
     commands = root.add_subparsers(dest="command", required=True)
-    for name in ("validate", "run", "score"):
+    for name in ("validate", "run", "score", "import-postgres"):
         command = commands.add_parser(name)
         command.add_argument("--dataset", type=Path, default=Path(DEFAULT_DATASET), help="Official ZIP or extracted directory")
-        if name == "validate":
+        if name in ("validate", "import-postgres"):
             continue
         command.add_argument("--output", type=Path, required=True, help="New run directory; existing directories are not overwritten")
         command.add_argument("--ks", nargs="+", type=int, default=DEFAULT_KS)
@@ -65,6 +65,19 @@ def parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
+        if args.command == "import-postgres":
+            from sqlalchemy.exc import SQLAlchemyError
+            from .storage.database import open_database
+            from .storage.importer import import_corpus
+            try:
+                with open_database() as engine:
+                    result = import_corpus(engine, args.dataset)
+            except SQLAlchemyError:
+                # Driver messages may contain connection details or email text.
+                print("Ошибка PostgreSQL: проверьте подключение, миграции и допустимость данных", file=sys.stderr)
+                return 2
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0
         if args.command == "compare":
             print(compare_runs(args.left, args.right))
             return 0

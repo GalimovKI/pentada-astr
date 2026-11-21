@@ -41,3 +41,7 @@ test-results/
 .DS_Store
 *.log
 /tmp/
+
+# Database backups
+*.dump
+*.sql
