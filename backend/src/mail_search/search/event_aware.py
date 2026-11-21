@@ -7,6 +7,7 @@ import re
 
 from ..domain.models import Document, SearchHit, SearchRequest
 from ..indexing.text import tokenize_stemmed
+from .relevance import relative_scores
 from .dates import receipt_day
 from .fuzzy import SCRIPT_BOUNDARY, query_terms, token_similarity
 from .routed_bm25 import RoutedBM25Engine
@@ -43,6 +44,7 @@ class Evidence:
 
 class EventAwareEngine:
     def __init__(self, documents: tuple[Document, ...], options: dict):
+        self.document_count = len(documents)
         self.config = options
         self.baseline = RoutedBM25Engine(documents)
         self.evidence = {}
@@ -57,7 +59,10 @@ class EventAwareEngine:
                 if prospective or subject_terms:
                     self.evidence[document.doc_id] = Evidence(prospective, subject_terms)
 
-    def search(self, request: SearchRequest, k: int) -> list[SearchHit]:
+    def relevance_scores(self, request):
+        return relative_scores(self.search(request, self.document_count, adjusted_scores=True))
+
+    def search(self, request: SearchRequest, k: int, *, adjusted_scores=False) -> list[SearchHit]:
         if not self.evidence or k < 1:
             return self.baseline.search(request, k)
         day, content = receipt_day(request.query, request.query_date)
@@ -84,6 +89,8 @@ class EventAwareEngine:
 
         scores = [adjust(hit) for hit in prefix]
         order = sorted(range(len(prefix)), key=lambda i: -scores[i])
+        if adjusted_scores:
+            return ([SearchHit(prefix[i].doc_id, scores[i]) for i in order] + hits[depth:])[:k]
         if order == list(range(len(prefix))):
             return hits[:k]
         reordered = [prefix[i] for i in order] + hits[depth:]

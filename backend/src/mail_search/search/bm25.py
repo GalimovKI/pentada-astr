@@ -9,6 +9,7 @@ from heapq import nsmallest
 from ..domain.models import Document, SearchHit, SearchRequest
 from ..indexing.bm25 import build_bm25_index, build_corpus_statistics
 from ..indexing.text import normalize, tokenize, tokenize_stemmed
+from .relevance import relative_scores
 from .dates import receipt_day, target_day
 from .deadline import check_deadline
 
@@ -53,6 +54,9 @@ class BM25Engine:
         content = MAIL_INTRO.sub("", content, count=1)
         topical_terms = set(self.tokenize(content))
         return {term: 1.0 if not topical_terms or term in topical_terms else wrapper_weight for term in terms}
+
+    def relevance_scores(self, request):
+        return relative_scores(self.search(request, len(self.documents)))
 
     def search(self, request: SearchRequest, k: int, *, deadline: float | None = None) -> list[SearchHit]:
         if deadline is not None:

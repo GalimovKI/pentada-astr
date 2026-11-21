@@ -6,6 +6,7 @@ from pathlib import Path
 
 from ..core.paths import repository_root
 from ..domain.models import Document, SearchHit, SearchRequest
+from .relevance import relative_scores
 from .dates import receipt_day
 from .fuzzy import query_terms
 from .routed_bm25 import RoutedBM25Engine
@@ -81,17 +82,21 @@ class BM25MiniLMEngine:
         self.reranker = reranker
         self.config = config
 
-    def search(self, request: SearchRequest, k: int) -> list[SearchHit]:
+    def relevance_scores(self, request):
+        return self.search(request, len(self.documents), blend_scores=True)
+
+    def search(self, request: SearchRequest, k: int, *, blend_scores=False) -> list[SearchHit]:
         if k < 1 or not request.query.strip():
             raise ValueError("nonempty query and positive K required")
         _, content = receipt_day(request.query, request.query_date)
         if not query_terms(content):
-            return self.baseline.search(request, k)
+            hits = self.baseline.search(request, k)
+            return relative_scores(hits) if blend_scores else hits
 
         depth = self.config["rerank_depth"]
         hits = self.baseline.search(request, max(k, depth))
         prefix = hits[:depth]
-        if len(prefix) < 2:
+        if not prefix or (len(prefix) < 2 and not blend_scores):
             return hits[:k]
 
         scores = self.reranker.score(content.strip(" ,.!?;:"), [self.documents[h.doc_id].doc for h in prefix])
@@ -103,6 +108,14 @@ class BM25MiniLMEngine:
         order = sorted(range(len(prefix)), key=lambda i: -(
             (1 - weight) / (RRF_CONSTANT + i + 1) + weight / (RRF_CONSTANT + minilm_ranks[i])
         ))
+        if blend_scores:
+            lexical = relative_scores(hits)
+            # The cross-encoder only sees the reranked prefix. Tail candidates
+            # retain the lexical component of the same 75/25 blend.
+            strength = [(1 - weight) * hit.score for hit in lexical]
+            for i, logit in enumerate(scores):
+                strength[i] += weight / (1 + math.exp(-max(-700, logit)))
+            return [SearchHit(hits[i].doc_id, strength[i]) for i in [*order, *range(depth, len(hits))]][:k]
         reordered = [prefix[i] for i in order] + hits[depth:]
         return [SearchHit(hit.doc_id, 1 / rank) for rank, hit in enumerate(reordered[:k], 1)]
 

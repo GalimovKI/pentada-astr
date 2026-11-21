@@ -5,9 +5,11 @@ export function SearchForm({
   onSearch,
   pending,
   threshold,
+  model,
 }: {
   onSearch: (query: string, similarity?: number) => void;
   threshold?: number;
+  model?: string;
   pending: boolean;
 }) {
   const [draft, setDraft] = useState("");
@@ -28,10 +30,10 @@ export function SearchForm({
     >
       {threshold !== undefined && (
         <div className="field similarity-field">
-          <label htmlFor="similarity">Минимальное косинусное сходство</label>
-          <input id="similarity" name="similarity" type="number" required min="-1" max="1" step="any"
+          <label htmlFor="similarity">Порог отбора писем</label>
+          <input key={model} id="similarity" name="similarity" type="number" required min={model === "e5-cosine" ? -1 : 0} max="1" step="any"
             defaultValue={threshold} aria-describedby="similarity-help" />
-          <p className="hint" id="similarity-help">От −1 до 1. Чем выше порог, тем меньше писем пройдёт отбор.</p>
+          <p className="hint" id="similarity-help">{model === "e5-cosine" ? "Косинусное сходство от −1 до 1." : "Оценка релевантности от 0 до 1."} Все письма с оценкой от порога включительно попадут в выдачу.</p>
         </div>
       )}
       <label htmlFor="query">Найти письмо своими словами</label>

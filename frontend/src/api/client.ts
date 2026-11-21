@@ -40,15 +40,14 @@ export interface Context {
   date: string;
 }
 export interface SearchBody {
-  min_similarity?: number;
-  offset?: number;
+  relevance_threshold?: number;
   query: string;
   query_date: string;
-  limit: number;
+  limit?: number;
 }
 type EvalSelection = { model: string; dataset: string };
 type MetricRow = { recall: number; ndcg: number; mrr: number; mrr_single: number | null };
-export type EvalOption = { id: string; name: string };
+export type EvalOption = { id: string; name: string; threshold?: number };
 export interface Features { evaluations: boolean; mail_models?: EvalOption[] }
 export interface EvaluationCatalog {
   models: EvalOption[];
@@ -157,14 +156,14 @@ export const api = {
       signal,
     );
   },
-  search: (context: Context, query: string, signal: AbortSignal, model?: string, minSimilarity?: number, offset = 0) => {
+  search: (context: Context, query: string, signal: AbortSignal, model?: string, threshold?: number) => {
     const params = new URLSearchParams({ explain: "true" });
     if (context.dataset) params.set("dataset", context.dataset);
     if (model) params.set("model", model);
     return request<SearchResponse>(`${mailboxPath(context)}/search?${params}`, signal, {
       query,
       query_date: context.date,
-      ...(minSimilarity === undefined ? { limit: 10 } : { limit: 50, min_similarity: minSimilarity, offset }),
+      ...(threshold === undefined ? { limit: 10 } : { relevance_threshold: threshold }),
     });
   },
 };

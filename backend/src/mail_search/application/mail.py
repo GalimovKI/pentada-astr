@@ -28,7 +28,7 @@ class MailService:
         if fingerprint != self.loaded.fingerprint:
             raise ServiceError(503, "dataset_mismatch")
 
-    def search(self, user, query, query_date, limit, *, explain=False, min_similarity=None, offset=0):
+    def search(self, user, query, query_date, limit, *, explain=False, min_similarity=None, offset=0, relevance_threshold=None):
         self.ready()
         if user not in self.store.list_mailboxes():
             raise UnknownMailbox(user)
@@ -36,12 +36,17 @@ class MailService:
             # Bound materialization, including a misbehaving lazy engine result.
             request = SearchRequest(query, user, query_date)
             total = None
-            if min_similarity is None:
+            if relevance_threshold is not None:
+                hits = [hit for hit in self.loaded.engine.relevance_scores(request)
+                        if hit.score >= relevance_threshold]
+                total = len(hits)
+            elif min_similarity is None:
                 result = self.loaded.engine.search(request, limit)
+                hits = list(islice(result, limit + 1))
             else:
                 result, total = self.loaded.engine.search_page(request, limit, min_similarity=min_similarity, offset=offset)
-            hits = list(islice(result, limit + 1))
-            if len(hits) > limit or any(
+                hits = list(islice(result, limit + 1))
+            if (relevance_threshold is None and len(hits) > limit) or any(
                 not isinstance(h, SearchHit) or not isinstance(h.doc_id, str) or not h.doc_id
                 or type(h.score) not in (int, float) or not math.isfinite(h.score) for h in hits
             ) or len({h.doc_id for h in hits}) != len(hits):
