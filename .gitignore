@@ -11,6 +11,8 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 *.egg-info/
+build/
+dist/
 .coverage
 htmlcov/
 
@@ -31,6 +33,9 @@ test-results/
 /reports/**
 !/reports/**/
 !/reports/**/.gitkeep
+# Curated experiment summaries; generated run directories stay local.
+!/reports/quality/*.md
+/runs/
 
 # Operating system and temporary files
 .DS_Store
