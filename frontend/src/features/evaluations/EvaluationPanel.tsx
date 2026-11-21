@@ -45,16 +45,22 @@ export function EvaluationPanel({ visible }: { visible: boolean }) {
       {!data && pending && <p role="status">Загружаем список моделей…</p>}
       {data && comparison.length > 0 && <section className="eval-result">
         <h2>Сравнение моделей</h2>
-        <div className="eval-table"><table>
-          <caption>{data.datasets.find(option => option.id === selectedDataset)?.name} · последние успешные прогоны</caption>
-          <thead><tr><th>Модель</th><th>Recall@10</th><th>nDCG@10</th><th>MRR@10</th><th>p99, мс</th><th>Место замера</th></tr></thead>
+        <p id="comparison-caption" className="hint">{data.datasets.find(option => option.id === selectedDataset)?.name} · последние успешные прогоны</p>
+        <div className="eval-table" tabIndex={0} role="region" aria-label="Таблица сравнения"><table aria-labelledby="comparison-caption">
+          <thead><tr><th>Модель</th><th>Recall@10</th><th aria-sort="descending">nDCG@10 ↓</th><th>MRR@10</th><th>p99, мс</th><th>Место замера</th></tr></thead>
           <tbody>{comparison.map(row => <tr key={row.model}>
             <th scope="row">{data.models.find(option => option.id === row.model)?.name}</th>
             {[row.recall, row.ndcg, row.mrr, row.p99_ms].map((value, i) =>
-              <td key={i}>{value == null ? "—" : decimal.format(value)}</td>)}
+              <td key={i}>{i === 1 && value != null
+                ? <span className="metric-score"><span>{decimal.format(value)}</span><meter aria-hidden="true" min={0} max={1} value={value} /></span>
+                : value == null ? "—" : decimal.format(value)}</td>)}
             <td>{row.source ?? "Этот стенд"}</td>
           </tr>)}</tbody>
         </table></div>
+      </section>}
+      {data && !comparison.length && <section className="eval-result">
+        <h2>Сравнение моделей</h2>
+        <p className="hint">Для этого датасета пока нет завершённых прогонов.</p>
       </section>}
       {data && current && current.dataset === selectedDataset && <section className="eval-result" aria-label="Результат прогона">
         <h2>{data.models.find(option => option.id === current.model)?.name}</h2>

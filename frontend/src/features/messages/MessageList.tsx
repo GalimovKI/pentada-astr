@@ -26,8 +26,11 @@ export function MessageList({
               aria-pressed={selected === item.doc_id}
               onClick={() => onOpen(item.doc_id)}
             >
+              <span className="list-avatar" aria-hidden="true">
+                {sender ? (sender.startsWith("mail-") ? "@" : sender[0].toUpperCase()) : <span className="envelope" />}
+              </span>
               <span className="card-meta">
-                <strong className="list-sender">{sender}</strong>
+                <strong className="list-sender">{sender || "Отправитель не указан"}</strong>
                 <MessageDate value={item.doc_dt} />
               </span>
               <span className="list-subject">{subject || (passage ? "Без темы" : body) || "Без темы"}</span>

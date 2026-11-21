@@ -18,13 +18,17 @@ export function MessageReader({
 }) {
   const { data, pending, error, run } = useTask<MessageResponse>();
   const heading = useRef<HTMLHeadingElement>(null);
+  const reader = useRef<HTMLElement>(null);
   const load = () => void run((signal) => api.message(context, id, signal));
   useEffect(() => {
     void run((signal) => api.message(context, id, signal));
-    heading.current?.focus();
+    heading.current?.focus({ preventScroll: true });
+    if (window.matchMedia("(max-width: 700px)").matches)
+      reader.current?.scrollIntoView({ block: "start" });
+    else if (reader.current?.parentElement)
+      reader.current.parentElement.scrollTop = 0;
   }, [context.dataset, context.mailbox, context.date, id, run]);
   const letter = data && parseLetter(data.item.doc);
-  const reader = useRef<HTMLElement>(null);
   useEffect(() => {
     if (data && passage)
       reader.current?.querySelector("mark")?.scrollIntoView({ block: "nearest" });

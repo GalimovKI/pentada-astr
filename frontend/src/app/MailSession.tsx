@@ -79,20 +79,20 @@ export function MailSession({ context, models, model, onModelChange }: {
   return (
     <>
       <section className="search-area" aria-label="Поиск">
-        {!!models?.length && (
-          <div className="mail-model field">
-            <label htmlFor="mail-model">Модель поиска писем</label>
-            <select id="mail-model" value={model} onChange={event => {
-              const next = event.target.value;
-              onModelChange(next);
-              if (submitted !== null) find(submitted, next);
-            }}>
-              {models.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
-            </select>
-          </div>
-        )}
         <SearchForm onSearch={(query, similarity) => find(query, model, similarity)}
-          threshold={thresholdFor(model)} model={model} pending={search.pending} />
+          threshold={thresholdFor(model)} model={model} pending={search.pending}
+          modelPicker={models?.length ? (
+            <div className="mail-model field">
+              <label htmlFor="mail-model">Модель поиска писем</label>
+              <select id="mail-model" value={model} onChange={event => {
+                const next = event.target.value;
+                onModelChange(next);
+                if (submitted !== null) find(submitted, next);
+              }}>
+                {models.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
+              </select>
+            </div>
+          ) : null} />
       </section>
       <div className={`mail-workspace ${selected ? "reading" : ""}`}>
         <section
@@ -101,9 +101,6 @@ export function MailSession({ context, models, model, onModelChange }: {
         >
           <header className="list-header">
             <div>
-              <span className="eyebrow">
-                {searching ? "По вашему запросу" : "Выбранный ящик"}
-              </span>
               <h2>{searching ? "Результаты поиска" : "Все письма"}</h2>
             </div>
             {searching && (
@@ -120,7 +117,7 @@ export function MailSession({ context, models, model, onModelChange }: {
               })}
             </time></p>
           )}
-          <p className="list-caption">
+          <p className="list-caption" role={task.pending ? undefined : "status"}>
             {searching && search.data?.total != null
               ? `Найдено: ${search.data.total.toLocaleString("ru-RU")}`
               : !searching && list.data?.total != null

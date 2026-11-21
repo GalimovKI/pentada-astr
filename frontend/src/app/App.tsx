@@ -45,21 +45,17 @@ export function App() {
             <span>Почта<span className="brand-subtitle">Умный поиск</span></span>
           )}
         </a>
+        {dev && (
+          <nav className="dev-nav" aria-label="Вкладки dev-сайта">
+            <a href="#main" aria-current={showEvaluation ? undefined : "page"}>Почта</a>
+            <a href="#evaluations" aria-current={showEvaluation ? "page" : undefined}>Оценка моделей</a>
+          </nav>
+        )}
       </header>
-      {dev && (
-        <nav className="dev-nav" aria-label="Вкладки dev-сайта">
-          <a href="#main" aria-current={showEvaluation ? undefined : "page"}>Почта</a>
-          <a href="#evaluations" aria-current={showEvaluation ? "page" : undefined}>Оценка моделей</a>
-        </nav>
-      )}
       {dev && <EvaluationPanel visible={showEvaluation} />}
       <main id="main" className="app-layout" hidden={showEvaluation}>
-        <aside className="sidebar" aria-label="Контекст сценария">
-          <div>
-            <span className="eyebrow">Почта</span>
-            <h1>Мой ящик</h1>
-            <p className="sidebar-intro">Все письма и умный поиск</p>
-          </div>
+        <section className="mail-context" aria-label="Контекст сценария">
+          <h1>Почтовый архив</h1>
           {pending && <Loading>Загружаем ящики…</Loading>}
           {error != null && (
             <Failure error={error} retry={() => void run(api.mailboxes)} />
@@ -87,30 +83,16 @@ export function App() {
             />
             <p
               id="date-help"
-              className={dateValid ? "hint" : "validation"}
+              className={dateValid ? "sr-only" : "validation"}
               role={dateValid ? undefined : "alert"}
             >
               {dateValid
-                ? "Это «сегодня» для ящика. Письма, полученные позже, скрыты."
+                ? "Показаны письма, доступные на эту дату."
                 : "Укажите корректную дату в формате ГГГГ-ММ-ДД."}
             </p>
           </div>
-          <div className="context-note">
-            <span className="note-dot" aria-hidden="true" />
-            {archive ? archive.name : "Синтетические ящики"}
-            <p>
-              Выбор ящика задаёт контекст демонстрации. Вход в реальную почту не
-              требуется.
-            </p>
-          </div>
-        </aside>
+        </section>
         <div className="content">
-          <div className="context-bar">
-            <span>Почтовый архив</span>
-            <span>
-              Почта на <strong>{dateValid ? date : "не задана"}</strong>
-            </span>
-          </div>
           {selected && dateValid && data && (
             <MailSession
               key={JSON.stringify([archive?.id, selected, date])}
