@@ -1,11 +1,12 @@
-"""Read-only HTTP regression against the official corpus and stemmed BM25."""
+"""Read-only HTTP regression against the official corpus and configured search engine."""
 import argparse
+import atexit
+from importlib import import_module
 import os
 
 import json
 import urllib.request
 from urllib.error import HTTPError
-from mail_search.core.engine import load_bm25
 from mail_search.core.settings import Settings
 from mail_search.ingestion.dataset import load_dataset
 
@@ -21,10 +22,13 @@ assert get('/health/ready') == {'status': 'ready'}
 users = get('/api/v1/mailboxes')['items']
 assert len(users) == 12 and users == sorted(users)
 config = Settings(database_url='postgresql://unused', **{
-    key: os.environ[key.upper()] for key in ('search_config', 'search_dataset')
+    key: os.environ[key.upper()] for key in ('search_config', 'search_dataset', 'search_engine_factory')
     if key.upper() in os.environ})
 dataset = load_dataset(config.search_dataset)
-engine = load_bm25(config).engine
+module, name = config.search_engine_factory.split(':')
+loaded = getattr(import_module(module), name)(config)
+atexit.register(loaded.close)
+engine = loaded.engine
 queries = dataset.queries
 opened = 0
 for query in queries:

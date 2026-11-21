@@ -1,0 +1,5 @@
+{
+  "rerank_depth": 20,
+  "prospective_penalty": 0.55,
+  "subject_bonus": 0.0
+}

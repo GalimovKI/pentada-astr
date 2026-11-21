@@ -39,7 +39,8 @@ class CLITests(unittest.TestCase):
             "run.json", "metrics.json", "predictions.jsonl", "per_query.jsonl", "report.md"})
         metadata = json.loads((first / "run.json").read_text())
         self.assertFalse(metadata["engine_latency"]["official_server_p99_measured"])
-        self.assertEqual(metadata["engine_config"]["k1"], 1.2)
+        self.assertEqual(metadata["engine"], "mail_search.search.event_aware:create_engine")
+        self.assertEqual(metadata["engine_config"]["prospective_penalty"], 0.55)
         result = self.command("score", "--dataset", self.data, "--predictions", first / "predictions.jsonl",
                               "--output", rescored, "--ks", 1, 10)
         self.assertEqual(result.returncode, 0, result.stderr)

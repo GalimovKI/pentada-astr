@@ -88,9 +88,11 @@ CORS не включён; локальный frontend использует Vite 
 
 - `DATABASE_URL` — PostgreSQL URL, включая параметры TLS; обязательна для сервера.
 - `SEARCH_ENGINE_FACTORY` — `module:callable`, по умолчанию
-  `mail_search.core.engine:load_bm25`.
+  `mail_search.core.engine:load_event_aware`.
 - `SEARCH_CONFIG` — JSON объекта конфигурации, по умолчанию
-  `configs/search/bm25-stemmed.json` от корня checkout.
+  `configs/search/bm25-event-aware.json` от корня checkout. При передаче
+  только `SEARCH_CONFIG` сохраняется поддержка старых конфигураций BM25.
+  Для явного конфига нового движка задайте обе переменные.
 - `SEARCH_DATASET` — проверенный архив/каталог или путь к артефактам будущего
   загрузчика; по умолчанию `data/raw/mipt_mail_search_participants.zip` от checkout.
 
@@ -132,9 +134,9 @@ API независимо проверяет уникальность ID, раз�
 Неизвестный, чужой и будущий ID не раскрываются. Загрузчик и движок должны завершать
 свои синхронные операции; API не прерывает зависший Python-вызов.
 
-`load_bm25` — небольшой адаптер к прежней офлайн-фабрике
-`search.bm25:create_engine(documents, config)`. Читает и проверяет набор через
-`load_dataset`, строит текущий BM25 со Snowball один раз и возвращает fingerprint.
+`load_event_aware` читает набор через `load_dataset`, строит индексы для
+`search.event_aware:create_engine(documents, config)` и возвращает fingerprint.
+`load_bm25` доступен для прежних конфигураций.
 Загрузчик видит валидированный набор, но в фабрику ранжирования передаются только
 документы и конфигурация. Offline eval API не импортирует и работает без БД.
 

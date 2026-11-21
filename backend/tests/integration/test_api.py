@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import event, update, delete, select
 from sqlalchemy.exc import OperationalError
 from mail_search.api.app import create_app
-from mail_search.core.engine import LoadedEngine, load_bm25
+from mail_search.core.engine import LoadedEngine, load_bm25, load_event_aware
 from mail_search.core.settings import Settings
 from mail_search.domain.models import SearchHit, SearchRequest
 from mail_search.storage.importer import import_corpus
@@ -212,6 +212,19 @@ class ApiTests(PostgreSQLTestCase):
             self.assertEqual(c.get("/api/v1/mailboxes").status_code, 503)
         closed.assert_called_once()
         db.dispose.assert_called_once()
+
+    def test_server_uses_event_aware_engine_by_default(self):
+        import_corpus(self.engine, self.path)
+        settings = Settings(database_url="postgresql://unused", search_dataset=self.path)
+        with TestClient(create_app(settings, database_factory=lambda _: self.engine)) as c:
+            self.assertEqual(c.get("/health/ready").status_code, 200)
+            response = self.search(c)
+            self.assertEqual(response.status_code, 200, response.text)
+            engine = load_event_aware(settings).engine
+            self.assertEqual(engine.config["prospective_penalty"], 0.55)
+            expected = engine.search(SearchRequest("чек", "a", date(2025, 1, 2)), 3)
+            self.assertEqual([hit["doc_id"] for hit in response.json()["items"]],
+                             [hit.doc_id for hit in expected])
 
     def test_server_factory_setting(self):
         # Actual import path loading, separate from injected loader tests.

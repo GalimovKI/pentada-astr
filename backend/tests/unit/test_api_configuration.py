@@ -23,6 +23,11 @@ class ServerConfigurationTests(unittest.TestCase):
                 self.assertEqual(client.get("/health/live").status_code, 200)
                 self.assertEqual(client.get("/health/ready").status_code, 503)
 
+    def test_config_only_override_preserves_legacy_factory(self):
+        settings = Settings(database_url="postgresql://unused", search_config="custom-bm25.json")
+        self.assertEqual(settings.search_engine_factory, "mail_search.core.engine:load_bm25")
+        self.assertEqual(settings.search_config.name, "custom-bm25.json")
+
     def test_invalid_engine_metadata_is_not_ready(self):
         for fingerprint in (None, "", "not-a-hash", 123):
             store, db, close = Mock(), Mock(), Mock()

@@ -7,3 +7,6 @@ def repository_root() -> Path:
         if (candidate / "backend" / "pyproject.toml").is_file() and (candidate / "PROJECT.md").is_file():
             return candidate
     return Path.cwd()
+
+
+DEFAULT_SEARCH_CONFIG = repository_root() / "configs/search/bm25-event-aware.json"
