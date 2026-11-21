@@ -1,0 +1,6 @@
+{
+  "minilm_model": "artifacts/models/minilm/model.onnx",
+  "minilm_weight": 0.25,
+  "rerank_depth": 20,
+  "inference_threads": 4
+}

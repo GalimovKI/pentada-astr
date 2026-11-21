@@ -1,0 +1,50 @@
+from datetime import date
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase
+from unittest.mock import Mock, patch
+
+from mail_search.core.presets import available_models
+from mail_search.core.settings import Settings
+from mail_search.domain.models import Document, SearchHit, SearchRequest
+from mail_search.search.bm25_minilm import BM25MiniLMEngine
+
+
+class BM25MiniLMTests(TestCase):
+    def test_fixed_prefix_keeps_tail_and_reorders_by_weighted_ranks(self):
+        day = date(2028, 11, 20)
+        documents = tuple(Document(str(i), "box", f"Письмо {i}", day) for i in range(21))
+        model = Mock()
+        model.score.return_value = [0, 20, *range(1, 19)]
+        engine = BM25MiniLMEngine(documents, model, {"minilm_weight": 0.25, "rerank_depth": 20})
+        engine.baseline = Mock()
+        engine.baseline.search.return_value = [SearchHit(str(i), 21 - i) for i in range(21)]
+        request = SearchRequest("заказ, полученный вчера", "box", date(2028, 11, 21))
+
+        output = engine.search(request, 21)
+        self.assertEqual({hit.doc_id for hit in output}, {doc.doc_id for doc in documents})
+        self.assertEqual(output[0].doc_id, "1")
+        self.assertEqual(output[-1].doc_id, "20")
+        model.score.assert_called_once_with("заказ", [doc.doc for doc in documents[:20]])
+
+    def test_date_only_skips_minilm(self):
+        day = date(2028, 11, 20)
+        model = Mock()
+        documents = (Document("a", "box", "Письмо", day), Document("b", "box", "Другое письмо", day))
+        engine = BM25MiniLMEngine(documents, model, {"minilm_weight": 0.25, "rerank_depth": 20})
+        request = SearchRequest("вчера", "box", date(2028, 11, 21))
+
+        self.assertEqual(engine.search(request, 10), engine.baseline.search(request, 10))
+        model.score.assert_not_called()
+
+    def test_preset_requires_local_artifacts_and_runtime(self):
+        with TemporaryDirectory() as root:
+            path = Path(root)
+            settings = Settings(database_url="postgresql://unused", minilm_model_dir=path)
+            self.assertNotIn("bm25-minilm", available_models(settings))
+            (path / "model.onnx").touch()
+            (path / "tokenizer.json").touch()
+            with patch("mail_search.core.presets.find_spec", return_value=None):
+                self.assertNotIn("bm25-minilm", available_models(settings))
+            with patch("mail_search.core.presets.find_spec", return_value=object()):
+                self.assertIn("bm25-minilm", available_models(settings))

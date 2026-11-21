@@ -67,6 +67,8 @@ class ApiTests(PostgreSQLTestCase):
             self.assertEqual(row["ndcg"], job["metrics"]["by_k"]["10"]["ndcg"])
 
     def test_dev_mail_presets_match_their_engines(self):
+        from importlib import import_module
+
         from mail_search.core.presets import model_settings
 
         path = "/api/v1/mailboxes/a/search"
@@ -80,7 +82,8 @@ class ApiTests(PostgreSQLTestCase):
             for preset in client.get("/api/v1/features").json()["mail_models"]:
                 model = preset["id"]
                 config = model_settings(settings, model)
-                engine = (load_event_aware if model == "bm25-event-aware" else load_bm25)(config)
+                module, name = config.search_engine_factory.split(":")
+                engine = getattr(import_module(module), name)(config)
                 hits = engine.engine.search(SearchRequest(body["query"], "a", date(2025, 1, 2)), 3)
                 response = client.post(path, params={"model": model}, json=body)
                 self.assertEqual(response.status_code, 200)

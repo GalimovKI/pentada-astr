@@ -12,6 +12,7 @@ LEGACY_SEARCH_CONFIG = repository_root() / "configs/search/bm25-stemmed.json"
 class Settings(BaseModel):
     model_config = ConfigDict(extra="forbid")
     enable_evaluations: bool = False
+    minilm_model_dir: Path | None = None
     evaluation_dir: Path = Path.home() / ".local/state/pentada/evaluations"
     enronqa_ru_database_url: SecretStr | None = None
     enronqa_en_database_url: SecretStr | None = None

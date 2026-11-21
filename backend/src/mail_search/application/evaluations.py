@@ -16,7 +16,7 @@ import httpx
 from ..benchmarks.latency import percentile
 from ..cli import DEFAULT_KS
 from ..core.datasets import mail_datasets, PUBLIC_DATASET
-from ..core.presets import MODELS, model_options, model_settings
+from ..core.presets import available_models, model_options, model_settings
 from ..core.provenance import code_version
 from ..evaluation.runner import evaluate, validate_ranking, write_run
 from ..ingestion.dataset import load_dataset
@@ -33,11 +33,12 @@ class Evaluations:
         self.lock = Lock()
         self.latest = None
         self.datasets = mail_datasets(settings)
+        self.models = available_models(settings)
         self.comparisons = {}
         reference = settings.enronqa_directory / "comparisons.json"
         if reference.is_file():
             for row in json.loads(reference.read_text()):
-                if row["dataset"] in self.datasets:
+                if row["dataset"] in self.datasets and row["model"] in self.models:
                     self.comparisons[row["dataset"], row["model"]] = row
         for path in settings.evaluation_dir.glob("*/run.json"):
             try:
@@ -51,7 +52,7 @@ class Evaluations:
         dataset = meta.get("dataset_id")
         if dataset is None and meta["dataset"]["fingerprint"] == PUBLIC_FINGERPRINT:
             dataset = PUBLIC_DATASET
-        if dataset not in self.datasets or meta["engine"] not in MODELS:
+        if dataset not in self.datasets or meta["engine"] not in self.models:
             return
         key = (dataset, meta["engine"])
         row = dict(dataset=dataset, model=meta["engine"], created_at=meta["created_at"],
@@ -62,13 +63,13 @@ class Evaluations:
 
     def catalog(self):
         with self.lock:
-            return dict(models=model_options(),
+            return dict(models=model_options(self.models),
                         datasets=[dict(id=key, name=value[0]) for key, value in self.datasets.items()],
                         comparisons=list(self.comparisons.values()),
                         run=self.latest)
 
     def start(self, model, dataset):
-        if model not in MODELS or dataset not in self.datasets:
+        if model not in self.models or dataset not in self.datasets:
             raise ServiceError(422, "unknown_evaluation_option")
         with self.lock:
             if self.latest and self.latest["status"] == "running":

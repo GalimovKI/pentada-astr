@@ -1,5 +1,6 @@
 """Server loader contract, separate from the unchanged offline factory."""
 from dataclasses import dataclass, replace
+from functools import partial
 from typing import Callable
 import json
 from ..domain.models import SearchEngine
@@ -36,3 +37,10 @@ def load_event_aware(settings: Settings, *, single_mailbox=None) -> LoadedEngine
     from ..search.event_aware import create_engine as create_event_aware_engine
 
     return _load_engine(settings, create_event_aware_engine, settings.search_config, single_mailbox)
+
+
+def load_bm25_minilm(settings: Settings, *, single_mailbox=None) -> LoadedEngine:
+    from ..search.bm25_minilm import create_engine as create_bm25_minilm_engine
+
+    factory = partial(create_bm25_minilm_engine, model_dir=settings.minilm_model_dir)
+    return _load_engine(settings, factory, settings.search_config, single_mailbox)

@@ -4,7 +4,9 @@ COPY --from=uv /uv /usr/local/bin/uv
 WORKDIR /app/backend
 COPY backend/pyproject.toml backend/uv.lock ./
 COPY backend/src ./src
-RUN uv sync --locked --no-dev --no-editable --no-cache --python /usr/local/bin/python
+ARG INCLUDE_MINILM=0
+RUN if [ "$INCLUDE_MINILM" = "1" ]; then set -- --extra minilm; else set --; fi; \
+    uv sync --locked --no-dev --no-editable --no-cache --python /usr/local/bin/python "$@"
 
 FROM python:3.12.12-slim-bookworm@sha256:593bd06efe90efa80dc4eee3948be7c0fde4134606dd40d8dd8dbcade98e669c AS runtime
 ENV PATH="/app/backend/.venv/bin:$PATH" PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
@@ -17,6 +19,12 @@ COPY backend/alembic.ini /app/backend/alembic.ini
 COPY backend/migrations /app/backend/migrations
 COPY configs/search /app/configs/search
 COPY infra/docker/prepare.py /app/infra/docker/prepare.py
+ARG INCLUDE_MINILM=0
+ARG TARGETARCH
+COPY infra/docker/fetch_minilm.py /tmp/fetch_minilm.py
+RUN if [ "$INCLUDE_MINILM" = "1" ]; then \
+      python /tmp/fetch_minilm.py --arch "${TARGETARCH:-$(uname -m)}" --output /opt/mailsearch/minilm; \
+    fi && rm /tmp/fetch_minilm.py
 RUN useradd --uid 10001 --create-home app && install -d -o app -g app /home/app/evaluations
 USER app
 EXPOSE 8000

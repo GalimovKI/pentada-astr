@@ -18,6 +18,9 @@ dependencies = [
     "httpx>=0.28,<1",
 ]
 
+[project.optional-dependencies]
+minilm = ["numpy>=1.26,<3", "onnxruntime>=1.23,<2", "tokenizers>=0.21,<1"]
+
 [project.scripts]
 mailsearch = "mail_search.cli:main"
 

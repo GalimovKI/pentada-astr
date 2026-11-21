@@ -58,7 +58,7 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
                         raise ValueError("Loader must return LoadedEngine")
                     return result
                 def select_model(dataset, model, archive):
-                    if model not in MODELS:
+                    if model not in app.state.evaluations.models:
                         raise ServiceError(422, "unknown_search_model")
                     scoped = configs[dataset]
                     active = app.state.services[dataset]
@@ -172,7 +172,7 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
     def features():
         if app.state.evaluations is None:
             return {"evaluations": False}
-        return {"evaluations": True, "mail_models": model_options()}
+        return {"evaluations": True, "mail_models": model_options(app.state.evaluations.models)}
 
     def evaluations():
         if app.state.evaluations is None:
