@@ -7,7 +7,15 @@ name = "pentada-mail-search"
 version = "0.1.0"
 description = "Local mail-search evaluation and a reproducible BM25 baseline"
 requires-python = ">=3.11"
-dependencies = ["sqlalchemy>=2.0,<3", "psycopg[binary]>=3.2,<4", "alembic>=1.14,<2", "snowballstemmer==3.1.1"]
+dependencies = [
+    "sqlalchemy>=2.0,<3",
+    "psycopg[binary]>=3.2,<4",
+    "alembic>=1.14,<2",
+    "snowballstemmer==3.1.1",
+    "fastapi>=0.115,<1",
+    "pydantic>=2.10,<3",
+    "uvicorn>=0.34,<1",
+]
 
 [project.scripts]
 mailsearch = "mail_search.cli:main"
@@ -15,3 +23,8 @@ mailsearch = "mail_search.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["mail_search*"]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28,<1",
+]

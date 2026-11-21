@@ -9,8 +9,8 @@
 Реализованы локальный eval, проверка официального архива и BM25 с учётом ящика
 и даты запроса. Конфигурация `configs/search/bm25-stemmed.json` включает русский
 стемминг и распознавание даты получения. Код находится в Python-проекте `backend/`,
-общий интерфейс движка пригоден для будущего API. В пустых каталогах будущих
-компонент сохраняются `.gitkeep`. PostgreSQL-хранилище, импорт и локальный Docker Compose реализованы; Backend API и frontend предстоит реализовать.
+общий интерфейс движка используется HTTP API. В пустых каталогах будущих
+компонент сохраняются `.gitkeep`. PostgreSQL-хранилище, импорт и локальный Docker Compose реализованы; HTTP API реализован; frontend предстоит реализовать.
 
 PostgreSQL выбран для хранения писем, ящиков и метаданных. Остальной стек ниже —
 предлагаемая основа реализации. Модели и параметры поиска окончательно выбираются
@@ -84,7 +84,7 @@ Frontend обращается только к API. Доступ к PostgreSQL в
 | --- | --- | --- |
 | Хранилище | PostgreSQL | Принятое решение: письма, ящики и метаданные. |
 | Frontend | React, TypeScript, Vite, CSS | Предлагается для интерфейса и его сборки. |
-| Backend | Python, FastAPI, Pydantic, Uvicorn | Предлагается для API, валидации и HTTP-сервера. |
+| Backend | Python, FastAPI, Pydantic, Uvicorn | Реализованы API v1, валидация и жизненный цикл сервера. |
 | Доступ к БД | SQLAlchemy 2, Psycopg 3, Alembic | SQL и соединения изолируются в `storage/`; изменения схемы — в `migrations/`. |
 | Поиск по словам | BM25, Snowball | Исходный бейзлайн и конфигурация с русским стеммингом. |
 | Поиск по смыслу | Sentence Transformers, NumPy | Локальная модель, заранее вычисленные векторы и поиск в памяти. |
@@ -452,3 +452,57 @@ Hostname, порт, TLS и сертификат передаются без из
 Сверьте `corpus_import`, фактические количества в `mailboxes`/`messages`, NULL-даты
 и чтение писем с исходным набором. Проверьте сетевые правила и доверенный CA.
 Не направляйте восстановление в заполненную рабочую БД.
+
+## HTTP API
+
+Готовы просмотр и открытие писем, поиск через общий `SearchEngine`, проверки
+готовности и OpenAPI. Точный контракт, ошибки, fingerprint и подключение движка
+команды описаны в [backend/API.md](backend/API.md).
+
+Из чистого checkout (архив участников передаётся отдельно):
+
+```bash
+uv sync --project backend --locked
+cp .env.example .env
+# Задайте свой пароль и согласованный DATABASE_URL в .env.
+# Поместите архив в data/raw/mipt_mail_search_participants.zip.
+docker compose up -d --wait db
+uv run --project backend --locked --env-file .env alembic -c backend/alembic.ini upgrade head
+uv run --project backend --locked --env-file .env mailsearch import-postgres
+uv run --project backend --locked --env-file .env uvicorn mail_search.api.app:create_app \
+  --factory --host 127.0.0.1 --port 8000 --workers 1 --no-access-log
+```
+
+Документация: http://127.0.0.1:8000/docs ; схема: http://127.0.0.1:8000/openapi.json.
+В другом терминале:
+
+```bash
+curl --fail http://127.0.0.1:8000/health/ready
+curl --fail http://127.0.0.1:8000/api/v1/mailboxes
+curl --fail 'http://127.0.0.1:8000/api/v1/mailboxes/box-84bd433469cb/messages?query_date=2028-09-11&limit=3'
+curl --fail -i -X POST http://127.0.0.1:8000/api/v1/mailboxes/box-84bd433469cb/search \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"Найди уведомления о завершении досмотра контейнеров, полученные вчера","query_date":"2028-09-11","limit":3}'
+# Подставьте doc_id из ответа поиска:
+curl --fail 'http://127.0.0.1:8000/api/v1/mailboxes/box-84bd433469cb/messages/DOC_ID?query_date=2028-09-11'
+```
+
+Для следующей страницы передайте `next_cursor` как query-параметр `cursor`
+вместе с прежними ящиком и датой. Письма возвращаются как текст.
+BM25 со стеммингом загружается один раз при старте; импорт и миграции API не запускает.
+При несовместимом fingerprint или недоступной БД readiness возвращает 503.
+
+Проверки (в `.env` включите `TEST_DATABASE_ADMIN_URL`, роль с CREATEDB):
+
+```bash
+uv run --project backend --locked --env-file .env python -m unittest discover -s backend/tests -t backend -v
+# Только API integration:
+uv run --project backend --locked --env-file .env python -m unittest discover -s backend/tests/integration -p test_api.py -t backend -v
+# Offline — без .env и БД:
+env -u DATABASE_URL uv run --project backend --locked mailsearch validate
+```
+
+Без `TEST_DATABASE_ADMIN_URL` PostgreSQL/API integration явно пропускаются;
+тесты используют случайные временные БД, рабочая база не очищается.
+Остановка API: Ctrl+C с ожиданием завершения запросов и освобождения движка/пула.
+Остановка БД с сохранением volume: `docker compose down`.
