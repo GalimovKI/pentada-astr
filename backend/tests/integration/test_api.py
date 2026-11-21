@@ -164,6 +164,26 @@ class ApiTests(PostgreSQLTestCase):
             self.assertEqual(client.get(path, params=params).status_code, 200)
             self.assertEqual(client.get(path, params={**params, "dataset": "enronqa-en"}).status_code, 422)
 
+    def test_alternate_corpus_evaluation_keeps_loaded_engine_metadata(self):
+        import json
+        import time
+        import_corpus(self.engine, self.path)
+        url = self.engine.url.render_as_string(hide_password=False)
+        fixture(self.path / "enronqa-ru-ru.zip")
+        settings = Settings(database_url=url, search_dataset=self.path, enable_evaluations=True,
+                            enronqa_directory=self.path, enronqa_ru_database_url=url,
+                            evaluation_dir=self.path / "runs")
+        with TestClient(create_app(settings)) as client:
+            response = client.post("/api/v1/evaluations", json={"model": "bm25", "dataset": "enronqa-ru"})
+            self.assertEqual(response.status_code, 202)
+            deadline = time.monotonic() + 20
+            while (job := client.get("/api/v1/evaluations").json()["run"])["status"] == "running" and time.monotonic() < deadline:
+                time.sleep(.05)
+            self.assertEqual(job["status"], "completed")
+            metadata = json.loads((settings.evaluation_dir / job["id"] / "run.json").read_text())
+            self.assertEqual(metadata["dataset_id"], "enronqa-ru")
+            self.assertEqual(metadata["engine_config"]["k1"], 1.2)
+
     def test_dev_archive_reads_and_ranks_all_owners_on_selected_date(self):
         import_corpus(self.engine, self.path)
         url = self.engine.url.render_as_string(hide_password=False)
