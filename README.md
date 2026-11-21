@@ -6,8 +6,9 @@
 
 ## Текущее состояние
 
-Реализованы локальный eval, проверка официального архива и первый BM25-бейзлайн
-с учётом ящика и даты запроса. Код находится в Python-проекте `backend/`,
+Реализованы локальный eval, проверка официального архива и BM25 с учётом ящика
+и даты запроса. Конфигурация `configs/search/bm25-stemmed.json` включает русский
+стемминг и распознавание даты получения. Код находится в Python-проекте `backend/`,
 общий интерфейс движка пригоден для будущего API. В пустых каталогах будущих
 компонент сохраняются `.gitkeep`. Backend API, frontend и Docker-запуск предстоит реализовать.
 
@@ -16,14 +17,22 @@ PostgreSQL выбран для хранения писем, ящиков и ме
 по результатам оценки качества и скорости на предоставленном корпусе.
 
 Локальный eval читает ZIP или распакованные JSONL напрямую: PostgreSQL для него
-не требуется. Нужны Python 3.11+ и `uv`; внешних зависимостей времени выполнения у
-текущего движка нет. Команды из корня репозитория:
+не требуется. Нужны Python 3.11+ и `uv`. Версия Snowball закреплена в lock-файле.
+Команды из корня репозитория:
 
 ```bash
 uv sync --project backend --locked
 uv run --project backend --locked python -m unittest discover -s backend/tests -t backend -v
 uv run --project backend --locked mailsearch validate
 uv run --project backend --locked mailsearch run --output reports/quality/runs/bm25-example
+```
+
+Поиск одного запроса через тот же движок:
+
+```bash
+uv run --project backend --locked mailsearch search --config configs/search/bm25-stemmed.json \
+  --mailbox box-84bd433469cb --as-of 2028-09-11 --limit 3 \
+  'Найди уведомления о завершении досмотра контейнеров, полученные вчера'
 ```
 
 Архив участников ожидается в `data/raw/mipt_mail_search_participants.zip`;
@@ -76,7 +85,7 @@ Frontend обращается только к API. Доступ к PostgreSQL в
 | Frontend | React, TypeScript, Vite, CSS | Предлагается для интерфейса и его сборки. |
 | Backend | Python, FastAPI, Pydantic, Uvicorn | Предлагается для API, валидации и HTTP-сервера. |
 | Доступ к БД | Драйвер PostgreSQL; инструмент миграций выбирается при реализации | SQL и соединения изолируются в `storage/`; изменения схемы — в `migrations/`. |
-| Поиск по словам | BM25 на стандартной библиотеке Python | Реализованный исходный бейзлайн; BM25S можно оценить как дальнейшую оптимизацию. |
+| Поиск по словам | BM25, Snowball | Исходный бейзлайн и конфигурация с русским стеммингом. |
 | Поиск по смыслу | Sentence Transformers, NumPy | Локальная модель, заранее вычисленные векторы и поиск в памяти. |
 | Объединение результатов | RRF | Стартовый алгоритм объединения двух ранжированных списков. |
 | Проверки | unittest; далее pytest, HTTPX и Playwright | Unit и CLI integration уже работают на unittest; средства проверок API и браузера выбираются при их реализации. |
@@ -118,7 +127,7 @@ Frontend обращается только к API. Доступ к PostgreSQL в
 │   ├── pyproject.toml            # Единый Python-проект backend и офлайн-команд
 │   ├── uv.lock                   # Зафиксированное окружение проекта
 │   ├── src/mail_search/
-│   │   ├── cli.py                # validate, run, score, compare
+│   │   ├── cli.py                # validate, run, score, compare, search
 │   │   ├── __main__.py           # python -m mail_search в окружении backend
 │   │   ├── api/                  # HTTP-маршруты, схемы, обработка ошибок
 │   │   ├── domain/               # Общие понятия: письмо, ящик, результат поиска
@@ -257,7 +266,7 @@ Frontend собирается во время сборки образа; отд�
 | `backend/pyproject.toml`, `backend/uv.lock` | Уже созданы: Python-проект и lock-файл. |
 | `frontend/package.json`, `frontend/package-lock.json` | Frontend-проект, команды и версии пакетов. |
 | `backend/src/mail_search/main.py` | Создание приложения и его жизненный цикл. |
-| `backend/src/mail_search/cli.py` | Уже доступны validate, run, score, compare; команды БД и серверной нагрузки добавятся позже. |
+| `backend/src/mail_search/cli.py` | Доступны validate, run, score, compare и search. |
 | `compose.yaml` | Сервисы, сеть, volumes и проверки готовности. |
 | `infra/docker/Dockerfile` | Сборка backend и готового frontend. |
 | `.env.example` | Шаблон переменных окружения без рабочих секретов. |
