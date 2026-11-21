@@ -19,26 +19,17 @@ export function App() {
     <div className="app-shell">
       <header className="app-header">
         <a className="brand" href="#main">
-          <span className="brand-icon" aria-hidden="true">
-            ✉
-          </span>
           <span>
             Почта<span className="brand-subtitle">Умный поиск</span>
           </span>
         </a>
-        <span className="demo-badge">Демонстрационный стенд</span>
       </header>
       <main id="main" className="app-layout">
         <aside className="sidebar" aria-label="Контекст сценария">
           <div>
-            <span className="eyebrow">Ваше пространство</span>
-            <h1>
-              Нужное письмо. <br />
-              Своими словами.
-            </h1>
-            <p className="sidebar-intro">
-              Просматривайте почту и находите то, что помните.
-            </p>
+            <span className="eyebrow">Почта</span>
+            <h1>Мой ящик</h1>
+            <p className="sidebar-intro">Все письма и умный поиск</p>
           </div>
           {pending && <Loading>Загружаем ящики…</Loading>}
           {error != null && (
