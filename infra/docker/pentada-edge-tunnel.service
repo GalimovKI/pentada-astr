@@ -1,0 +1,17 @@
+[Unit]
+Description=Mail search API reverse SSH tunnel to public frontend
+After=network-online.target docker.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+# Set VPS_HOST in ~/.config/pentada-edge-tunnel.env (plain IP or hostname).
+Environment=ORIGIN_API_PORT=18081
+EnvironmentFile=%h/.config/pentada-edge-tunnel.env
+ExecStart=/usr/bin/ssh -F /dev/null -N -T -i %h/.ssh/pentada-edge -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=%h/.ssh/pentada-edge-known_hosts -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ConnectTimeout=10 -R 127.0.0.1:18081:127.0.0.1:${ORIGIN_API_PORT} pentada-tunnel@${VPS_HOST}
+Restart=always
+RestartSec=5
+UMask=0077
+
+[Install]
+WantedBy=default.target

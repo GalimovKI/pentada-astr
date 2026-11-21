@@ -10,7 +10,7 @@ export default defineConfig({
   workers: 3,
   reporter: "list",
   use: {
-    baseURL,
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || baseURL,
     browserName: "chromium",
     channel: process.env.PLAYWRIGHT_CHANNEL || undefined,
     trace: "retain-on-failure",
@@ -26,7 +26,7 @@ export default defineConfig({
       },
     },
   ],
-  webServer: {
+  webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : {
     command: `npm run dev -- --port ${port}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
