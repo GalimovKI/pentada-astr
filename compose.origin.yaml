@@ -1,0 +1,8 @@
+# Overlay on compose.production.yaml, using the SAME project/env/volumes.
+# Run only db/backend on the academic host; SSH forwards this loopback port.
+services:
+  backend:
+    ports:
+      - "127.0.0.1:${ORIGIN_API_PORT:-18081}:8000"
+  web:
+    profiles: ["local-web"]
