@@ -1,0 +1,15 @@
+# Additional dev overlay for one assigned CDI device.
+x-e5-gpu: &e5-gpu
+  devices:
+    - "nvidia.com/gpu=${PENTADA_DEV_E5_GPU:?Set one assigned GPU index or UUID}"
+  environment:
+    E5_DEVICE: cuda
+
+services:
+  prepare:
+    <<: *e5-gpu
+  backend:
+    <<: *e5-gpu
+    build:
+      args:
+        E5_DEVICE: cuda

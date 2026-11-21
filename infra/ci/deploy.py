@@ -94,6 +94,12 @@ def main():
                 dev_overlay = version / 'compose.dev-evaluations.yaml'
                 if environment == 'dev' and dev_overlay.is_file():
                     overlays.extend(['-f', dev_overlay])
+                    gpu_overlay = version / 'compose.dev-gpu.yaml'
+                    gpu = os.environ.get('PENTADA_DEV_E5_GPU')
+                    if gpu and gpu_overlay.is_file():
+                        if not re.fullmatch(r'(?:[0-9]+|GPU-[a-fA-F0-9-]{36})', gpu):
+                            raise ValueError('Expected one E5 GPU index or UUID')
+                        overlays.extend(['-f', gpu_overlay])
                 return run(docker, '--context', 'rootless', 'compose', '--env-file', env_file,
                            '-p', target['origin_project'], '-f', version / 'compose.production.yaml',
                            *overlays, *arguments, env=env,

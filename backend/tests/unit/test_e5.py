@@ -10,6 +10,19 @@ from mail_search.domain.models import Document, SearchRequest
 
 @skipUnless(find_spec("numpy"), "requires dense retrieval dependencies")
 class E5Tests(TestCase):
+    def test_cuda_profile_requires_transformer_kernels_on_gpu(self):
+        from mail_search.search.e5 import verify_cuda_profile
+
+        def node(op, provider):
+            return {"cat": "Node", "args": {"op_name": op, "provider": provider}}
+        gpu = node("MatMul", "CUDAExecutionProvider")
+        cpu = node("Gemm", "CPUExecutionProvider")
+        shape = node("Shape", "CPUExecutionProvider")
+        verify_cuda_profile([gpu, shape])
+        for events in ([], [shape], [cpu], [gpu, cpu]):
+            with self.subTest(events=events), self.assertRaises(RuntimeError):
+                verify_cuda_profile(events)
+
     def test_full_mailbox_search_availability_archive_and_index_reuse(self):
         import numpy as np
         from mail_search.search.e5 import DIMENSION, E5Engine, passage_vectors

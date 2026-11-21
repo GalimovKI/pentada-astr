@@ -1,5 +1,6 @@
 """Server-only settings; never imported by offline commands."""
 import os
+from typing import Literal
 from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
 from .paths import DEFAULT_SEARCH_CONFIG, repository_root
@@ -13,6 +14,7 @@ class Settings(BaseModel):
     model_config = ConfigDict(extra="forbid")
     enable_evaluations: bool = False
     minilm_model_dir: Path | None = None
+    e5_device: Literal["cpu", "cuda"] = "cpu"
     e5_model_dir: Path = repository_root() / "artifacts/models/e5"
     e5_index_dir: Path = Path.home() / ".local/state/pentada/e5-indexes"
     evaluation_dir: Path = Path.home() / ".local/state/pentada/evaluations"

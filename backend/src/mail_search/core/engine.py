@@ -50,5 +50,6 @@ def load_e5(settings: Settings, *, single_mailbox=None) -> LoadedEngine:
     from ..search.e5 import dataset_engine
 
     dataset = load_dataset(settings.search_dataset)
-    engine = dataset_engine(dataset, settings.e5_model_dir, settings.e5_index_dir, single_mailbox)
+    engine = dataset_engine(dataset, settings.e5_model_dir, settings.e5_index_dir, single_mailbox,
+                            device=settings.e5_device)
     return LoadedEngine(engine, dataset.summary["fingerprint"])

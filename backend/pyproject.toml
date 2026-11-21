@@ -21,6 +21,15 @@ dependencies = [
 [project.optional-dependencies]
 minilm = ["numpy>=1.26,<3", "onnxruntime>=1.23,<2", "tokenizers>=0.21,<1"]
 
+# CUDA 12 wheels for the Linux x86_64 dev server. Both runtimes export onnxruntime.
+e5-gpu = [
+    "numpy>=1.26,<3", "tokenizers>=0.21,<1",
+    "onnxruntime-gpu[cuda,cudnn]==1.23.2; sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
+
+[tool.uv]
+conflicts = [[{extra = "minilm"}, {extra = "e5-gpu"}]]
+
 [project.scripts]
 mailsearch = "mail_search.cli:main"
 
