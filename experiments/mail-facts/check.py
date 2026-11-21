@@ -46,6 +46,18 @@ HOLDOUT = [
 
 
 
+FINAL_CHECK = [
+    ("letter","Добрый день, Валя! Вчера прошла лекция.\nС уважением, Пётр Зимин","Пётр Зимин",[("event","2028-09-18")]),
+    ("letter","Клиентка Оксана запросила акт от 14.09.2028.",None,[("event","2028-09-14")]),
+    ("letter","От: Марина\nПередайте Олегу эту записку.\n--- Пересланное сообщение ---\nОт: Мила","Марина",[]),
+    ("letter","Прошу закончить проверку до 2028-09-26.\nС уважением, Глеб","Глеб",[("deadline","2028-09-26")]),
+    ("query","Что Артём прислал вчера?","Артём",[("receipt","2028-09-18")]),
+    ("query","Письмо для Марии об отгрузке 2028-09-12",None,[("event","2028-09-12")]),
+    ("query","Найди сообщения от Павла без ограничения по дате","Павла",[]),
+    ("query","Письмо для Лидии о встрече позавчера",None,[("event","2028-09-17")]),
+]
+
+
 def cases(archive):
     with ZipFile(archive) as z:
         docs = {d["doc_id"]: d for d in map(json.loads, z.open("documents.jsonl"))}
@@ -59,6 +71,9 @@ def cases(archive):
     for i,(kind,text,sender,days) in enumerate(HOLDOUT):
         key = "doc_dt" if kind=="letter" else "query_date"
         yield {"id": f"new-{i}", "kind":kind, "text":text, key:ANCHOR}, ("holdout-"+kind,sender,days)
+    for i,(kind,text,sender,days) in enumerate(FINAL_CHECK):
+        key = "doc_dt" if kind=="letter" else "query_date"
+        yield {"id":f"final-{i}", "kind":kind,"text":text,key:ANCHOR}, ("fresh-"+kind,sender,days)
     for q in public:
         expected_day = (date.fromisoformat(q["query_date"]) - timedelta(days=1)).isoformat()
         yield dict(id=q["query_id"],kind="query",text=q["query"],query_date=q["query_date"]), ("public",None,[("receipt",expected_day)])
