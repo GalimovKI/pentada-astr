@@ -6,18 +6,20 @@
 
 ## Текущее состояние
 
-Реализованы локальный eval, проверка официального архива и BM25 с учётом ящика
-и даты запроса. Конфигурация `configs/search/bm25-stemmed.json` включает русский
-стемминг и распознавание даты получения. Код находится в Python-проекте `backend/`,
-общий интерфейс движка пригоден для будущего API. В пустых каталогах будущих
-компонент сохраняются `.gitkeep`. Backend API, frontend и Docker-запуск предстоит реализовать.
+Основной метод поиска — выбор BM25 по дате с учётом статуса действия.
+При распознанном дне получения работает нечёткий BM25 с уточнением порядка
+первых 20 кандидатов. В остальных запросах используется улучшенный BM25.
+Офлайн-поиск и HTTP API используют настройку
+`configs/search/bm25-event-aware.json`. Готовы PostgreSQL, импорт и веб-интерфейс
+для выбора ящика и даты, просмотра, поиска и чтения писем.
 
 PostgreSQL выбран для хранения писем, ящиков и метаданных. Остальной стек ниже —
 предлагаемая основа реализации. Модели и параметры поиска окончательно выбираются
 по результатам оценки качества и скорости на предоставленном корпусе.
 
 Локальный eval читает ZIP или распакованные JSONL напрямую: PostgreSQL для него
-не требуется. Нужны Python 3.11+ и `uv`. Версия Snowball закреплена в lock-файле.
+не требуется. Нужны Python 3.11+ и `uv`. Snowball и зависимости PostgreSQL
+устанавливаются вместе с backend; версии закреплены в lock-файле.
 Команды из корня репозитория:
 
 ```bash
@@ -30,7 +32,7 @@ uv run --project backend --locked mailsearch run --output reports/quality/runs/b
 Поиск одного запроса через тот же движок:
 
 ```bash
-uv run --project backend --locked mailsearch search --config configs/search/bm25-stemmed.json \
+uv run --project backend --locked mailsearch search \
   --mailbox box-84bd433469cb --as-of 2028-09-11 --limit 3 \
   'Найди уведомления о завершении досмотра контейнеров, полученные вчера'
 ```
@@ -82,13 +84,13 @@ Frontend обращается только к API. Доступ к PostgreSQL в
 | Область | Технологии | Назначение и статус |
 | --- | --- | --- |
 | Хранилище | PostgreSQL | Принятое решение: письма, ящики и метаданные. |
-| Frontend | React, TypeScript, Vite, CSS | Предлагается для интерфейса и его сборки. |
-| Backend | Python, FastAPI, Pydantic, Uvicorn | Предлагается для API, валидации и HTTP-сервера. |
-| Доступ к БД | Драйвер PostgreSQL; инструмент миграций выбирается при реализации | SQL и соединения изолируются в `storage/`; изменения схемы — в `migrations/`. |
+| Frontend | React, TypeScript, Vite, CSS | Реализованы интерфейс, типизированный HTTP-клиент и dev proxy. |
+| Backend | Python, FastAPI, Pydantic, Uvicorn | Реализованы API v1, валидация и жизненный цикл сервера. |
+| Доступ к БД | SQLAlchemy 2, Psycopg 3, Alembic | SQL и соединения изолируются в `storage/`; изменения схемы — в `migrations/`. |
 | Поиск по словам | BM25, Snowball | Исходный бейзлайн и конфигурация с русским стеммингом. |
 | Поиск по смыслу | Sentence Transformers, NumPy | Локальная модель, заранее вычисленные векторы и поиск в памяти. |
 | Объединение результатов | RRF | Стартовый алгоритм объединения двух ранжированных списков. |
-| Проверки | unittest; далее pytest, HTTPX и Playwright | Unit и CLI integration уже работают на unittest; средства проверок API и браузера выбираются при их реализации. |
+| Проверки | unittest, HTTPX, Vitest, Playwright | Backend unit/integration, frontend unit и браузерные сценарии с моками и настоящим API. |
 | Зависимости | uv для Python, npm для frontend | Фиксация версий в lock-файлах после создания проектов. |
 | Запуск | Docker, Docker Compose | Упаковка приложения и совместный запуск с PostgreSQL. |
 
@@ -226,7 +228,7 @@ PDF-презентация также находится в корне; её д�
 
 ### Локальная разработка
 
-Планируется запускать PostgreSQL в Docker, backend через Uvicorn, frontend через
+Локальный запуск: PostgreSQL в Docker, backend через Uvicorn, frontend через
 Vite. Такой режим позволяет быстро обновлять код и интерфейс.
 `uv` управляет Python-зависимостями, `npm` — зависимостями frontend.
 
@@ -256,8 +258,7 @@ Frontend собирается во время сборки образа; отд�
 поисковых представлений соответствующие артефакты перестраиваются.
 
 Целевая команда обычного запуска после подготовки — `docker compose up -d`.
-**Она станет применима после добавления `compose.yaml`; сейчас запускать её для
-этого проекта рано.**
+Сейчас `compose.yaml` запускает только PostgreSQL; инструкции ниже уже применимы.
 
 ### Файлы реализации
 
@@ -265,8 +266,8 @@ Frontend собирается во время сборки образа; отд�
 | --- | --- |
 | `backend/pyproject.toml`, `backend/uv.lock` | Уже созданы: Python-проект и lock-файл. |
 | `frontend/package.json`, `frontend/package-lock.json` | Frontend-проект, команды и версии пакетов. |
-| `backend/src/mail_search/main.py` | Создание приложения и его жизненный цикл. |
-| `backend/src/mail_search/cli.py` | Доступны validate, run, score, compare и search. |
+| `backend/src/mail_search/api/app.py` | Создание HTTP-приложения и его жизненный цикл. |
+| `backend/src/mail_search/cli.py` | Доступны validate, run, score, compare, search и import-postgres. |
 | `compose.yaml` | Сервисы, сеть, volumes и проверки готовности. |
 | `infra/docker/Dockerfile` | Сборка backend и готового frontend. |
 | `.env.example` | Шаблон переменных окружения без рабочих секретов. |
@@ -294,20 +295,301 @@ Frontend собирается во время сборки образа; отд�
 - Сквозной сценарий выбора ящика, поиска и чтения письма.
 - p50/p95/p99 под описанной нагрузкой с учётом ошибок и таймаутов.
 
-Первый локальный результат: Recall@10 = **0.444141**, nDCG@10 = **0.409748**;
-все 99 запросов выполнены без ошибок. Локальные K и правила метрик явно указаны
-в EVAL.md. Официальные параметры и формат сдачи ещё уточняются; время вызова движка
-в процессе не заменяет серверный p99 под нагрузкой.
+Основной метод дал Recall@10 **0,9376**, nDCG@10 **0,9976** и MRR@10 **1,0000**
+на 99 публичных запросах. Правила оценки и команда запуска приведены в
+[EVAL.md](EVAL.md). [Прогоны и локальный HTTP-замер](https://github.com/GalimovKI/pentada-astr/tree/fcf4a6c/experiments/20261121T153555Z-fe582042)
 
 ## Порядок разработки
 
 1. Реализовать проверку корпуса и независимый eval — готово.
 2. Запустить BM25 через общий интерфейс и сохранить исходный результат — готово.
 3. Улучшать поиск и сравнивать варианты через тот же eval.
-4. Реализовать схему PostgreSQL, импорт и хранилище для просмотра писем.
+4. Реализовать схему PostgreSQL, импорт и хранилище для просмотра писем — готово.
 5. Добавить API и нагрузочную проверку, подобрать конфигурацию по качеству и скорости.
-6. Реализовать интерфейс и проверить полный пользовательский сценарий.
+6. Интерфейс и полный пользовательский сценарий реализованы; команды браузерных проверок — ниже.
 7. Завершить Docker-сборку, инструкции запуска, официальный экспорт и публичную демонстрацию.
 
 Минимальные инструкции запуска и фиксация зависимостей добавляются с первой
 реализацией и уточняются на каждом этапе.
+
+## PostgreSQL: локальный запуск и импорт
+
+Команды выполняются из корня checkout. Нужны Docker Compose v2, Python 3.11+
+и `uv`. Архив передаётся отдельно и должен лежать в
+`data/raw/mipt_mail_search_participants.zip`. Зафиксирован образ
+`postgres:17.12-bookworm` из поддерживаемой ветки 17
+([политика поддержки PostgreSQL](https://www.postgresql.org/support/versioning/)).
+
+```bash
+cp .env.example .env
+chmod 600 .env
+# Замените replace_with_random_password в ОБОИХ местах .env одним своим паролем.
+# Например, сгенерируйте его командой: openssl rand -hex 24
+uv sync --project backend --locked
+docker compose up -d --wait
+uv run --project backend --locked --env-file .env alembic -c backend/alembic.ini upgrade head
+uv run --project backend --locked --env-file .env mailsearch import-postgres
+```
+
+Compose читает `.env` автоматически; Python-команды получают его через
+`uv --env-file`. Для пароля с особыми символами в `DATABASE_URL` требуется
+URL-кодирование. При занятом порте измените `POSTGRES_PORT` и порт в URL.
+Пароль, архив и дампы не коммитятся. Порт доступен только на `127.0.0.1`.
+Переменные `POSTGRES_*` инициализируют только новый volume: изменение пароля
+в `.env` не меняет пароль уже созданной роли PostgreSQL.
+
+Импорт сначала выполняет существующую проверку manifest, хешей и схемы всего
+набора, затем одной транзакцией пакетно записывает ящики, письма и метаданные.
+В рабочие таблицы не попадают запросы и qrels. Fingerprint совпадает с eval:
+это SHA-256 набора хешей четырёх исходных файлов, включая README и разметку.
+Изменение любого из них означает другой набор и требует отдельной БД.
+`corpus_import` хранит fingerprint, время, количества и версию формата.
+Повторный импорт возвращает `already_imported`, другой набор отклоняется.
+Конкурентные импорты сериализуются блокировкой таблиц; ошибка откатывает всю запись.
+Схема создаётся только Alembic, автоматически при импорте она не создаётся.
+
+### Чтение через Python
+
+```bash
+uv run --project backend --locked --env-file .env python - <<'PY'
+from datetime import date
+from mail_search.storage import MailStore, open_database
+
+with open_database() as engine:
+    store = MailStore(engine)
+    mailbox = store.list_mailboxes()[0]
+    page = store.list_messages(mailbox, query_date=date(2028, 1, 1), limit=20)
+    print(page.items)  # doc_id, synthetic_user, doc_dt, snippet (до 200 символов)
+    if page.items:
+        message = store.get_message(mailbox, page.items[0].doc_id,
+                                    query_date=date(2028, 1, 1))
+        print(message.doc)
+    if page.next_cursor:
+        next_page = store.list_messages(mailbox, query_date=date(2028, 1, 1),
+                                        limit=20, after=page.next_cursor)
+    ranked = store.get_messages(mailbox, [item.doc_id for item in page.items],
+                                query_date=date(2028, 1, 1))
+PY
+```
+
+Список ящиков отсортирован по идентификатору. Письма сортируются по
+`doc_dt DESC NULLS LAST, doc_id ASC` с фиксированной collation `C` для ID.
+Пагинация использует курсор последнего письма, без offset; лимит 1–500.
+Курсор привязан к ящику и `query_date`; для следующей страницы сохраняйте
+оба параметра. Корпус после импорта неизменяемый. При отсутствии `query_date`
+доступны все даты; при заданной дате будущие письма исключаются во всех операциях.
+NULL остаётся NULL и допускается фильтром доступности. Периоды вроде «вчера»
+интерпретирует поисковый движок, а не хранилище.
+
+Неизвестный ящик вызывает `UnknownMailbox`, отсутствующее, чужое или будущее
+письмо даёт `None`. Пакетный метод делает один запрос писем, пропускает недоступные
+ID и сохраняет порядок и повторы входных ID. Пустой список также проверяет ящик.
+Список выдаёт фрагменты, одиночное и пакетное чтение — domain `Document` с полным
+текстом. Проверка контекста ящика не заменяет будущую авторизацию HTTP API.
+`open_database` закрывает пул при выходе; в приложении держите один engine
+на процесс, а не создавайте его для каждого запроса. Пул: 5 соединений,
+до 5 дополнительных, ожидание до 30 секунд, проверка живого соединения.
+
+### Проверки и остановка
+
+Офлайн-команды не требуют `.env`, `DATABASE_URL` или запущенной БД:
+
+```bash
+uv run --project backend --locked python -m unittest discover -s backend/tests -t backend -v
+uv run --project backend --locked mailsearch validate
+```
+
+Для интеграционных тестов раскомментируйте `TEST_DATABASE_ADMIN_URL` в `.env`
+и укажите действительный пароль. Роль должна иметь `CREATEDB` (локальная роль
+Compose имеет это право). Тесты создают отдельную случайно названную БД
+`mailsearch_test_<uuid>` на каждый тест и удаляют только её; рабочая БД не очищается.
+Без этой переменной PostgreSQL-тесты явно пропускаются. SQLite не используется.
+
+```bash
+uv run --project backend --locked --env-file .env python -m unittest discover -s backend/tests -t backend -v
+docker compose restart db
+docker compose up -d --wait
+uv run --project backend --locked --env-file .env mailsearch import-postgres
+# Остановка и удаление контейнера с СОХРАНЕНИЕМ named volume:
+docker compose down
+# Последующий запуск использует прежние данные:
+docker compose up -d --wait
+```
+
+### Перенос на отдельный сервер
+
+Используйте логический custom-format дамп, а не копирование файлов volume.
+Остановите операции записи на время финального переноса. Локальный дамп:
+
+```bash
+mkdir -p data/backups
+docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom --no-owner --no-acl' > data/backups/mailsearch.dump
+```
+
+На сервере заранее создайте пустую БД UTF-8 и роль-владельца. Передайте дамп
+по защищённому каналу. В следующем примере стандартные libpq-переменные
+`PGHOST`, `PGPORT`, `PGUSER`, `PGDATABASE`, `PGSSLMODE=verify-full`,
+`PGSSLROOTCERT` задаются для целевого сервера, пароль — через защищённый
+`PGPASSFILE` (права 0600), а не аргумент командной строки:
+
+```bash
+pg_restore --exit-on-error --single-transaction --no-owner --no-acl \
+  --dbname="$PGDATABASE" data/backups/mailsearch.dump
+```
+
+`pg_dump` должен быть не старше major-версии источника; предпочтительно
+использовать инструменты целевой версии. `pg_restore` берите той же версии,
+что создала дамп, или совместимой более новой. Целевой PostgreSQL должен быть
+той же либо более новой major-версии; перенос на старую версию не гарантируется.
+Сначала проверьте восстановление в отдельную пустую БД. Роли и права доступа
+настраиваются отдельно: этот дамп их не переносит.
+
+Замените только `DATABASE_URL`, например
+`postgresql+psycopg://USER:PASSWORD@db.example.org:5432/mailsearch?sslmode=verify-full&sslrootcert=/path/to/ca.pem`.
+Hostname, порт, TLS и сертификат передаются без изменения кода. Затем выполните
+`alembic ... upgrade head` и `mailsearch import-postgres` командами выше:
+восстановленный набор должен вернуть `already_imported` и прежний fingerprint.
+Сверьте `corpus_import`, фактические количества в `mailboxes`/`messages`, NULL-даты
+и чтение писем с исходным набором. Проверьте сетевые правила и доверенный CA.
+Не направляйте восстановление в заполненную рабочую БД.
+
+## HTTP API
+
+Готовы просмотр и открытие писем, поиск через общий `SearchEngine`, проверки
+готовности и OpenAPI. Точный контракт, ошибки, fingerprint и подключение движка
+команды описаны в [backend/API.md](backend/API.md).
+
+Из чистого checkout (архив участников передаётся отдельно):
+
+```bash
+uv sync --project backend --locked
+cp .env.example .env
+# Задайте свой пароль и согласованный DATABASE_URL в .env.
+# Поместите архив в data/raw/mipt_mail_search_participants.zip.
+docker compose up -d --wait db
+uv run --project backend --locked --env-file .env alembic -c backend/alembic.ini upgrade head
+uv run --project backend --locked --env-file .env mailsearch import-postgres
+uv run --project backend --locked --env-file .env uvicorn mail_search.api.app:create_app \
+  --factory --host 127.0.0.1 --port 8000 --workers 1 --no-access-log
+```
+
+Документация: http://127.0.0.1:8000/docs ; схема: http://127.0.0.1:8000/openapi.json.
+В другом терминале:
+
+```bash
+curl --fail http://127.0.0.1:8000/health/ready
+curl --fail http://127.0.0.1:8000/api/v1/mailboxes
+curl --fail 'http://127.0.0.1:8000/api/v1/mailboxes/box-84bd433469cb/messages?query_date=2028-09-11&limit=3'
+curl --fail -i -X POST http://127.0.0.1:8000/api/v1/mailboxes/box-84bd433469cb/search \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"Найди уведомления о завершении досмотра контейнеров, полученные вчера","query_date":"2028-09-11","limit":3}'
+# Подставьте doc_id из ответа поиска:
+curl --fail 'http://127.0.0.1:8000/api/v1/mailboxes/box-84bd433469cb/messages/DOC_ID?query_date=2028-09-11'
+```
+
+Для следующей страницы передайте `next_cursor` как query-параметр `cursor`
+вместе с прежними ящиком и датой. Письма возвращаются как текст.
+BM25 со стеммингом загружается один раз при старте; импорт и миграции API не запускает.
+При несовместимом fingerprint или недоступной БД readiness возвращает 503.
+
+Проверки (в `.env` включите `TEST_DATABASE_ADMIN_URL`, роль с CREATEDB):
+
+```bash
+uv run --project backend --locked --env-file .env python -m unittest discover -s backend/tests -t backend -v
+# Только API integration:
+uv run --project backend --locked --env-file .env python -m unittest discover -s backend/tests/integration -p test_api.py -t backend -v
+# Offline — без .env и БД:
+env -u DATABASE_URL uv run --project backend --locked mailsearch validate
+```
+
+Без `TEST_DATABASE_ADMIN_URL` PostgreSQL/API integration явно пропускаются;
+тесты используют случайные временные БД, рабочая база не очищается.
+Остановка API: Ctrl+C с ожиданием завершения запросов и освобождения движка/пула.
+Остановка БД с сохранением volume: `docker compose down`.
+
+## Frontend: локальная демонстрация
+
+Требуются **Node.js 22.12+** (проверено с Node 24) и **npm 10+**. Версии пакетов
+зафиксированы в `frontend/package-lock.json`. Установка и запуск frontend:
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+Откройте [http://127.0.0.1:5173](http://127.0.0.1:5173). Backend запускается
+в другом терминале из корня репозитория, после подготовки PostgreSQL и импорта
+по разделу «HTTP API» выше:
+
+```bash
+uv run --project backend --locked --env-file .env uvicorn mail_search.api.app:create_app \
+  --factory --host 127.0.0.1 --port 8000 --workers 1 --no-access-log
+```
+
+При уже подготовленной БД повторять миграции и импорт для открытия интерфейса
+не нужно. Страница никогда не запускает их сама. Используется текущий BM25 со
+стеммингом; смена совместимого серверного `SearchEngine` не требует изменения UI.
+
+Браузер обращается только к относительным `/api/v1/…`. Vite проксирует `/api`
+на `http://127.0.0.1:8000`. Если API запущен на другом адресе:
+
+```bash
+# Из frontend/; это серверная настройка Vite, без префикса VITE_.
+API_PROXY_TARGET=http://127.0.0.1:8017 npm run dev
+```
+
+`DATABASE_URL`, `.env` корня и настройки движка не передаются в frontend bundle.
+Изменять CORS backend для dev proxy не требуется. Порт 5173 фиксирован:
+занятый порт вызовет явную ошибку, а не незаметную смену адреса.
+
+Сценарий демонстрации:
+
+1. Выберите синтетический ящик и проверьте явно показанную дату сценария.
+   Начальная дата — **2028-09-11**; можно задать другие годы корпуса.
+2. Просматривайте письма и нажмите «Загрузить ещё» для следующей страницы.
+3. Введите запрос своими словами и нажмите Enter или «Найти». Например, для
+   `box-84bd433469cb`: «Найди уведомления о завершении досмотра контейнеров,
+   полученные вчера». Движок получает исходный текст и выбранную дату.
+4. Откройте карточку для чтения полного текста; «К списку» возвращает фокус
+   на карточку. На телефоне список и письмо показываются последовательно.
+5. Кнопка «Все письма» возвращает обычный список из поиска. Измените ящик или
+   дату: поиск, выбранное письмо и пагинация сбросятся. Старые ответы отменяются
+   и не могут заменить новое состояние.
+
+Карточки содержат фрагмент текста, ID и дату; тема, адресаты и вложения
+не выдумываются. Неизвестная дата отображается как «Дата неизвестна».
+HTML-подобный текст показывается буквально, без исполнения. Пустая выдача,
+ошибка параметров, недоступность сервиса и ошибка движка имеют разные состояния;
+после ошибок доступна кнопка «Повторить».
+
+Проверки из `frontend/`:
+
+```bash
+npm run typecheck
+npm test
+npm run build
+# Один раз установите браузер Playwright:
+npx playwright install chromium
+npm run test:browser
+# Отдельно, при запущенных настоящем API и подготовленной БД:
+npm run test:real
+```
+
+Вместо установки Chromium можно использовать установленный Google Chrome:
+`PLAYWRIGHT_CHANNEL=chrome npm run test:browser` и аналогично `npm run test:real`.
+Playwright сам поднимает Vite или использует уже работающий dev server на 5173.
+Оба набора проверяют окна 1440×960 и 390×844. Обычный браузерный набор мокирует
+только HTTP API для воспроизводимых ошибок и гонок. `test:real` без моков читает
+существующий корпус: ящики, две страницы, поиск, открытие исходного текста,
+сброс контекста, клавиатуру, отсутствие переполнения и ошибок консоли.
+Он не импортирует и не очищает данные. Скриншоты и traces сохраняются локально
+в игнорируемом `frontend/test-results/`, содержимое писем не коммитится.
+
+Остановка: Ctrl+C в терминалах Vite и Uvicorn; дождитесь завершения backend.
+При необходимости `docker compose down` из корня останавливает БД с сохранением
+volume. Текущий запуск предназначен для локального демо: выбор ящика не является
+авторизацией, отправки писем и подключения реальной почты нет. `npm run build`
+проверяет и собирает frontend в `frontend/dist/`; production-раздача `/api`,
+Docker-упаковка приложения, публичный деплой и нагрузочные проверки — отдельные
+задачи. Dev proxy работает только при `npm run dev`.

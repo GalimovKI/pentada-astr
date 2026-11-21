@@ -11,14 +11,15 @@ from time import perf_counter_ns
 
 from .benchmarks.latency import latency_summary
 from .core.errors import ValidationError
-from .core.paths import repository_root
+from .core.paths import DEFAULT_SEARCH_CONFIG, repository_root
 from .core.provenance import code_version
 from .domain.models import SearchRequest
 from .ingestion.dataset import load_dataset
 from .evaluation.runner import evaluate, format_report, read_predictions, run_engine, write_run
 
 DEFAULT_DATASET = repository_root() / "data/raw/mipt_mail_search_participants.zip"
-DEFAULT_ENGINE = "mail_search.search.bm25:create_engine"
+DEFAULT_ENGINE = "mail_search.search.event_aware:create_engine"
+LEGACY_ENGINE = "mail_search.search.bm25:create_engine"
 DEFAULT_KS = [1, 5, 10, 20, 50, 100]
 
 
@@ -45,13 +46,14 @@ def compare_runs(left: Path, right: Path) -> str:
 def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(description="Validate mail-search data, evaluate an engine, compare runs.")
     commands = root.add_subparsers(dest="command", required=True)
-    for name in ("validate", "run", "score", "search"):
+    for name in ("validate", "run", "score", "search", "import-postgres"):
         command = commands.add_parser(name)
         command.add_argument("--dataset", type=Path, default=Path(DEFAULT_DATASET), help="Official ZIP or extracted directory")
         if name in ("run", "search"):
-            command.add_argument("--engine", default=DEFAULT_ENGINE, help="Python module:factory; factory(documents, config)")
+            command.add_argument("--engine", help=f"Python module:factory (default: {DEFAULT_ENGINE}; "
+                                                   "a config on its own selects legacy BM25)")
             command.add_argument("--config", type=Path, help="JSON object passed to engine factory")
-        if name == "validate":
+        if name in ("validate", "import-postgres"):
             continue
         if name == "search":
             command.add_argument("--mailbox", required=True, help="synthetic_user from the corpus")
@@ -72,6 +74,19 @@ def parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
+        if args.command == "import-postgres":
+            from sqlalchemy.exc import SQLAlchemyError
+            from .storage.database import open_database
+            from .storage.importer import import_corpus
+            try:
+                with open_database() as engine:
+                    result = import_corpus(engine, args.dataset)
+            except SQLAlchemyError:
+                # Driver messages may contain connection details or email text.
+                print("Ошибка PostgreSQL: проверьте подключение, миграции и допустимость данных", file=sys.stderr)
+                return 2
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0
         if args.command == "compare":
             print(compare_runs(args.left, args.right))
             return 0
@@ -91,10 +106,16 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(dataset.summary, ensure_ascii=False, indent=2))
             return 0
         if args.command in ("run", "search"):
-            config = json.loads(args.config.read_text(encoding="utf-8")) if args.config else {}
+            config_path = args.config
+            if config_path is None and args.engine in (None, DEFAULT_ENGINE) and DEFAULT_SEARCH_CONFIG.is_file():
+                config_path = DEFAULT_SEARCH_CONFIG
+            config = json.loads(config_path.read_text(encoding="utf-8")) if config_path else {}
             if not isinstance(config, dict):
                 raise ValidationError("engine config must be a JSON object")
-            module_name, separator, factory_name = args.engine.partition(":")
+            engine_spec = args.engine
+            if engine_spec is None:
+                engine_spec = LEGACY_ENGINE if args.config is not None else DEFAULT_ENGINE
+            module_name, separator, factory_name = engine_spec.partition(":")
             if not separator or not module_name or not factory_name:
                 raise ValidationError("engine must be module:factory")
             module = importlib.import_module(module_name)
@@ -117,7 +138,7 @@ def main(argv: list[str] | None = None) -> int:
         durations, errors = {}, {}
         if args.command == "run":
             predictions, durations, errors = run_engine(dataset, engine, max(args.ks))
-            run.update(engine=args.engine, engine_config=getattr(engine, "config", config),
+            run.update(engine=engine_spec, engine_config=getattr(engine, "config", config),
                        supplied_config=config, engine_build_ms=build_ms,
                        engine_latency=latency_summary(durations), code=code_version(module))
         else:
