@@ -20,6 +20,7 @@ COPY backend/alembic.ini /app/backend/alembic.ini
 COPY backend/migrations /app/backend/migrations
 COPY configs/search /app/configs/search
 COPY infra/docker/prepare.py /app/infra/docker/prepare.py
+COPY scripts/check_minilm_gpu.py /app/scripts/check_minilm_gpu.py
 ARG INCLUDE_MINILM=0
 ARG MINILM_DEVICE=cpu
 ARG TARGETARCH

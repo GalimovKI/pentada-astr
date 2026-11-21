@@ -120,6 +120,9 @@ def main():
                 raise RuntimeError('Migrations changed: deploy this environment manually first')
             # Build both images before touching this environment's running containers.
             compose(release, 'build', 'backend')
+            if gpu_environment(root, release):
+                compose(release, 'run', '--rm', '--no-deps', 'backend',
+                        'python', '/app/scripts/check_minilm_gpu.py')
             with archive.open('rb') as stream:
                 run(*ssh, f'stage {environment} {sha}', stdin=stream)
 

@@ -63,7 +63,8 @@ docker --context rootless run --rm --network none \
 На учебном хосте в `~/pentada-astr-dev/shared/gpu-device` запишите одну строку
 `nvidia.com/gpu=GPU-…`. Установите актуальный `infra/ci/origin` как
 `~/pentada-astr-dev/origin` с правами 755. `infra/ci/deploy.py` и wrapper добавят
-GPU overlay последним только для этого окружения. `/main/` останется на CPU,
+GPU overlay последним только для этого окружения. После сборки CI проверяет CUDA
+на временном контейнере до изменения работающего backend. `/main/` останется на CPU,
 пока аналогичный файл не появится в его собственном каталоге.
 
 GPU-код должен быть в ветке, которую разворачивает CI. До слияния этой ветки
