@@ -705,9 +705,31 @@ mark {
 }
 
 .app-layout[hidden] { display: none; }
-.dev-nav { display: flex; gap: 4px; }
-.dev-nav a { padding: 7px 10px; color: #515964; text-decoration: none; border-radius: 6px; }
-.dev-nav a[aria-current="page"] { background: #e5efff; color: #174f97; }
+.dev-nav {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  gap: 20px;
+  padding: 0 clamp(16px, 3vw, 32px);
+  background: #fff;
+  border-bottom: 1px solid #dce1e8;
+}
+.dev-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 46px;
+  padding: 0 6px;
+  border-bottom: 3px solid transparent;
+  color: #515964;
+  text-decoration: none;
+}
+.dev-nav a[aria-current="page"] {
+  border-color: #0077ff;
+  color: #174f97;
+  font-weight: 600;
+}
+.dev-nav ~ main { scroll-margin-top: 48px; }
 .eval-page { max-width: 920px; margin: 28px auto; padding: clamp(16px, 4vw, 32px); background: white; border-radius: 12px; }
 .eval-form { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin: 22px 0; }
 .eval-form label { flex: 1 1 180px; }

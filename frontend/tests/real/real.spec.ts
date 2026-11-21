@@ -91,3 +91,27 @@ test("prepared local corpus: browse, paginate, search, read and change context",
   await expect(page.getByRole("heading", { name: "Все письма" })).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("dev tabs preserve the open letter and evaluation selection", async ({ page, request }) => {
+  const features = await request.get("/api/v1/features");
+  test.skip(!features.ok() || !(await features.json()).evaluations, "Dev site only");
+  await page.goto("/");
+  const tabs = page.getByRole("navigation", { name: "Вкладки dev-сайта" });
+  const mail = tabs.getByRole("link", { name: "Почта", exact: true });
+  const evaluation = tabs.getByRole("link", { name: "Оценка моделей" });
+  await expect(mail).toHaveAttribute("aria-current", "page");
+  await cards(page).first().click();
+  const body = page.locator(".message-body");
+  await expect(body).toBeVisible();
+  const original = await body.textContent();
+  await evaluation.click();
+  await expect(evaluation).toHaveAttribute("aria-current", "page");
+  await expect(body).toBeHidden();
+  const model = page.getByLabel("Модель поиска");
+  await model.selectOption("bm25-stemmed");
+  await mail.click();
+  await expect(body).toBeVisible();
+  await expect(body).toHaveJSProperty("textContent", original);
+  await page.goBack();
+  await expect(model).toHaveValue("bm25-stemmed");
+});

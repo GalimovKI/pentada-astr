@@ -23,7 +23,8 @@ export function App() {
     window.addEventListener("hashchange", update);
     return () => window.removeEventListener("hashchange", update);
   }, [loadFeatures]);
-  const showEvaluation = features.data?.evaluations === true && view === "#evaluations";
+  const dev = features.data?.evaluations === true;
+  const showEvaluation = dev && view === "#evaluations";
   const selected = mailbox || data?.items[0] || "";
   const dateValid = validDate(date);
   return (
@@ -31,15 +32,17 @@ export function App() {
       <header className="app-header">
         <a className="brand" href="#main">
           <span>
-            Почта<span className="brand-subtitle">Умный поиск</span>
+            Почта<span className="brand-subtitle">{dev ? "Dev-версия" : "Умный поиск"}</span>
           </span>
         </a>
-        {features.data?.evaluations === true && <nav className="dev-nav" aria-label="Разделы dev-сайта">
+      </header>
+      {dev && (
+        <nav className="dev-nav" aria-label="Вкладки dev-сайта">
           <a href="#main" aria-current={showEvaluation ? undefined : "page"}>Почта</a>
           <a href="#evaluations" aria-current={showEvaluation ? "page" : undefined}>Оценка моделей</a>
-        </nav>}
-      </header>
-      {showEvaluation && <EvaluationPanel />}
+        </nav>
+      )}
+      {dev && <EvaluationPanel visible={showEvaluation} />}
       <main id="main" className="app-layout" hidden={showEvaluation}>
         <aside className="sidebar" aria-label="Контекст сценария">
           <div>

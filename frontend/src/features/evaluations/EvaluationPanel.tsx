@@ -5,7 +5,7 @@ import { Failure } from "../../components/Status";
 
 const decimal = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 4 });
 
-export function EvaluationPanel() {
+export function EvaluationPanel({ visible }: { visible: boolean }) {
   const { data, error, pending, run } = useTask<EvaluationCatalog>();
   const [model, setModel] = useState("");
   const [dataset, setDataset] = useState("");
@@ -14,14 +14,16 @@ export function EvaluationPanel() {
   const selectedModel = model || current?.model || data?.models[0]?.id || "";
   const selectedDataset = dataset || current?.dataset || data?.datasets[0]?.id || "";
   const refresh = () => void run(api.evaluations, { keepData: true });
-  useEffect(() => { void run(api.evaluations); }, [run]);
   useEffect(() => {
-    if (!active || pending || error) return;
+    if (visible) void run(api.evaluations, { keepData: true });
+  }, [visible, run]);
+  useEffect(() => {
+    if (!visible || !active || pending || error) return;
     const timer = window.setTimeout(() => void run(api.evaluations, { keepData: true }), 800);
     return () => clearTimeout(timer);
-  }, [active, pending, error, run, data]);
+  }, [visible, active, pending, error, run, data]);
   return (
-    <main className="eval-page" id="evaluations">
+    <main className="eval-page" id="evaluations" hidden={!visible}>
       <h1>Оценка моделей</h1>
       <form className="eval-form" onSubmit={(event) => {
         event.preventDefault();
