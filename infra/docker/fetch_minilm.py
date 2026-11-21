@@ -11,6 +11,7 @@ from urllib.request import urlopen
 MODEL = "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"
 REVISION = "1427fd652930e4ba29e8149678df786c240d8825"
 MODELS = {
+    "cuda": ("onnx/model.onnx", "3e9a03ed1e966f7c5288dd4230e3d6a9bf5e3a170a06f1f4241c5bca12c6487c"),
     "arm64": ("onnx/model_qint8_arm64.onnx", "1825907d6c1a9001ff78124780bbde20a614a8c3df3b63409cf3c72c6fe5c8b4"),
     "amd64": ("onnx/model_quint8_avx2.onnx", "6c2513767fb63d008a4377bef7a7a3555433d9436342bb53e35a3a72ffc52d4b"),
 }
@@ -48,10 +49,11 @@ def fetch(source: str, target: Path, expected: str, *, model=MODEL, revision=REV
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--arch", default=platform.machine(), choices=("arm64", "aarch64", "amd64", "x86_64"))
+    parser.add_argument("--device", default="cpu", choices=("cpu", "cuda"))
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     arch = {"aarch64": "arm64", "x86_64": "amd64"}.get(args.arch, args.arch)
-    model, sha = MODELS[arch]
+    model, sha = MODELS["cuda" if args.device == "cuda" else arch]
     args.output.mkdir(parents=True, exist_ok=True)
     fetch("tokenizer.json", args.output / "tokenizer.json", TOKENIZER_SHA)
     fetch(model, args.output / "model.onnx", sha)

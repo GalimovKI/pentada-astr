@@ -1,7 +1,7 @@
 """Server-only settings; never imported by offline commands."""
 import os
-from typing import Literal
 from pathlib import Path
+from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
 from .paths import DEFAULT_SEARCH_CONFIG, repository_root
 
@@ -13,6 +13,8 @@ LEGACY_SEARCH_CONFIG = repository_root() / "configs/search/bm25-stemmed.json"
 class Settings(BaseModel):
     model_config = ConfigDict(extra="forbid")
     enable_evaluations: bool = False
+    minilm_device: Literal["cpu", "cuda"] = "cpu"
+    minilm_gpu_memory_mb: int = Field(default=2048, ge=256)
     minilm_model_dir: Path | None = None
     e5_device: Literal["cpu", "cuda"] = "cpu"
     e5_model_dir: Path = repository_root() / "artifacts/models/e5"

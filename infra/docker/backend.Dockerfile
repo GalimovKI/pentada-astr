@@ -5,8 +5,11 @@ WORKDIR /app/backend
 COPY backend/pyproject.toml backend/uv.lock ./
 COPY backend/src ./src
 ARG INCLUDE_MINILM=0
+ARG MINILM_DEVICE=cpu
 ARG E5_DEVICE=cpu
-RUN if [ "$E5_DEVICE" = "cuda" ]; then set -- --extra e5-gpu; elif [ "$INCLUDE_MINILM" = "1" ]; then set -- --extra minilm; else set --; fi; \
+RUN if [ "$MINILM_DEVICE" = "cuda" ]; then set -- --extra minilm-gpu; \
+    elif [ "$E5_DEVICE" = "cuda" ]; then set -- --extra e5-gpu; \
+    elif [ "$INCLUDE_MINILM" = "1" ]; then set -- --extra minilm; else set --; fi; \
     uv sync --locked --no-dev --no-editable --no-cache --python /usr/local/bin/python "$@"
 
 FROM python:3.12.12-slim-bookworm@sha256:593bd06efe90efa80dc4eee3948be7c0fde4134606dd40d8dd8dbcade98e669c AS runtime
@@ -20,11 +23,13 @@ COPY backend/alembic.ini /app/backend/alembic.ini
 COPY backend/migrations /app/backend/migrations
 COPY configs/search /app/configs/search
 COPY infra/docker/prepare.py /app/infra/docker/prepare.py
+COPY scripts/check_minilm_gpu.py /app/scripts/check_minilm_gpu.py
 ARG INCLUDE_MINILM=0
+ARG MINILM_DEVICE=cpu
 ARG TARGETARCH
 COPY infra/docker/fetch_minilm.py /tmp/fetch_minilm.py
 RUN if [ "$INCLUDE_MINILM" = "1" ]; then \
-      python /tmp/fetch_minilm.py --arch "${TARGETARCH:-$(uname -m)}" --output /opt/mailsearch/minilm; \
+      python /tmp/fetch_minilm.py --arch "${TARGETARCH:-$(uname -m)}" --device "$MINILM_DEVICE" --output /opt/mailsearch/minilm; \
     fi
 ARG E5_DEVICE=cpu
 COPY infra/docker/fetch_e5.py /tmp/fetch_e5.py

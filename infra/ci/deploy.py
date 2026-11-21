@@ -35,6 +35,23 @@ def image_tag(release, environment):
     return f'{environment}-{release.name}' if (release / 'DEPLOYMENT_ENV').exists() else release.name
 
 
+def gpu_environment(root, version):
+    device_file = root / 'shared/gpu-device'
+    if not device_file.is_file() or not (version / 'compose.gpu.yaml').is_file():
+        return {}
+    device = device_file.read_text().strip()
+    if not re.fullmatch(r'nvidia\.com/gpu=(?:[0-9]+|GPU-[0-9a-fA-F-]+)', device):
+        raise ValueError('gpu-device must select exactly one NVIDIA CDI device')
+    return {'GPU_CDI_DEVICE': device}
+
+
+def validate_e5_device(device, minilm_gpu):
+    if not re.fullmatch(r'(?:[0-9]+|GPU-[a-fA-F0-9-]{36})', device):
+        raise ValueError('Expected one E5 GPU index or UUID')
+    if minilm_gpu and minilm_gpu['GPU_CDI_DEVICE'] != 'nvidia.com/gpu=' + device:
+        raise ValueError('E5 and MiniLM must select the same CDI identifier (prefer a UUID)')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--environment', default=os.environ.get('DEPLOY_ENVIRONMENT'), choices=['main', 'dev'])
@@ -89,17 +106,18 @@ def main():
                 source.rename(release)
 
             def compose(version, *arguments, **kwargs):
-                env = {**os.environ, 'APP_IMAGE_TAG': image_tag(version, environment)}
+                minilm_gpu = gpu_environment(root, version)
+                env = {**os.environ, **minilm_gpu, 'APP_IMAGE_TAG': image_tag(version, environment)}
                 overlays = ['-f', version / 'compose.origin.yaml']
                 dev_overlay = version / 'compose.dev-evaluations.yaml'
                 if environment == 'dev' and dev_overlay.is_file():
                     overlays.extend(['-f', dev_overlay])
-                    gpu_overlay = version / 'compose.dev-gpu.yaml'
-                    gpu = os.environ.get('PENTADA_DEV_E5_GPU')
-                    if gpu and gpu_overlay.is_file():
-                        if not re.fullmatch(r'(?:[0-9]+|GPU-[a-fA-F0-9-]{36})', gpu):
-                            raise ValueError('Expected one E5 GPU index or UUID')
-                        overlays.extend(['-f', gpu_overlay])
+                    e5_gpu = os.environ.get('PENTADA_DEV_E5_GPU')
+                    if e5_gpu and (version / 'compose.dev-gpu.yaml').is_file():
+                        validate_e5_device(e5_gpu, minilm_gpu)
+                        overlays.extend(['-f', version / 'compose.dev-gpu.yaml'])
+                if minilm_gpu:
+                    overlays.extend(['-f', version / 'compose.gpu.yaml'])
                 return run(docker, '--context', 'rootless', 'compose', '--env-file', env_file,
                            '-p', target['origin_project'], '-f', version / 'compose.production.yaml',
                            *overlays, *arguments, env=env,
@@ -113,6 +131,9 @@ def main():
                 raise RuntimeError('Migrations changed: deploy this environment manually first')
             # Build both images before touching this environment's running containers.
             compose(release, 'build', 'backend')
+            if gpu_environment(root, release):
+                compose(release, 'run', '--rm', '--no-deps', 'backend',
+                        'python', '/app/scripts/check_minilm_gpu.py')
             with archive.open('rb') as stream:
                 run(*ssh, f'stage {environment} {sha}', stdin=stream)
 

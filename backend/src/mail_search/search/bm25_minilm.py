@@ -15,7 +15,7 @@ RRF_CONSTANT = 60
 
 
 class MiniLM:
-    def __init__(self, model_path: Path, threads: int):
+    def __init__(self, model_path: Path, threads: int, *, device="cpu", gpu_memory_mb=2048, profile_prefix=None):
         import numpy as np
         import onnxruntime
         from tokenizers import Tokenizer
@@ -33,9 +33,28 @@ class MiniLM:
         options.intra_op_num_threads = threads
         options.inter_op_num_threads = 1
         options.add_session_config_entry("session.intra_op.allow_spinning", "0")
+        if device not in ("cpu", "cuda"):
+            raise ValueError("MiniLM device must be cpu or cuda")
+        providers = ["CPUExecutionProvider"]
+        if device == "cuda":
+            if "CUDAExecutionProvider" not in onnxruntime.get_available_providers():
+                raise RuntimeError("MiniLM CUDA requires the minilm-gpu extra and a visible NVIDIA GPU")
+            onnxruntime.preload_dlls(directory="")
+            providers = [("CUDAExecutionProvider", {
+                "device_id": 0, "gpu_mem_limit": gpu_memory_mb * 1024 * 1024,
+                "arena_extend_strategy": "kSameAsRequested", "use_tf32": 0,
+            }), "CPUExecutionProvider"]
+        if profile_prefix is not None:
+            options.enable_profiling = True
+            options.profile_file_prefix = str(profile_prefix)
         self.session = onnxruntime.InferenceSession(
-            str(model_path), sess_options=options, providers=["CPUExecutionProvider"],
+            str(model_path), sess_options=options, providers=providers,
         )
+        if device == "cuda":
+            if self.session.get_providers()[0] != "CUDAExecutionProvider":
+                raise RuntimeError("MiniLM CUDA initialization failed; refusing CPU fallback")
+            self.session.disable_fallback()
+        self.providers = self.session.get_providers()
         self.inputs = tuple(item.name for item in self.session.get_inputs())
 
     def score(self, query: str, texts: list[str]) -> list[float]:
@@ -88,26 +107,34 @@ class BM25MiniLMEngine:
         return [SearchHit(hit.doc_id, 1 / rank) for rank, hit in enumerate(reordered[:k], 1)]
 
 
-def create_engine(documents: tuple[Document, ...], config: dict, *, model_dir: Path | None = None) -> BM25MiniLMEngine:
+def create_engine(documents: tuple[Document, ...], config: dict, *, model_dir: Path | None = None,
+                  device: str | None = None, gpu_memory_mb: int | None = None) -> BM25MiniLMEngine:
     defaults = {
         "minilm_model": "artifacts/models/minilm/model.onnx", "minilm_weight": 0.25,
-        "rerank_depth": 20, "inference_threads": 4,
+        "rerank_depth": 20, "inference_threads": 4, "inference_device": "cpu", "gpu_memory_mb": 2048,
     }
     unknown = config.keys() - defaults.keys()
     if unknown:
         raise ValueError(f"Unknown BM25 + MiniLM options: {sorted(unknown)}")
     options = {**defaults, **config}
+    if device is not None:
+        options["inference_device"] = device
+    if gpu_memory_mb is not None:
+        options["gpu_memory_mb"] = gpu_memory_mb
+    if options["inference_device"] not in ("cpu", "cuda"):
+        raise ValueError("inference_device must be cpu or cuda")
     weight = options["minilm_weight"]
     if type(weight) not in (float, int) or not 0 < weight <= 1:
         raise ValueError("minilm_weight must be in (0, 1]")
-    for name in ("rerank_depth", "inference_threads"):
+    for name in ("rerank_depth", "inference_threads", "gpu_memory_mb"):
         if type(options[name]) is not int or options[name] < 1:
             raise ValueError(f"{name} must be a positive integer")
     model_path = model_dir / "model.onnx" if model_dir is not None else repository_root() / options["minilm_model"]
     with model_path.open("rb") as weights, model_path.with_name("tokenizer.json").open("rb") as tokenizer:
         identity = {"weights_sha256": file_digest(weights, "sha256").hexdigest(),
                     "tokenizer_sha256": file_digest(tokenizer, "sha256").hexdigest()}
-    reranker = MiniLM(model_path, options["inference_threads"])
+    reranker = MiniLM(model_path, options["inference_threads"], device=options["inference_device"],
+                      gpu_memory_mb=options["gpu_memory_mb"])
     options.update(minilm_model=str(model_path), model_identity=identity, runtime=reranker.runtime,
-                   max_tokens=MAX_TOKENS, rrf_constant=RRF_CONSTANT)
+                   providers=reranker.providers, max_tokens=MAX_TOKENS, rrf_constant=RRF_CONSTANT)
     return BM25MiniLMEngine(documents, reranker, options)

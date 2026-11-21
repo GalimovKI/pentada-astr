@@ -14,6 +14,8 @@
 !frontend/vite.config.ts
 !frontend/src/**
 !frontend/public/**
+!scripts/
+!scripts/check_minilm_gpu.py
 !configs/
 !configs/search/**
 !infra/

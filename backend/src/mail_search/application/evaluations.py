@@ -105,6 +105,10 @@ class Evaluations:
         async with app.router.lifespan_context(app), httpx.AsyncClient(
                 transport=transport, base_url="http://benchmark") as client:
             (await client.get("/health/ready")).raise_for_status()
+            # The isolated app exposes the selected corpus as its primary dataset.
+            loaded = app.state.services[PUBLIC_DATASET].loaded
+            engine_config = {**json.loads(settings.search_config.read_text()),
+                             **getattr(loaded.engine, "config", {})}
             for i, query in enumerate(ds.queries, 1):
                 qid = query.query_id
                 response = await client.post(f"/api/v1/mailboxes/{quote(query.synthetic_user, safe='')}/search",
@@ -129,7 +133,6 @@ class Evaluations:
         samples = list(times.values())
         latency = dict(samples=len(samples), p99=percentile(samples, .99),
                        scope="ASGI Server-Timing, sequential, no explicit warmup, limit=100")
-        engine_config = json.loads(settings.search_config.read_text())
         if model == "e5-cosine":
             engine_config["device"] = settings.e5_device
             if settings.e5_device == "cuda":
