@@ -47,6 +47,8 @@ class ApiTests(PostgreSQLTestCase):
             url = "/api/v1/evaluations"
             self.assertTrue(client.get("/api/v1/features").json()["evaluations"])
             self.assertEqual(client.post(url, json={"model": "unknown", "dataset": "mail-public"}).status_code, 422)
+            self.assertEqual([d["id"] for d in client.get(url).json()["datasets"]], ["mail-public"])
+            self.assertEqual(client.post(url, json={"model": "bm25", "dataset": "enronqa-ru"}).status_code, 422)
             reply = client.post(url, json={"model": "bm25", "dataset": "mail-public"})
             self.assertEqual(reply.status_code, 202)
             deadline = time.monotonic() + 20
@@ -57,6 +59,12 @@ class ApiTests(PostgreSQLTestCase):
             self.assertEqual(job["samples"], job["total"])
             self.assertGreater(job["p99_ms"], 0)
             self.assertEqual(json.loads((folder / job["id"] / "metrics.json").read_text()), job["metrics"])
+
+        # The summary remains available when a new dev worker opens the run directory.
+        with TestClient(create_app(settings)) as client:
+            row, = client.get(url).json()["comparisons"]
+            self.assertEqual((row["dataset"], row["model"]), ("mail-public", "bm25"))
+            self.assertEqual(row["ndcg"], job["metrics"]["by_k"]["10"]["ndcg"])
 
     def test_dev_mail_presets_match_their_engines(self):
         from mail_search.core.presets import model_settings
