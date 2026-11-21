@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "20261121T203053Z-2df0dbaf",
+  "kind": "finding",
+  "owner": "Fu22210",
+  "status": "completed",
+  "updated_at": "2026-11-21T20:30:53.779235+00:00",
+  "title": "Поддержка выделенной GPU для dev E5",
+  "hypothesis": null,
+  "code_branch": "dev",
+  "code_commit": "1420b74c1590681dddb4a4005d2cd6aaf26d9698",
+  "baseline_ref": "20261121T201157Z-15adbe56",
+  "replicates": null,
+  "outcome": null
+}
