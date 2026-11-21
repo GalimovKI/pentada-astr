@@ -1,0 +1,14 @@
+{
+  "dependencies": true,
+  "minilm-model": true,
+  "e5-model": true,
+  "unchanged_layer_prefix": 9,
+  "rebuild": {
+    "seconds": 8.366998874999998,
+    "exit_code": 0
+  },
+  "image_ids": [
+    "sha256:0ec66daf9e4b79f81952cb7fa03f05b01b7577122e5094bd4ce789906ab85e7f",
+    "sha256:b18e341f958e74d5b419edb1a7600786740506509641ad161b594efe200e49f2"
+  ]
+}

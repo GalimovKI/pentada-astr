@@ -1,0 +1,311 @@
+#0 building with "orbstack" instance using docker driver
+
+#1 [internal] load build definition from backend.Dockerfile
+#1 transferring dockerfile: 3.43kB 0.0s done
+#1 DONE 0.1s
+
+#2 [internal] load metadata for ghcr.io/astral-sh/uv:0.9.11@sha256:5aa820129de0a600924f166aec9cb51613b15b68f1dcd2a02f31a500d2ede568
+#2 DONE 0.1s
+
+#3 [internal] load metadata for docker.io/library/python:3.12.12-slim-bookworm@sha256:593bd06efe90efa80dc4eee3948be7c0fde4134606dd40d8dd8dbcade98e669c
+#3 DONE 0.1s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 455B done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 4.52kB done
+#5 DONE 0.0s
+
+#6 [python-base 1/1] FROM docker.io/library/python:3.12.12-slim-bookworm@sha256:593bd06efe90efa80dc4eee3948be7c0fde4134606dd40d8dd8dbcade98e669c
+#6 resolve docker.io/library/python:3.12.12-slim-bookworm@sha256:593bd06efe90efa80dc4eee3948be7c0fde4134606dd40d8dd8dbcade98e669c 0.1s done
+#6 DONE 0.1s
+
+#7 [uv 1/1] FROM ghcr.io/astral-sh/uv:0.9.11@sha256:5aa820129de0a600924f166aec9cb51613b15b68f1dcd2a02f31a500d2ede568
+#7 resolve ghcr.io/astral-sh/uv:0.9.11@sha256:5aa820129de0a600924f166aec9cb51613b15b68f1dcd2a02f31a500d2ede568
+#7 resolve ghcr.io/astral-sh/uv:0.9.11@sha256:5aa820129de0a600924f166aec9cb51613b15b68f1dcd2a02f31a500d2ede568 0.1s done
+#7 DONE 0.1s
+
+#8 [dependencies 2/4] WORKDIR /app/backend
+#8 CACHED
+
+#9 [dependencies 3/4] COPY backend/pyproject.toml backend/uv.lock ./
+#9 CACHED
+
+#10 [dependencies 1/4] COPY --from=uv /uv /usr/local/bin/uv
+#10 CACHED
+
+#11 [dependencies 4/4] RUN --mount=type=cache,id=pentada-uv-amd64,target=/root/.cache/uv     if [ "cuda" = "cuda" ]; then set -- --extra minilm-gpu;     elif [ "cpu" = "cuda" ]; then set -- --extra e5-gpu;     elif [ "1" = "1" ]; then set -- --extra minilm; else set --; fi;     uv sync --locked --no-dev --no-editable --no-install-project --python /usr/local/bin/python "$@"
+#11 CACHED
+
+#12 [build 1/2] COPY backend/src ./src
+#12 DONE 0.2s
+
+#13 [build 2/2] RUN --mount=type=cache,id=pentada-uv-amd64,target=/root/.cache/uv     uv build --wheel --out-dir /dist
+#13 0.765 Building wheel...
+#13 2.271 running egg_info
+#13 2.273 creating src/pentada_mail_search.egg-info
+#13 2.274 writing src/pentada_mail_search.egg-info/PKG-INFO
+#13 2.276 writing dependency_links to src/pentada_mail_search.egg-info/dependency_links.txt
+#13 2.277 writing entry points to src/pentada_mail_search.egg-info/entry_points.txt
+#13 2.279 writing requirements to src/pentada_mail_search.egg-info/requires.txt
+#13 2.280 writing top-level names to src/pentada_mail_search.egg-info/top_level.txt
+#13 2.280 writing manifest file 'src/pentada_mail_search.egg-info/SOURCES.txt'
+#13 2.288 reading manifest file 'src/pentada_mail_search.egg-info/SOURCES.txt'
+#13 2.289 writing manifest file 'src/pentada_mail_search.egg-info/SOURCES.txt'
+#13 2.639 running bdist_wheel
+#13 2.654 running build
+#13 2.654 running build_py
+#13 2.654 creating build/lib/mail_search
+#13 2.654 copying src/mail_search/__init__.py -> build/lib/mail_search
+#13 2.654 copying src/mail_search/__main__.py -> build/lib/mail_search
+#13 2.654 copying src/mail_search/cli.py -> build/lib/mail_search
+#13 2.654 creating build/lib/mail_search/api
+#13 2.654 copying src/mail_search/api/__init__.py -> build/lib/mail_search/api
+#13 2.654 copying src/mail_search/api/app.py -> build/lib/mail_search/api
+#13 2.654 copying src/mail_search/api/cursors.py -> build/lib/mail_search/api
+#13 2.654 copying src/mail_search/api/models.py -> build/lib/mail_search/api
+#13 2.654 creating build/lib/mail_search/application
+#13 2.654 copying src/mail_search/application/__init__.py -> build/lib/mail_search/application
+#13 2.654 copying src/mail_search/application/evaluations.py -> build/lib/mail_search/application
+#13 2.654 copying src/mail_search/application/mail.py -> build/lib/mail_search/application
+#13 2.654 copying src/mail_search/application/passages.py -> build/lib/mail_search/application
+#13 2.654 creating build/lib/mail_search/benchmarks
+#13 2.654 copying src/mail_search/benchmarks/__init__.py -> build/lib/mail_search/benchmarks
+#13 2.654 copying src/mail_search/benchmarks/latency.py -> build/lib/mail_search/benchmarks
+#13 2.654 creating build/lib/mail_search/core
+#13 2.654 copying src/mail_search/core/__init__.py -> build/lib/mail_search/core
+#13 2.654 copying src/mail_search/core/datasets.py -> build/lib/mail_search/core
+#13 2.654 copying src/mail_search/core/engine.py -> build/lib/mail_search/core
+#13 2.654 copying src/mail_search/core/errors.py -> build/lib/mail_search/core
+#13 2.654 copying src/mail_search/core/paths.py -> build/lib/mail_search/core
+#13 2.654 copying src/mail_search/core/presets.py -> build/lib/mail_search/core
+#13 2.654 copying src/mail_search/core/provenance.py -> build/lib/mail_search/core
+#13 2.654 copying src/mail_search/core/settings.py -> build/lib/mail_search/core
+#13 2.654 creating build/lib/mail_search/domain
+#13 2.654 copying src/mail_search/domain/__init__.py -> build/lib/mail_search/domain
+#13 2.654 copying src/mail_search/domain/models.py -> build/lib/mail_search/domain
+#13 2.654 creating build/lib/mail_search/evaluation
+#13 2.654 copying src/mail_search/evaluation/__init__.py -> build/lib/mail_search/evaluation
+#13 2.654 copying src/mail_search/evaluation/metrics.py -> build/lib/mail_search/evaluation
+#13 2.654 copying src/mail_search/evaluation/runner.py -> build/lib/mail_search/evaluation
+#13 2.655 creating build/lib/mail_search/indexing
+#13 2.655 copying src/mail_search/indexing/__init__.py -> build/lib/mail_search/indexing
+#13 2.655 copying src/mail_search/indexing/bm25.py -> build/lib/mail_search/indexing
+#13 2.655 copying src/mail_search/indexing/text.py -> build/lib/mail_search/indexing
+#13 2.656 creating build/lib/mail_search/ingestion
+#13 2.656 copying src/mail_search/ingestion/__init__.py -> build/lib/mail_search/ingestion
+#13 2.656 copying src/mail_search/ingestion/dataset.py -> build/lib/mail_search/ingestion
+#13 2.657 creating build/lib/mail_search/search
+#13 2.657 copying src/mail_search/search/__init__.py -> build/lib/mail_search/search
+#13 2.657 copying src/mail_search/search/bm25.py -> build/lib/mail_search/search
+#13 2.657 copying src/mail_search/search/bm25_minilm.py -> build/lib/mail_search/search
+#13 2.658 copying src/mail_search/search/dates.py -> build/lib/mail_search/search
+#13 2.658 copying src/mail_search/search/deadline.py -> build/lib/mail_search/search
+#13 2.658 copying src/mail_search/search/e5.py -> build/lib/mail_search/search
+#13 2.658 copying src/mail_search/search/event_aware.py -> build/lib/mail_search/search
+#13 2.658 copying src/mail_search/search/fuzzy.py -> build/lib/mail_search/search
+#13 2.659 copying src/mail_search/search/routed_bm25.py -> build/lib/mail_search/search
+#13 2.659 creating build/lib/mail_search/storage
+#13 2.659 copying src/mail_search/storage/__init__.py -> build/lib/mail_search/storage
+#13 2.659 copying src/mail_search/storage/database.py -> build/lib/mail_search/storage
+#13 2.660 copying src/mail_search/storage/importer.py -> build/lib/mail_search/storage
+#13 2.660 copying src/mail_search/storage/repository.py -> build/lib/mail_search/storage
+#13 2.660 copying src/mail_search/storage/schema.py -> build/lib/mail_search/storage
+#13 2.661 running egg_info
+#13 2.664 writing src/pentada_mail_search.egg-info/PKG-INFO
+#13 2.666 writing dependency_links to src/pentada_mail_search.egg-info/dependency_links.txt
+#13 2.666 writing entry points to src/pentada_mail_search.egg-info/entry_points.txt
+#13 2.668 writing requirements to src/pentada_mail_search.egg-info/requires.txt
+#13 2.668 writing top-level names to src/pentada_mail_search.egg-info/top_level.txt
+#13 2.671 reading manifest file 'src/pentada_mail_search.egg-info/SOURCES.txt'
+#13 2.674 writing manifest file 'src/pentada_mail_search.egg-info/SOURCES.txt'
+#13 2.679 installing to build/bdist.linux-x86_64/wheel
+#13 2.679 running install
+#13 2.691 running install_lib
+#13 2.694 creating build/bdist.linux-x86_64/wheel
+#13 2.694 creating build/bdist.linux-x86_64/wheel/mail_search
+#13 2.695 copying build/lib/mail_search/__init__.py -> build/bdist.linux-x86_64/wheel/./mail_search
+#13 2.696 copying build/lib/mail_search/__main__.py -> build/bdist.linux-x86_64/wheel/./mail_search
+#13 2.698 copying build/lib/mail_search/cli.py -> build/bdist.linux-x86_64/wheel/./mail_search
+#13 2.699 creating build/bdist.linux-x86_64/wheel/mail_search/api
+#13 2.701 copying build/lib/mail_search/api/__init__.py -> build/bdist.linux-x86_64/wheel/./mail_search/api
+#13 2.701 copying build/lib/mail_search/api/app.py -> build/bdist.linux-x86_64/wheel/./mail_search/api
+#13 2.702 copying build/lib/mail_search/api/cursors.py -> build/bdist.linux-x86_64/wheel/./mail_search/api
+#13 2.704 copying build/lib/mail_search/api/models.py -> build/bdist.linux-x86_64/wheel/./mail_search/api
+#13 2.704 creating build/bdist.linux-x86_64/wheel/mail_search/application
+#13 2.704 copying build/lib/mail_search/application/__init__.py -> build/bdist.linux-x86_64/wheel/./mail_search/application
+#13 2.704 copying build/lib/mail_search/application/evaluations.py -> build/bdist.linux-x86_64/wheel/./mail_search/application
+#13 2.704 copying build/lib/mail_search/application/mail.py -> build/bdist.linux-x86_64/wheel/./mail_search/application
+#13 2.704 copying build/lib/mail_search/application/passages.py -> build/bdist.linux-x86_64/wheel/./mail_search/application
+#13 2.704 creating build/bdist.linux-x86_64/wheel/mail_search/benchmarks
+#13 2.704 copying build/lib/mail_search/benchmarks/__init__.py -> build/bdist.linux-x86_64/wheel/./mail_search/benchmarks
+#13 2.705 copying build/lib/mail_search/benchmarks/latency.py -> build/bdist.linux-x86_64/wheel/./mail_search/benchmarks
+#13 2.705 creating build/bdist.linux-x86_64/wheel/mail_search/core
+#13 2.705 copying build/lib/mail_search/core/__init__.py -> build/bdist.linux-x86_64/wheel/./mail_search/core
+#13 2.706 copying build/lib/mail_search/core/datasets.py -> build/bdist.linux-x86_64/wheel/./mail_search/core
+#13 2.706 copying build/lib/mail_search/core/engine.py -> build/bdist.linux-x86_64/wheel/./mail_search/core
+#13 2.706 copying build/lib/mail_search/core/errors.py -> build/bdist.linux-x86_64/wheel/./mail_search/core
+#13 2.707 copying build/lib/mail_search/core/paths.py -> build/bdist.linux-x86_64/wheel/./mail_search/core
+#13 2.707 copying build/lib/mail_search/core/presets.py -> build/bdist.linux-x86_64/wheel/./mail_search/core
+#13 2.707 copying build/lib/mail_search/core/provenance.py -> build/bdist.linux-x86_64/wheel/./mail_search/core
+#13 2.707 copying build/lib/mail_search/core/settings.py -> build/bdist.linux-x86_64/wheel/./mail_search/core
+#13 2.708 creating build/bdist.linux-x86_64/wheel/mail_search/domain
+#13 2.708 copying build/lib/mail_search/domain/__init__.py -> build/bdist.linux-x86_64/wheel/./mail_search/domain
+#13 2.708 copying build/lib/mail_search/domain/models.py -> build/bdist.linux-x86_64/wheel/./mail_search/domain
+#13 2.708 creating build/bdist.linux-x86_64/wheel/mail_search/evaluation
+#13 2.708 copying build/lib/mail_search/evaluation/__init__.py -> build/bdist.linux-x86_64/wheel/./mail_search/evaluation
+#13 2.708 copying build/lib/mail_search/evaluation/metrics.py -> build/bdist.linux-x86_64/wheel/./mail_search/evaluation
+#13 2.709 copying build/lib/mail_search/evaluation/runner.py -> build/bdist.linux-x86_64/wheel/./mail_search/evaluation
+#13 2.709 creating build/bdist.linux-x86_64/wheel/mail_search/indexing
+#13 2.709 copying build/lib/mail_search/indexing/__init__.py -> build/bdist.linux-x86_64/wheel/./mail_search/indexing
+#13 2.709 copying build/lib/mail_search/indexing/bm25.py -> build/bdist.linux-x86_64/wheel/./mail_search/indexing
+#13 2.710 copying build/lib/mail_search/indexing/text.py -> build/bdist.linux-x86_64/wheel/./mail_search/indexing
+#13 2.710 creating build/bdist.linux-x86_64/wheel/mail_search/ingestion
+#13 2.710 copying build/lib/mail_search/ingestion/__init__.py -> build/bdist.linux-x86_64/wheel/./mail_search/ingestion
+#13 2.710 copying build/lib/mail_search/ingestion/dataset.py -> build/bdist.linux-x86_64/wheel/./mail_search/ingestion
+#13 2.711 creating build/bdist.linux-x86_64/wheel/mail_search/search
+#13 2.711 copying build/lib/mail_search/search/__init__.py -> build/bdist.linux-x86_64/wheel/./mail_search/search
+#13 2.711 copying build/lib/mail_search/search/bm25.py -> build/bdist.linux-x86_64/wheel/./mail_search/search
+#13 2.712 copying build/lib/mail_search/search/bm25_minilm.py -> build/bdist.linux-x86_64/wheel/./mail_search/search
+#13 2.712 copying build/lib/mail_search/search/dates.py -> build/bdist.linux-x86_64/wheel/./mail_search/search
+#13 2.712 copying build/lib/mail_search/search/deadline.py -> build/bdist.linux-x86_64/wheel/./mail_search/search
+#13 2.712 copying build/lib/mail_search/search/e5.py -> build/bdist.linux-x86_64/wheel/./mail_search/search
+#13 2.712 copying build/lib/mail_search/search/event_aware.py -> build/bdist.linux-x86_64/wheel/./mail_search/search
+#13 2.712 copying build/lib/mail_search/search/fuzzy.py -> build/bdist.linux-x86_64/wheel/./mail_search/search
+#13 2.712 copying build/lib/mail_search/search/routed_bm25.py -> build/bdist.linux-x86_64/wheel/./mail_search/search
+#13 2.712 creating build/bdist.linux-x86_64/wheel/mail_search/storage
+#13 2.712 copying build/lib/mail_search/storage/__init__.py -> build/bdist.linux-x86_64/wheel/./mail_search/storage
+#13 2.712 copying build/lib/mail_search/storage/database.py -> build/bdist.linux-x86_64/wheel/./mail_search/storage
+#13 2.712 copying build/lib/mail_search/storage/importer.py -> build/bdist.linux-x86_64/wheel/./mail_search/storage
+#13 2.712 copying build/lib/mail_search/storage/repository.py -> build/bdist.linux-x86_64/wheel/./mail_search/storage
+#13 2.712 copying build/lib/mail_search/storage/schema.py -> build/bdist.linux-x86_64/wheel/./mail_search/storage
+#13 2.712 running install_egg_info
+#13 2.714 Copying src/pentada_mail_search.egg-info to build/bdist.linux-x86_64/wheel/./pentada_mail_search-0.1.0-py3.12.egg-info
+#13 2.717 running install_scripts
+#13 2.718 creating build/bdist.linux-x86_64/wheel/pentada_mail_search-0.1.0.dist-info/WHEEL
+#13 2.720 creating '/dist/.tmp-b2s_dbo3/pentada_mail_search-0.1.0-py3-none-any.whl' and adding 'build/bdist.linux-x86_64/wheel' to it
+#13 2.723 adding 'mail_search/__init__.py'
+#13 2.724 adding 'mail_search/__main__.py'
+#13 2.725 adding 'mail_search/cli.py'
+#13 2.726 adding 'mail_search/api/__init__.py'
+#13 2.726 adding 'mail_search/api/app.py'
+#13 2.726 adding 'mail_search/api/cursors.py'
+#13 2.727 adding 'mail_search/api/models.py'
+#13 2.727 adding 'mail_search/application/__init__.py'
+#13 2.728 adding 'mail_search/application/evaluations.py'
+#13 2.728 adding 'mail_search/application/mail.py'
+#13 2.728 adding 'mail_search/application/passages.py'
+#13 2.728 adding 'mail_search/benchmarks/__init__.py'
+#13 2.728 adding 'mail_search/benchmarks/latency.py'
+#13 2.728 adding 'mail_search/core/__init__.py'
+#13 2.729 adding 'mail_search/core/datasets.py'
+#13 2.729 adding 'mail_search/core/engine.py'
+#13 2.729 adding 'mail_search/core/errors.py'
+#13 2.729 adding 'mail_search/core/paths.py'
+#13 2.729 adding 'mail_search/core/presets.py'
+#13 2.729 adding 'mail_search/core/provenance.py'
+#13 2.729 adding 'mail_search/core/settings.py'
+#13 2.729 adding 'mail_search/domain/__init__.py'
+#13 2.729 adding 'mail_search/domain/models.py'
+#13 2.730 adding 'mail_search/evaluation/__init__.py'
+#13 2.730 adding 'mail_search/evaluation/metrics.py'
+#13 2.730 adding 'mail_search/evaluation/runner.py'
+#13 2.730 adding 'mail_search/indexing/__init__.py'
+#13 2.730 adding 'mail_search/indexing/bm25.py'
+#13 2.731 adding 'mail_search/indexing/text.py'
+#13 2.731 adding 'mail_search/ingestion/__init__.py'
+#13 2.731 adding 'mail_search/ingestion/dataset.py'
+#13 2.731 adding 'mail_search/search/__init__.py'
+#13 2.732 adding 'mail_search/search/bm25.py'
+#13 2.732 adding 'mail_search/search/bm25_minilm.py'
+#13 2.732 adding 'mail_search/search/dates.py'
+#13 2.733 adding 'mail_search/search/deadline.py'
+#13 2.733 adding 'mail_search/search/e5.py'
+#13 2.733 adding 'mail_search/search/event_aware.py'
+#13 2.734 adding 'mail_search/search/fuzzy.py'
+#13 2.734 adding 'mail_search/search/routed_bm25.py'
+#13 2.734 adding 'mail_search/storage/__init__.py'
+#13 2.734 adding 'mail_search/storage/database.py'
+#13 2.734 adding 'mail_search/storage/importer.py'
+#13 2.737 adding 'mail_search/storage/repository.py'
+#13 2.737 adding 'mail_search/storage/schema.py'
+#13 2.737 adding 'pentada_mail_search-0.1.0.dist-info/METADATA'
+#13 2.737 adding 'pentada_mail_search-0.1.0.dist-info/WHEEL'
+#13 2.737 adding 'pentada_mail_search-0.1.0.dist-info/entry_points.txt'
+#13 2.737 adding 'pentada_mail_search-0.1.0.dist-info/top_level.txt'
+#13 2.737 adding 'pentada_mail_search-0.1.0.dist-info/RECORD'
+#13 2.737 removing build/bdist.linux-x86_64/wheel
+#13 2.787 Successfully built /dist/pentada_mail_search-0.1.0-py3-none-any.whl
+#13 DONE 3.2s
+
+#14 [model-fetch 1/1] COPY infra/docker/fetch_minilm.py /tmp/fetch_minilm.py
+#14 CACHED
+
+#15 [e5-model 2/2] RUN mkdir -p /opt/mailsearch/e5 &&     if [ "1" = "1" ]; then python /tmp/fetch_e5.py --device "cpu" --output /opt/mailsearch/e5; fi
+#15 CACHED
+
+#16 [runtime  4/13] COPY --from=e5-model /opt/mailsearch/e5 /opt/mailsearch/e5
+#16 CACHED
+
+#17 [runtime  1/13] WORKDIR /app
+#17 CACHED
+
+#18 [runtime  2/13] RUN useradd --uid 10001 --create-home app && install -d -o app -g app /home/app/evaluations /home/app/e5-indexes
+#18 CACHED
+
+#19 [runtime  3/13] COPY --from=minilm-model /opt/mailsearch/minilm /opt/mailsearch/minilm
+#19 CACHED
+
+#20 [e5-model 1/2] COPY infra/docker/fetch_e5.py /tmp/fetch_e5.py
+#20 CACHED
+
+#21 [minilm-model 1/1] RUN mkdir -p /opt/mailsearch/minilm &&     if [ "1" = "1" ]; then       python /tmp/fetch_minilm.py --arch "amd64" --device "cuda" --output /opt/mailsearch/minilm;     fi
+#21 CACHED
+
+#22 [runtime  5/13] COPY --from=dependencies /app/backend/.venv /app/backend/.venv
+#22 CACHED
+
+#7 [uv 1/1] FROM ghcr.io/astral-sh/uv:0.9.11@sha256:5aa820129de0a600924f166aec9cb51613b15b68f1dcd2a02f31a500d2ede568
+#7 CACHED
+
+#23 [runtime  6/13] RUN --network=none --mount=from=uv,source=/uv,target=/usr/local/bin/uv     --mount=from=build,source=/dist,target=/tmp/pentada-dist     uv pip install --python /app/backend/.venv/bin/python --no-deps --no-cache --offline /tmp/pentada-dist/*.whl
+#23 0.812 Using Python 3.12.12 environment at: backend/.venv
+#23 0.924 Resolved 1 package in 59ms
+#23 0.982 Prepared 1 package in 56ms
+#23 1.005 Installed 1 package in 21ms
+#23 1.005  + pentada-mail-search==0.1.0 (from file:///tmp/pentada-dist/pentada_mail_search-0.1.0-py3-none-any.whl)
+#23 DONE 1.2s
+
+#24 [runtime  7/13] COPY backend/pyproject.toml /app/backend/pyproject.toml
+#24 DONE 0.1s
+
+#25 [runtime  8/13] COPY PROJECT.md /app/PROJECT.md
+#25 DONE 0.1s
+
+#26 [runtime  9/13] COPY backend/alembic.ini /app/backend/alembic.ini
+#26 DONE 0.1s
+
+#27 [runtime 10/13] COPY backend/migrations /app/backend/migrations
+#27 DONE 0.1s
+
+#28 [runtime 11/13] COPY configs/search /app/configs/search
+#28 DONE 0.1s
+
+#29 [runtime 12/13] COPY infra/docker/prepare.py /app/infra/docker/prepare.py
+#29 DONE 0.1s
+
+#30 [runtime 13/13] COPY scripts/check_minilm_gpu.py /app/scripts/check_minilm_gpu.py
+#30 DONE 0.1s
+
+#31 exporting to image
+#31 exporting layers
+#31 exporting layers 0.6s done
+#31 exporting manifest sha256:5ef281612be3576a3358718a37cedb1c800c9dc1bf98c2d45236d7ff808a5a61
+#31 exporting manifest sha256:5ef281612be3576a3358718a37cedb1c800c9dc1bf98c2d45236d7ff808a5a61 0.0s done
+#31 exporting config sha256:4589dbf1d99fff20eebadc33e2785b030d3ad7d0c8ab0c9a10d5a16ddcd3fe2e 0.0s done
+#31 exporting attestation manifest sha256:c17394a99577f9c955e33ca428169e7d80155714e06572eeed0735705c278a4c 0.0s done
+#31 exporting manifest list sha256:b18e341f958e74d5b419edb1a7600786740506509641ad161b594efe200e49f2 0.0s done
+#31 naming to docker.io/library/pentada-cache-check:gpu-edited done
+#31 DONE 0.7s

@@ -1,0 +1,16 @@
+test_archive_cannot_escape_release_directory (test_deployment.DeploymentTests) ... ok
+test_compose_ports_images_and_projects_are_separate (test_deployment.DeploymentTests) ... ok
+test_dev_activation_does_not_change_main_pointer (test_deployment.DeploymentTests) ... ok
+test_duplicate_origin_project_or_root_is_rejected (test_deployment.DeploymentTests) ... ok
+test_failed_edge_health_restores_previous_container_and_pointer (test_deployment.DeploymentTests) ... ok
+test_forced_command_rejects_shell_and_path_input (test_deployment.DeploymentTests) ... ok
+test_gpu_opt_in_is_per_root_and_rollback_compatible (test_deployment.DeploymentTests) ... ok
+test_old_origin_image_tag_remains_usable_for_rollback (test_deployment.DeploymentTests) ... ok
+test_regular_archive_extracts (test_deployment.DeploymentTests) ... ok
+test_runner_guard_blocks_prs_branches_and_other_workflows (test_deployment.DeploymentTests) ... ok
+test_two_models_require_one_gpu (test_deployment.DeploymentTests) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.061s
+
+OK

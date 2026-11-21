@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "20261121T211917Z-30ed3162",
+  "kind": "finding",
+  "owner": "Kirill Galimov",
+  "status": "completed",
+  "updated_at": "2026-11-21T21:23:49.594115+00:00",
+  "title": "Independent Docker cache for dependencies, model assets and application wheel",
+  "hypothesis": null,
+  "code_branch": "codex/docker-build-cache",
+  "code_commit": "e5355d122b8704964f4ebbf4010854502fd6288c",
+  "baseline_ref": "d2ca7bd5b401f4ca6805f3f8e9772db0267a067f",
+  "replicates": null,
+  "outcome": null
+}
