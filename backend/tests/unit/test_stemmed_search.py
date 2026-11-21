@@ -42,3 +42,24 @@ class StemmedSearchTests(unittest.TestCase):
                       "получено вчера или получено сегодня"):
             with self.subTest(query=query):
                 self.assertEqual(receipt_day(query, self.as_of), (None, query))
+
+    def test_corpus_statistics_change_idf_but_keep_mailbox_and_date_constraints(self):
+        engine = BM25Engine((
+            Document("a", "box-a", "альфа", self.as_of),
+            Document("b", "box-a", "бета", self.as_of),
+            Document("future", "box-a", "бета", date(2028, 12, 17)),
+            Document("c", "box-b", "альфа", self.as_of),
+            Document("d", "box-b", "альфа", self.as_of),
+        ), statistics_scope="corpus")
+        hits = engine.search(SearchRequest("альфа бета", "box-a", self.as_of), 10)
+        self.assertEqual([hit.doc_id for hit in hits], ["b", "a"])
+        self.assertGreater(hits[0].score, hits[1].score)
+
+    def test_query_wrapper_loses_weight_but_remains_retrievable(self):
+        engine = BM25Engine((
+            Document("a", "box-a", "уведомление", self.as_of),
+            Document("b", "box-a", "заказами", self.as_of),
+        ), stemming=True, query_wrapper_weight=0.1)
+        hits = engine.search(SearchRequest("найди уведомление о заказах", "box-a", self.as_of), 10)
+        self.assertEqual([hit.doc_id for hit in hits], ["b", "a"])
+        self.assertGreater(hits[1].score, 0)

@@ -30,6 +30,15 @@ uv run --project backend --locked mailsearch run --config configs/search/bm25-st
 uv run --project backend --locked mailsearch compare reports/quality/runs/bm25-reproduction reports/quality/runs/bm25-stemmed
 ```
 
+Следующий лексический бейзлайн в `configs/search/bm25-improved.json` оценивается тем же инструментом:
+
+```bash
+uv run --project backend --locked mailsearch run --config configs/search/bm25-improved.json --output reports/quality/runs/bm25-improved
+uv run --project backend --locked mailsearch compare reports/quality/runs/bm25-stemmed reports/quality/runs/bm25-improved
+```
+
+`statistics_scope: "corpus"` использует частоты токенов и среднюю длину писем по всему корпусу. Кандидаты по-прежнему берутся только из выбранного ящика и проходят фильтр дат. `query_wrapper_weight: 0.1` снижает вес слов во вводных оборотах вроде «покажи уведомления о». Если слово также встречается в основной части запроса, его вес остаётся полным. Кандидатам нужно хотя бы одно текстовое совпадение.
+
 ## 2. Метрики и правила локальной оценки
 
 Значения K по умолчанию: **1, 5, 10, 20, 50, 100**. Их можно задать через `--ks 5 10 20`. Движок получает максимальное K один раз для каждого запроса; метрики меньших K рассчитываются по префиксам одной выдачи.
