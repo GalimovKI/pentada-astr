@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "20261121T203640Z-a8bbe625",
+  "kind": "experiment",
+  "owner": "evseevgrv",
+  "status": "running",
+  "updated_at": "2026-11-21T20:36:40.032868+00:00",
+  "title": "Бейзлайны на 60 контрольных запросах",
+  "hypothesis": "Прогоны на замороженном наборе покажут, устойчив ли выбор основного BM25 при сравнении с лексическими, нейросетевыми и гибридными вариантами.",
+  "code_branch": "dev",
+  "code_commit": null,
+  "baseline_ref": "20261121T201426Z-841b6b1d",
+  "replicates": null,
+  "outcome": null
+}
