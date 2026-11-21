@@ -1,0 +1,23 @@
+{
+	admin off
+}
+
+http://127.0.0.1:8081 {
+	bind 127.0.0.1
+	respond /health/web "live" 200
+}
+
+{$SITE_ADDRESS:http://:80} {
+	# Access logging is intentionally disabled: URLs contain mailbox/message IDs.
+	encode gzip
+	@api path /api /api/* /health /health/* /docs /docs/* /redoc /openapi.json
+	handle @api {
+		header Cache-Control "no-store"
+		reverse_proxy {$API_UPSTREAM:backend:8000}
+	}
+	handle {
+		root * /srv
+		header Cache-Control "no-cache"
+		file_server
+	}
+}

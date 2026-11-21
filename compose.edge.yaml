@@ -1,0 +1,26 @@
+# Public frontend on a Linux VPS; API arrives through an SSH reverse tunnel.
+# Independent of compose.production.yaml; no corpus or database credentials here.
+services:
+  web:
+    image: pentada-mailsearch-web:${APP_IMAGE_TAG:-edge}
+    build:
+      context: .
+      dockerfile: infra/docker/frontend.Dockerfile
+    network_mode: host
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-http://:80}
+      API_UPSTREAM: 127.0.0.1:${TUNNEL_PORT:-18081}
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+    stop_grace_period: 30s
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8081/health/web"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  caddy_data:
+  caddy_config:

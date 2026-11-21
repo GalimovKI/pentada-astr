@@ -56,6 +56,9 @@ uv run --project backend --locked mailsearch search \
 
 ## Архитектура приложения
 
+Раздельный запуск frontend на VPS и backend с PostgreSQL на учебном хосте
+описан в [infra/docker/EDGE.md](infra/docker/EDGE.md).
+
 ```mermaid
 flowchart LR
     UI["Frontend · браузер"] --> API["Backend API"]
@@ -163,7 +166,7 @@ Frontend обращается только к API. Доступ к PostgreSQL в
 │   ├── latency/                  # p50/p95/p99, ошибки и параметры нагрузки
 │   └── exports/                  # Выдача в формате организаторов
 ├── infra/
-│   └── docker/                   # Будущие Dockerfile и связанные файлы сборки
+│   └── docker/                   # Dockerfile, Caddy, подготовка БД и SSH-туннель
 └── scripts/                      # Короткие обёртки подготовки и запуска
 ```
 
@@ -224,55 +227,170 @@ PDF-презентация также находится в корне; её д�
 синтетические данные для тестов хранятся в `backend/tests/fixtures/` и коммитятся.
 Секреты размещаются в локальном `.env`, который также исключён из Git.
 
-## План запуска
+## Production-запуск: всё приложение в Docker
 
-### Локальная разработка
+Нужны Git, работающий Docker Engine с Compose v2+ и доступ к registries при
+первой сборке. Python, uv, Node и npm на host для этого запуска не требуются.
+Образы Python 3.12.12, uv 0.9.11 (только сборка), Node 24.11.1 (только сборка),
+Caddy 2.10.2 и PostgreSQL 17.12 закреплены digest в Dockerfile/Compose.
+Python-зависимости устанавливаются по `backend/uv.lock` без dev-группы,
+frontend — через `npm ci` и `npm run build`. Локальные `.venv` не используются.
+Build context ограничен allowlist в `.dockerignore`: корпуса, `.env`, Git,
+отчётов, моделей и node_modules в образах нет. Backend работает без root.
 
-Локальный запуск: PostgreSQL в Docker, backend через Uvicorn, frontend через
-Vite. Такой режим позволяет быстро обновлять код и интерфейс.
-`uv` управляет Python-зависимостями, `npm` — зависимостями frontend.
+Внешние файлы: отдельно полученный официальный архив из [DATA.md](DATA.md),
+локальный `.env.production` и, для будущего движка, его модели/индексы.
+Команды выполняются из корня чистого checkout:
 
-### Демонстрация
+```bash
+cp .env.production.example .env.production
+chmod 600 .env.production
+# Получите собственный пароль: openssl rand -hex 24
+# Замените ОБА replace_with_random_password в .env.production этим паролем.
+# Положите архив в data/raw/mipt_mail_search_participants.zip.
+docker compose --env-file .env.production -p mailsearch-demo -f compose.production.yaml config --quiet
+docker compose --env-file .env.production -p mailsearch-demo -f compose.production.yaml build
+docker compose --env-file .env.production -p mailsearch-demo -f compose.production.yaml run --rm prepare
+docker compose --env-file .env.production -p mailsearch-demo -f compose.production.yaml up -d --wait --wait-timeout 300
+```
 
-Планируются два постоянных сервиса Docker Compose:
+Откройте [http://localhost:8080](http://localhost:8080). Весь сценарий из раздела
+frontend ниже работает на этом адресе, без Vite/Uvicorn в host-терминалах.
+`compose.yaml` остаётся **только dev-БД**; production-команды всегда используют
+`-f compose.production.yaml`, `.env.production` и отдельное имя проекта.
+Не меняйте `-p` между запусками: volumes привязаны к имени проекта.
 
-1. `db` — PostgreSQL с постоянным volume для данных.
-2. `app` — backend, поисковый движок и собранные статические файлы frontend.
+`CORPUS_PATH` — существующий host-файл (относительно Compose или абсолютный путь).
+Отсутствующий файл вызывает ошибку mount, а не создание пустого каталога.
+В контейнере он доступен read-only как `/data/corpus.zip`; именно этот путь задан
+в `SEARCH_DATASET`. `SEARCH_CONFIG` — путь **внутри контейнера**, по умолчанию
+`/app/configs/search/bm25-event-aware.json`. Каталоги `configs/search/` и `artifacts/`
+монтируются read-only в `/app/configs/search/` и `/app/artifacts/`.
+Сохраняйте права чтения файлов для UID 10001 backend.
+`DATABASE_URL` должен обращаться к `db:5432`, а не localhost. Пароль с особыми
+символами требует URL-кодирования в URL и корректного quoting в env-файле;
+hex-пароль из примера позволяет этого избежать. Не выводите `compose config`
+без `--quiet` в публичные логи: конфигурация содержит секреты.
 
-Frontend собирается во время сборки образа; отдельный Node.js-сервер для его
-обслуживания в этой схеме не нужен. Модель и индексы должны быть доступны `app`
-при запуске. Для публичного демо отдельно настраиваются адрес и HTTPS.
+Сервис `prepare` запускается только явной командой `run --rm prepare`: ждёт
+готовности БД (Compose healthcheck и проверка соединения), применяет Alembic и
+транзакционный импорт. При ошибке возвращает ненулевой код и безопасное сообщение.
+В успешном JSON проверьте `fingerprint`, 12 ящиков, 16376 писем, 433 неизвестные
+даты. Повторная подготовка того же корпуса возвращает `already_imported`;
+другой fingerprint отклоняется. Подробности контракта импорта — в разделе
+PostgreSQL ниже. При сбое исправьте файл/доступ/настройки и повторите `prepare`.
+Миграции уже могли примениться; не удаляйте volume ради повторной подготовки.
 
-### Первый запуск
+API стартует одним worker без reload и access log; обычный запуск не выполняет
+миграции или импорт. BM25 строит индекс в памяти при старте. Ошибки загрузки,
+отсутствующая схема/импорт или несовпадение fingerprint дают readiness 503,
+не пустую успешную выдачу. `ENGINE_START_PERIOD` задаёт время загрузки до учёта
+неуспешных healthchecks (180s по умолчанию); увеличьте его и `--wait-timeout` для
+тяжёлой модели. Docker health status сам по себе не перезапускает unhealthy
+контейнер. `/health/live` проверяет жизнь API, `/health/ready` — готовность движка
+и БД; web имеет отдельную внутреннюю проверку жизни Caddy.
 
-1. Настроить окружение и получить исходные данные.
-2. Собрать образы, запустить PostgreSQL и дождаться его готовности.
-3. Применить миграции схемы БД.
-4. Импортировать корпус и проверить отчёт подготовки.
-5. Построить и сохранить поисковые индексы.
-6. Запустить приложение; загрузить модель и индексы, проверить их версии.
-7. Проверить выбор ящика, поиск и открытие письма.
+Caddy отдаёт статические файлы и проксирует `/api`, `/health`, OpenAPI и docs
+в backend по внутренней сети. Методы, тела, статусы и `Server-Timing` сохраняются;
+ответы API получают `Cache-Control: no-store`, кеша proxy нет. Статика требует
+перепроверки (`no-cache`). UI использует только `/` без клиентского роутера,
+поэтому SPA fallback не нужен: неизвестный файл — 404, неизвестный API — JSON
+ошибка backend. CORS не требуется; серверные переменные не попадают в bundle.
+Это один proxy для localhost и HTTPS: см. документацию
+[Caddy reverse_proxy](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy).
 
-Импорт и индексация — отдельные завершающиеся операции. При обычном перезапуске
-приложение использует существующую БД и артефакты. После изменения корпуса или
-поисковых представлений соответствующие артефакты перестраиваются.
+### Проверки, остановка и обновление
 
-Целевая команда обычного запуска после подготовки — `docker compose up -d`.
-Сейчас `compose.yaml` запускает только PostgreSQL; инструкции ниже уже применимы.
+Фактический отчёт проверки упаковки: [infra/docker/VALIDATION.md](infra/docker/VALIDATION.md).
 
-### Файлы реализации
+```bash
+docker compose --env-file .env.production -p mailsearch-demo -f compose.production.yaml ps
+curl --fail http://localhost:8080/health/live
+curl --fail http://localhost:8080/health/ready
+python3 scripts/check_production.py --url http://localhost:8080
+docker compose --env-file .env.production -p mailsearch-demo -f compose.production.yaml logs --tail=100 backend web
+# Остановка с сохранением БД и сертификатов:
+docker compose --env-file .env.production -p mailsearch-demo -f compose.production.yaml down
+# Повторный запуск, без подготовки:
+docker compose --env-file .env.production -p mailsearch-demo -f compose.production.yaml up -d --wait --wait-timeout 300
+```
 
-| Файл | Назначение |
-| --- | --- |
-| `backend/pyproject.toml`, `backend/uv.lock` | Уже созданы: Python-проект и lock-файл. |
-| `frontend/package.json`, `frontend/package-lock.json` | Frontend-проект, команды и версии пакетов. |
-| `backend/src/mail_search/api/app.py` | Создание HTTP-приложения и его жизненный цикл. |
-| `backend/src/mail_search/cli.py` | Доступны validate, run, score, compare, search и import-postgres. |
-| `compose.yaml` | Сервисы, сеть, volumes и проверки готовности. |
-| `infra/docker/Dockerfile` | Сборка backend и готового frontend. |
-| `.env.example` | Шаблон переменных окружения без рабочих секретов. |
+Backend получает SIGTERM и до 120s на завершение принятых запросов и закрытие
+движка/пула. Обычный `down` сохраняет named volumes PostgreSQL и Caddy.
+**`down -v` удаляет данные и сертификаты**, в обычном сценарии не используется.
+Не удаляйте существующие пользовательские volumes для проверки чистого старта.
+Для такой проверки выберите новое `-p` и свободные `HTTP_PORT`/`HTTPS_PORT`.
+Порты БД и backend в production на host не опубликованы; наружу доступен только web.
 
-Остальные файлы добавляются вместе с соответствующей работающей реализацией.
+Для обновления: сохраните дамп БД, получите нужный commit, задайте уникальный
+`APP_IMAGE_TAG` (например, SHA коммита), выполните `build`, явный `run --rm prepare`
+при изменении схемы и `up -d --wait --wait-timeout 300`. Сверьте readiness и сценарий.
+Обновление происходит с возможным перерывом; rolling deployment не реализован.
+Не меняйте имя проекта или `POSTGRES_*` для существующего volume: эти переменные
+инициализируют только новую БД, а смена пароля роли требует отдельной SQL-операции.
+Сохранение/восстановление дампа описано ниже; команды `exec db pg_dump` применимы
+с теми же production-флагами Compose.
+
+Проверка порядка выдачи для **текущего BM25**, с host Python/uv и архивом:
+
+```bash
+uv run --project backend --locked python scripts/check_http_api.py --url http://localhost:8080
+cd frontend
+npm ci
+PLAYWRIGHT_BASE_URL=http://localhost:8080 npm run test:real
+```
+
+`PLAYWRIGHT_BASE_URL` отключает запуск Vite в Playwright и направляет существующие
+сценарии на собранное приложение. Установка браузера/Chrome описана ниже.
+Проверки не измеряют серверный p99 и не подтверждают качество приватного набора.
+
+### Размещение на одном сервере с HTTPS
+
+Передайте checkout нужного коммита, архив и env-файл по защищённому каналу.
+Нужны реальный домен с A/AAAA на сервер, доступные извне TCP 80/443 и разрешённый
+исходящий доступ для выпуска сертификата. Если задан AAAA, IPv6 тоже должен
+работать. Согласуйте существующий proxy и занятые порты до запуска.
+В `.env.production` задайте `SITE_ADDRESS` равным вашему домену (без `http://`),
+`HTTP_BIND=0.0.0.0`, `HTTP_PORT=80`, `HTTPS_BIND=0.0.0.0`, `HTTPS_PORT=443`.
+Повторите подготовку и запуск выше. Тот же web-образ Caddy получает и обновляет
+сертификат и перенаправляет HTTP на HTTPS; сертификаты сохраняются в `caddy_data`.
+Условия описаны в [Automatic HTTPS](https://caddyserver.com/docs/automatic-https).
+Локальный `http://:80` намеренно работает по HTTP без выпуска сертификата.
+
+Если на сервере уже есть TLS proxy, оставьте web на loopback HTTP и направьте
+существующий proxy на него, сохранив методы/тела/заголовки и отключив кеш API.
+Второй TLS proxy для приложения поднимать не нужно.
+После запуска с внешнего устройства проверьте HTTPS без обхода проверки
+сертификата, редирект HTTP, readiness и полный браузерный сценарий; проверьте
+отсутствие mixed content. До этих проверок публичный деплой не подтверждён.
+Выбор синтетического ящика — контекст демо, не авторизация. Реальные аккаунты
+не подключаются. Публичный доступ означает доступ ко всему демо-корпусу.
+
+### Подключение будущего движка
+
+Сохранены `SEARCH_ENGINE_FACTORY`, `SEARCH_CONFIG`, `SEARCH_DATASET` и
+`DATABASE_URL`; контракт фабрики — в [backend/API.md](backend/API.md).
+Новые Python-зависимости добавляются в `backend/pyproject.toml` и фиксируются
+через `uv lock --project backend`. Исходники фабрики входят в пакет `mail_search`;
+зависимости с native-библиотеками могут потребовать доработки Dockerfile.
+Произвольная модель не устанавливается одной переменной.
+Модели и готовые индексы положите в `artifacts/` вне Git. Пути конфигурации должны
+указывать на `/app/artifacts/...`; подготовка артефактов выполняется отдельно,
+read-only runtime mounts их не создают. Для собственного dataset-path меняйте
+`SEARCH_DATASET` на путь доступных контейнеру артефактов. При этом `prepare`
+импортирует официальный ZIP: запускайте его с `-e SEARCH_DATASET=/data/corpus.zip`.
+Фабрика обязана проверять manifest и вернуть fingerprint исходного набора;
+API сравнивает его с `corpus_import` в БД и при несовпадении даёт 503.
+Проверка metadata: `docker compose ... exec -T db psql -U ... -d ...` и
+`SELECT fingerprint FROM corpus_import;` (полная схема — в storage/schema.py).
+
+После изменения зависимостей/исходников пересоберите backend (и prepare, который
+использует тот же образ): `build backend prepare`, затем `up -d --force-recreate
+backend web --wait --wait-timeout 300`. После изменения mounted конфигурации или
+артефактов перезапустите backend, проверьте readiness, fingerprint и сценарий.
+Frontend пересобирать для смены серверной фабрики не требуется.
+`scripts/check_http_api.py` сравнивает HTTP-выдачу с настроенной фабрикой движка;
+передайте одинаковые SEARCH_* серверу и проверке.
 
 ## Производительность и проверки
 
@@ -307,7 +425,7 @@ Frontend собирается во время сборки образа; отд�
 4. Реализовать схему PostgreSQL, импорт и хранилище для просмотра писем — готово.
 5. Добавить API и нагрузочную проверку, подобрать конфигурацию по качеству и скорости.
 6. Интерфейс и полный пользовательский сценарий реализованы; команды браузерных проверок — ниже.
-7. Завершить Docker-сборку, инструкции запуска, официальный экспорт и публичную демонстрацию.
+7. Docker-сборка и инструкции запуска готовы; официальный экспорт и публичную демонстрацию проверяют отдельно.
 
 Минимальные инструкции запуска и фиксация зависимостей добавляются с первой
 реализацией и уточняются на каждом этапе.
@@ -590,6 +708,5 @@ Playwright сам поднимает Vite или использует уже р�
 При необходимости `docker compose down` из корня останавливает БД с сохранением
 volume. Текущий запуск предназначен для локального демо: выбор ящика не является
 авторизацией, отправки писем и подключения реальной почты нет. `npm run build`
-проверяет и собирает frontend в `frontend/dist/`; production-раздача `/api`,
-Docker-упаковка приложения, публичный деплой и нагрузочные проверки — отдельные
-задачи. Dev proxy работает только при `npm run dev`.
+проверяет и собирает frontend в `frontend/dist/`. Production Compose и раздача `/api`
+описаны выше. Dev proxy работает только при `npm run dev`.
