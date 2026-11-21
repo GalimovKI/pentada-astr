@@ -1,0 +1,158 @@
+[
+  {
+    "model": "e5-cosine",
+    "threshold": 0.835,
+    "train": {
+      "mail-public": 0.041641077234408554,
+      "enronqa-en": 0.5666296001314775
+    },
+    "test": {
+      "mail-public": 0.0813017766829337,
+      "enronqa-en": 0.5097650666896563
+    },
+    "top10_test": {
+      "mail-public": 0.07187895212285456,
+      "enronqa-en": 0.17272727272727273
+    },
+    "counts": {
+      "mail-public": [
+        58,
+        41
+      ],
+      "enronqa-en": [
+        60,
+        40
+      ]
+    }
+  },
+  {
+    "model": "bm25",
+    "threshold": 0.76,
+    "train": {
+      "mail-public": 0.5266502177861204,
+      "enronqa-en": 0.866111111111111
+    },
+    "test": {
+      "mail-public": 0.0938964143741963,
+      "enronqa-en": 0.8635897435897436
+    },
+    "top10_test": {
+      "mail-public": 0.08601847529719742,
+      "enronqa-en": 0.17727272727272728
+    },
+    "counts": {
+      "mail-public": [
+        58,
+        41
+      ],
+      "enronqa-en": [
+        60,
+        40
+      ]
+    }
+  },
+  {
+    "model": "bm25-stemmed",
+    "threshold": 0.75,
+    "train": {
+      "mail-public": 0.7635306789366856,
+      "enronqa-en": 0.855
+    },
+    "test": {
+      "mail-public": 0.6922550576145553,
+      "enronqa-en": 0.8635897435897436
+    },
+    "top10_test": {
+      "mail-public": 0.7840030736825455,
+      "enronqa-en": 0.17727272727272728
+    },
+    "counts": {
+      "mail-public": [
+        58,
+        41
+      ],
+      "enronqa-en": [
+        60,
+        40
+      ]
+    }
+  },
+  {
+    "model": "bm25-improved",
+    "threshold": 0.84,
+    "train": {
+      "mail-public": 0.8098953464981077,
+      "enronqa-en": 0.8969444444444444
+    },
+    "test": {
+      "mail-public": 0.7309008663040328,
+      "enronqa-en": 0.8853977272727273
+    },
+    "top10_test": {
+      "mail-public": 0.7840030736825455,
+      "enronqa-en": 0.17727272727272728
+    },
+    "counts": {
+      "mail-public": [
+        58,
+        41
+      ],
+      "enronqa-en": [
+        60,
+        40
+      ]
+    }
+  },
+  {
+    "model": "bm25-event-aware",
+    "threshold": 0.84,
+    "train": {
+      "mail-public": 0.870538577942229,
+      "enronqa-en": 0.8969444444444444
+    },
+    "test": {
+      "mail-public": 0.7383194112886716,
+      "enronqa-en": 0.8853977272727273
+    },
+    "top10_test": {
+      "mail-public": 0.8807178037174959,
+      "enronqa-en": 0.17727272727272728
+    },
+    "counts": {
+      "mail-public": [
+        58,
+        41
+      ],
+      "enronqa-en": [
+        60,
+        40
+      ]
+    }
+  },
+  {
+    "model": "bm25-minilm",
+    "threshold": 0.63,
+    "train": {
+      "mail-public": 0.8716332686920922,
+      "enronqa-en": 0.8719607843137255
+    },
+    "test": {
+      "mail-public": 0.7383194112886716,
+      "enronqa-en": 0.8640709728867624
+    },
+    "top10_test": {
+      "mail-public": 0.8807178037174959,
+      "enronqa-en": 0.17727272727272728
+    },
+    "counts": {
+      "mail-public": [
+        58,
+        41
+      ],
+      "enronqa-en": [
+        60,
+        40
+      ]
+    }
+  }
+]
