@@ -1,0 +1,78 @@
+#0 building with "rootless" instance using docker driver
+
+#1 [internal] load build definition from backend.Dockerfile
+#1 transferring dockerfile: 3.81kB done
+#1 DONE 0.1s
+
+#2 [internal] load metadata for docker.io/library/pentada-mailsearch-dependencies:py312-cu130-d2ca7bd
+#2 DONE 0.1s
+
+#3 [internal] load metadata for ghcr.io/astral-sh/uv:0.9.11@sha256:5aa820129de0a600924f166aec9cb51613b15b68f1dcd2a02f31a500d2ede568
+#3 DONE 0.7s
+
+#4 [internal] load metadata for docker.io/library/python:3.12.12-slim-bookworm@sha256:593bd06efe90efa80dc4eee3948be7c0fde4134606dd40d8dd8dbcade98e669c
+#4 DONE 0.8s
+
+#5 [internal] load .dockerignore
+#5 transferring context:
+#5 transferring context: 455B done
+#5 DONE 0.1s
+
+#6 [internal] load build context
+#6 DONE 0.0s
+
+#7 [python-base 1/1] FROM docker.io/library/python:3.12.12-slim-bookworm@sha256:593bd06efe90efa80dc4eee3948be7c0fde4134606dd40d8dd8dbcade98e669c
+#7 resolve docker.io/library/python:3.12.12-slim-bookworm@sha256:593bd06efe90efa80dc4eee3948be7c0fde4134606dd40d8dd8dbcade98e669c 0.2s done
+#7 DONE 0.2s
+
+#8 [uv 1/1] FROM ghcr.io/astral-sh/uv:0.9.11@sha256:5aa820129de0a600924f166aec9cb51613b15b68f1dcd2a02f31a500d2ede568
+#8 resolve ghcr.io/astral-sh/uv:0.9.11@sha256:5aa820129de0a600924f166aec9cb51613b15b68f1dcd2a02f31a500d2ede568 0.2s done
+#8 DONE 0.2s
+
+#9 [dependencies 1/5] COPY --from=uv /uv /usr/local/bin/uv
+#9 CACHED
+
+#10 [dependencies 2/5] WORKDIR /app/backend
+#10 CACHED
+
+#11 [dependency-seed 1/1] FROM docker.io/library/pentada-mailsearch-dependencies:py312-cu130-d2ca7bd@sha256:054017ba883272928e504e786de17f8eeb437d99bb4fc434f300a12453059bcf
+#11 resolve docker.io/library/pentada-mailsearch-dependencies:py312-cu130-d2ca7bd@sha256:054017ba883272928e504e786de17f8eeb437d99bb4fc434f300a12453059bcf 0.2s done
+#11 ...
+
+#6 [internal] load build context
+#6 transferring context: 259.06kB done
+#6 DONE 0.2s
+
+#11 [dependency-seed 1/1] FROM docker.io/library/pentada-mailsearch-dependencies:py312-cu130-d2ca7bd@sha256:054017ba883272928e504e786de17f8eeb437d99bb4fc434f300a12453059bcf
+#11 DONE 0.6s
+
+#12 [dependencies 3/5] COPY --from=dependency-seed /app/backend/.venv ./.venv
+#12 DONE 4.7s
+
+#13 [dependencies 4/5] COPY backend/pyproject.toml backend/uv.lock ./
+#13 DONE 0.2s
+
+#14 [dependencies 5/5] RUN --mount=type=cache,id=pentada-uv-amd64,target=/root/.cache/uv     if [ "cuda" = "cuda" ]; then set -- --extra minilm-gpu;     elif [ "cpu" = "cuda" ]; then set -- --extra e5-gpu;     elif [ "1" = "1" ]; then set -- --extra minilm; else set --; fi;     uv sync --locked --no-dev --no-editable --no-install-project --python /usr/local/bin/python "$@"
+#14 0.576 Resolved 52 packages in 9ms
+#14 0.586 Uninstalled 1 package in 4ms
+#14 0.587  - pentada-mail-search==0.1.0 (from file:///app/backend)
+#14 DONE 0.6s
+
+#15 exporting to image
+#15 exporting layers
+#15 ...
+
+#8 [uv 1/1] FROM ghcr.io/astral-sh/uv:0.9.11@sha256:5aa820129de0a600924f166aec9cb51613b15b68f1dcd2a02f31a500d2ede568
+#8 CACHED
+
+#15 exporting to image
+#15 exporting layers 83.8s done
+#15 exporting manifest sha256:1a0362dd7ea63c2aca9c5d7124205766648937d4502e0693e30a0c693ae58a7c 0.1s done
+#15 exporting config sha256:e65d2089d6794cc0c596d1d2d5f2a3a5545a3290632c97b5e96a902b3e6b2491 0.0s done
+#15 exporting attestation manifest sha256:9ba2a29bb1c3a9388694b3264868d9628e6a98f4eb023f9ecb67d8f552c41eb4 0.1s done
+#15 exporting manifest list sha256:4ef6304d7a0c290b378d5e27bc94b5f97859cb58d0017d3c21228be49d2d4d07
+#15 exporting manifest list sha256:4ef6304d7a0c290b378d5e27bc94b5f97859cb58d0017d3c21228be49d2d4d07 0.1s done
+#15 naming to docker.io/library/pentada-mailsearch-dependencies:verified done
+#15 unpacking to docker.io/library/pentada-mailsearch-dependencies:verified
+#15 unpacking to docker.io/library/pentada-mailsearch-dependencies:verified 11.8s done
+#15 DONE 95.9s

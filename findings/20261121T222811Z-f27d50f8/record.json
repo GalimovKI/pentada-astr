@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "20261121T222811Z-f27d50f8",
+  "kind": "finding",
+  "owner": "Kirill Galimov",
+  "status": "completed",
+  "updated_at": "2026-11-21T22:32:54.331001+00:00",
+  "title": "GPU dependency seed and offline application builds unblock dev deployment",
+  "hypothesis": null,
+  "code_branch": "dev",
+  "code_commit": "ede4f473a794ef7411569e075019c9ae2a57eece",
+  "baseline_ref": "20261121T211917Z-30ed3162",
+  "replicates": null,
+  "outcome": null
+}

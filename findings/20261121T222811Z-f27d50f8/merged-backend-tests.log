@@ -1,0 +1,129 @@
+test_alternate_corpus_evaluation_keeps_loaded_engine_metadata (tests.integration.test_api.ApiTests.test_alternate_corpus_evaluation_keeps_loaded_engine_metadata) ... ok
+test_contract_and_failure (tests.integration.test_api.ApiTests.test_contract_and_failure) ... request_failed code=engine_contract_violation
+request_failed code=engine_contract_violation
+request_failed code=engine_contract_violation
+request_failed code=engine_contract_violation
+request_failed code=engine_contract_violation
+request_failed code=engine_contract_violation
+request_failed code=engine_contract_violation
+request_failed code=engine_contract_violation
+request_failed code=engine_contract_violation
+request_failed code=engine_failure
+ok
+test_cursor_context (tests.integration.test_api.ApiTests.test_cursor_context) ... request_failed code=invalid_cursor
+request_failed code=invalid_cursor
+ok
+test_db_failure_and_fingerprints (tests.integration.test_api.ApiTests.test_db_failure_and_fingerprints) ... request_failed code=dataset_mismatch
+request_failed code=dataset_mismatch
+request_failed code=import_metadata_missing
+startup_not_ready stage=compatibility category=OperationalError
+database_unavailable
+ok
+test_dev_archive_reads_and_ranks_all_owners_on_selected_date (tests.integration.test_api.ApiTests.test_dev_archive_reads_and_ranks_all_owners_on_selected_date) ... ok
+test_dev_corpus_picker_and_scoped_pagination (tests.integration.test_api.ApiTests.test_dev_corpus_picker_and_scoped_pagination) ... request_failed code=invalid_cursor
+ok
+test_dev_mail_presets_match_their_engines (tests.integration.test_api.ApiTests.test_dev_mail_presets_match_their_engines) ... request_failed code=model_selection_disabled
+request_failed code=unknown_search_model
+ok
+test_engine_thread_affinity_and_serialization (tests.integration.test_api.ApiTests.test_engine_thread_affinity_and_serialization) ... ok
+test_evaluation_modes_and_artifacts (tests.integration.test_api.ApiTests.test_evaluation_modes_and_artifacts) ... request_failed code=evaluations_disabled
+request_failed code=unknown_evaluation_option
+request_failed code=unknown_evaluation_option
+ok
+test_http_flow (tests.integration.test_api.ApiTests.test_http_flow) ... request_failed code=message_not_found
+request_failed code=message_not_found
+request_failed code=message_not_found
+ok
+test_loader_failure (tests.integration.test_api.ApiTests.test_loader_failure) ... startup_not_ready stage=engine_loading category=RuntimeError
+request_failed code=service_unavailable
+request_failed code=service_unavailable
+ok
+test_long_text_ties_and_multiple_nulls (tests.integration.test_api.ApiTests.test_long_text_ties_and_multiple_nulls) ... ok
+test_missing_metadata_at_start_and_cleanup (tests.integration.test_api.ApiTests.test_missing_metadata_at_start_and_cleanup) ... startup_not_ready stage=compatibility category=ServiceError
+request_failed code=import_metadata_missing
+request_failed code=import_metadata_missing
+ok
+test_real_bm25_and_batch_previews (tests.integration.test_api.ApiTests.test_real_bm25_and_batch_previews) ... ok
+test_server_factory_setting (tests.integration.test_api.ApiTests.test_server_factory_setting) ... ok
+test_server_uses_event_aware_engine_by_default (tests.integration.test_api.ApiTests.test_server_uses_event_aware_engine_by_default) ... ok
+test_validation (tests.integration.test_api.ApiTests.test_validation) ... request_failed code=invalid_cursor
+ok
+test_duplicate_query_in_predictions_rejected (tests.integration.test_cli.CLITests.test_duplicate_query_in_predictions_rejected) ... ok
+test_external_predictions_must_cover_all_queries (tests.integration.test_cli.CLITests.test_external_predictions_must_cover_all_queries) ... ok
+test_installed_package_and_default_dataset_work_outside_repository (tests.integration.test_cli.CLITests.test_installed_package_and_default_dataset_work_outside_repository) ... ok
+test_run_rescore_compare_and_prevent_overwrite (tests.integration.test_cli.CLITests.test_run_rescore_compare_and_prevent_overwrite) ... ok
+test_search_returns_ranked_hits_for_explicit_mailbox_and_date (tests.integration.test_cli.CLITests.test_search_returns_ranked_hits_for_explicit_mailbox_and_date) ... ok
+test_batch_uses_one_message_query (tests.integration.test_storage.StorageTests.test_batch_uses_one_message_query) ... ok
+test_concurrent_import (tests.integration.test_storage.StorageTests.test_concurrent_import) ... ok
+test_constraints_and_untracked_data (tests.integration.test_storage.StorageTests.test_constraints_and_untracked_data) ... ok
+test_migration_and_repeat_import (tests.integration.test_storage.StorageTests.test_migration_and_repeat_import) ... No new upgrade operations detected.
+ok
+test_pagination_ties_nulls_and_text (tests.integration.test_storage.StorageTests.test_pagination_ties_nulls_and_text) ... ok
+test_rollback_after_inserted_batch (tests.integration.test_storage.StorageTests.test_rollback_after_inserted_batch) ... ok
+test_scope_dates_and_batch_order (tests.integration.test_storage.StorageTests.test_scope_dates_and_batch_order) ... ok
+test_validation_and_conflicting_corpus (tests.integration.test_storage.StorageTests.test_validation_and_conflicting_corpus) ... ok
+test_cleanup_after_close_failure (tests.unit.test_api_configuration.ServerConfigurationTests.test_cleanup_after_close_failure) ... ok
+test_config_only_override_preserves_legacy_factory (tests.unit.test_api_configuration.ServerConfigurationTests.test_config_only_override_preserves_legacy_factory) ... ok
+test_invalid_engine_metadata_is_not_ready (tests.unit.test_api_configuration.ServerConfigurationTests.test_invalid_engine_metadata_is_not_ready) ... startup_not_ready stage=compatibility category=ServiceError
+request_failed code=engine_metadata_missing
+startup_not_ready stage=compatibility category=ServiceError
+request_failed code=engine_metadata_missing
+startup_not_ready stage=compatibility category=ServiceError
+request_failed code=engine_metadata_missing
+startup_not_ready stage=compatibility category=ServiceError
+request_failed code=engine_metadata_missing
+ok
+test_server_timing_includes_engine_wait (tests.unit.test_api_configuration.ServerConfigurationTests.test_server_timing_includes_engine_wait) ... ok
+test_settings_and_secret_redaction (tests.unit.test_api_configuration.ServerConfigurationTests.test_settings_and_secret_redaction) ... startup_not_ready stage=settings category=ValidationError
+request_failed code=service_unavailable
+ok
+test_date_only_skips_minilm (tests.unit.test_bm25_minilm.BM25MiniLMTests.test_date_only_skips_minilm) ... ok
+test_fixed_prefix_keeps_tail_and_reorders_by_weighted_ranks (tests.unit.test_bm25_minilm.BM25MiniLMTests.test_fixed_prefix_keeps_tail_and_reorders_by_weighted_ranks) ... ok
+test_preset_requires_local_artifacts_and_runtime (tests.unit.test_bm25_minilm.BM25MiniLMTests.test_preset_requires_local_artifacts_and_runtime) ... ok
+test_cpu_does_not_load_cuda_libraries (tests.unit.test_bm25_minilm.MiniLMDeviceTests.test_cpu_does_not_load_cuda_libraries) ... ok
+test_cuda_limits_arena_and_disables_runtime_fallback (tests.unit.test_bm25_minilm.MiniLMDeviceTests.test_cuda_limits_arena_and_disables_runtime_fallback) ... ok
+test_cuda_rejects_missing_provider (tests.unit.test_bm25_minilm.MiniLMDeviceTests.test_cuda_rejects_missing_provider) ... ok
+test_cuda_rejects_silent_initialization_fallback (tests.unit.test_bm25_minilm.MiniLMDeviceTests.test_cuda_rejects_silent_initialization_fallback) ... ok
+test_bad_positive_qrels_rejected (tests.unit.test_dataset.DatasetTests.test_bad_positive_qrels_rejected) ... ok
+test_duplicate_ids_rejected_even_with_valid_hashes (tests.unit.test_dataset.DatasetTests.test_duplicate_ids_rejected_even_with_valid_hashes) ... ok
+test_integrity_failure_precedes_evaluation (tests.unit.test_dataset.DatasetTests.test_integrity_failure_precedes_evaluation) ... ok
+test_manifest_counts_checked (tests.unit.test_dataset.DatasetTests.test_manifest_counts_checked) ... ok
+test_schema_and_calendar_validation (tests.unit.test_dataset.DatasetTests.test_schema_and_calendar_validation) ... ok
+test_zip_and_directory_have_same_fingerprint (tests.unit.test_dataset.DatasetTests.test_zip_and_directory_have_same_fingerprint) ... ok
+test_cuda_profile_requires_transformer_kernels_on_gpu (tests.unit.test_e5.E5Tests.test_cuda_profile_requires_transformer_kernels_on_gpu) ... ok
+test_full_mailbox_search_availability_archive_and_index_reuse (tests.unit.test_e5.E5Tests.test_full_mailbox_search_availability_archive_and_index_reuse) ... E5 indexing 0/4
+ok
+test_similarity_counts_all_matches_before_paging_and_includes_boundary (tests.unit.test_e5.E5Tests.test_similarity_counts_all_matches_before_paging_and_includes_boundary) ... ok
+test_coverage_and_k_validation (tests.unit.test_engine_eval.EngineAndEvaluationTests.test_coverage_and_k_validation) ... ok
+test_failed_queries_remain_in_denominator (tests.unit.test_engine_eval.EngineAndEvaluationTests.test_failed_queries_remain_in_denominator) ... ok
+test_invalid_rankings_rejected (tests.unit.test_engine_eval.EngineAndEvaluationTests.test_invalid_rankings_rejected) ... ok
+test_macro_metrics_and_single_relevant_subset (tests.unit.test_engine_eval.EngineAndEvaluationTests.test_macro_metrics_and_single_relevant_subset) ... ok
+test_no_temporal_expression_keeps_null_but_excludes_future_and_other_box (tests.unit.test_engine_eval.EngineAndEvaluationTests.test_no_temporal_expression_keeps_null_but_excludes_future_and_other_box) ... ok
+test_relative_and_explicit_dates (tests.unit.test_engine_eval.EngineAndEvaluationTests.test_relative_and_explicit_dates) ... ok
+test_unknown_box_and_empty_query_fail (tests.unit.test_engine_eval.EngineAndEvaluationTests.test_unknown_box_and_empty_query_fail) ... ok
+test_modal_scope_and_independent_assertion (tests.unit.test_event_aware_search.EventAwareSearchTests.test_modal_scope_and_independent_assertion) ... ok
+test_permission_queries_and_undated_branch_keep_lexical_order (tests.unit.test_event_aware_search.EventAwareSearchTests.test_permission_queries_and_undated_branch_keep_lexical_order) ... ok
+test_status_reorders_only_top_prefix_and_keeps_day_and_mailbox (tests.unit.test_event_aware_search.EventAwareSearchTests.test_status_reorders_only_top_prefix_and_keeps_day_and_mailbox) ... ok
+test_date_only_and_future_dates (tests.unit.test_fuzzy_search.FuzzySearchTests.test_date_only_and_future_dates) ... ok
+test_dated_query_retains_exact_mixed_identifier (tests.unit.test_fuzzy_search.FuzzySearchTests.test_dated_query_retains_exact_mixed_identifier) ... ok
+test_expired_caller_budget_fails_explicitly (tests.unit.test_fuzzy_search.FuzzySearchTests.test_expired_caller_budget_fails_explicitly) ... ok
+test_no_date_bm25_uses_the_same_budget (tests.unit.test_fuzzy_search.FuzzySearchTests.test_no_date_bm25_uses_the_same_budget) ... ok
+test_partial_word_match_ranks_relevant_action_within_receipt_day (tests.unit.test_fuzzy_search.FuzzySearchTests.test_partial_word_match_ranks_relevant_action_within_receipt_day) ... ok
+test_query_without_receipt_day_uses_stemmed_bm25 (tests.unit.test_fuzzy_search.FuzzySearchTests.test_query_without_receipt_day_uses_stemmed_bm25) ... ok
+test_hand_calculated_ranking (tests.unit.test_metrics.MetricTests.test_hand_calculated_ranking) ... ok
+test_nearest_rank_small_sample (tests.unit.test_metrics.MetricTests.test_nearest_rank_small_sample) ... ok
+test_short_perfect_ranking_and_no_relevant_documents (tests.unit.test_metrics.MetricTests.test_short_perfect_ranking_and_no_relevant_documents) ... ok
+test_best_body_passage_uses_original_spelling_and_utf16_offsets (tests.unit.test_passages.PassageTests.test_best_body_passage_uses_original_spelling_and_utf16_offsets) ... ok
+test_no_highlight_without_a_term_and_header_without_label (tests.unit.test_passages.PassageTests.test_no_highlight_without_a_term_and_header_without_label) ... ok
+test_source_fingerprint_includes_nested_modules (tests.unit.test_provenance.ProvenanceTests.test_source_fingerprint_includes_nested_modules) ... ok
+test_corpus_statistics_change_idf_but_keep_mailbox_and_date_constraints (tests.unit.test_stemmed_search.StemmedSearchTests.test_corpus_statistics_change_idf_but_keep_mailbox_and_date_constraints) ... ok
+test_date_only_and_future (tests.unit.test_stemmed_search.StemmedSearchTests.test_date_only_and_future) ... ok
+test_event_date_is_searchable_even_for_message_received_earlier (tests.unit.test_stemmed_search.StemmedSearchTests.test_event_date_is_searchable_even_for_message_received_earlier) ... ok
+test_invalid_and_ambiguous_dates_do_not_apply_a_filter (tests.unit.test_stemmed_search.StemmedSearchTests.test_invalid_and_ambiguous_dates_do_not_apply_a_filter) ... ok
+test_morphology_and_filtering (tests.unit.test_stemmed_search.StemmedSearchTests.test_morphology_and_filtering) ... ok
+test_query_wrapper_loses_weight_but_remains_retrievable (tests.unit.test_stemmed_search.StemmedSearchTests.test_query_wrapper_loses_weight_but_remains_retrievable) ... ok
+
+----------------------------------------------------------------------
+Ran 79 tests in 6.989s
+
+OK
