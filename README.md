@@ -31,6 +31,8 @@ uv run --project backend --locked mailsearch run --output reports/quality/runs/b
 
 ## Документация и источники
 
+- [AGENTS.md](AGENTS.md) — общие правила работы агентов команды.
+- [TEAM_MEMORY.md](TEAM_MEMORY.md) — самостоятельное подключение к журналу, регистрация экспериментов и публикация выводов; в конце есть сообщение для первого подключения агента.
 - [PROJECT.md](PROJECT.md) — требования организаторов, ограничения, принятые решения и открытые вопросы.
 - [COMPONENTS.md](COMPONENTS.md) — девять логических компонентов, их границы и критерии готовности.
 - [DATA.md](DATA.md) — подтверждённые форматы, правила дат и статистика публичного корпуса.
@@ -94,6 +96,8 @@ Frontend обращается только к API. Доступ к PostgreSQL в
 ```text
 .
 ├── README.md
+├── AGENTS.md
+├── TEAM_MEMORY.md
 ├── PROJECT.md
 ├── COMPONENTS.md
 ├── DATA.md
