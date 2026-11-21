@@ -72,36 +72,50 @@ def date_bonus(query_days, received, mentions):
     return bonus
 
 
+class MailIndex:
+    def __init__(self, documents, facts, vectors):
+        self.vectors = vectors
+        self.ids = sorted(documents)
+        docs = [documents[i] for i in self.ids]
+        self.boxes = np.array([d.synthetic_user for d in docs])
+        self.received = np.array([d.doc_dt.toordinal() if d.doc_dt else -1 for d in docs])
+        self.senders = [sender_tokens(facts[i]) for i in self.ids]
+        self.mentions = {role: defaultdict(list) for role in ("event", "deadline")}
+        for index, did in enumerate(self.ids):
+            for role, day in tagged_days(facts[did]):
+                if role in self.mentions:
+                    self.mentions[role][day].append(index)
+
+    def search(self, q, vector, fields, *, ablations=False):
+        base = self.vectors @ vector
+        eligible = np.flatnonzero((self.boxes == q.synthetic_user) & (self.received <= q.query_date.toordinal()))
+        temporal = date_bonus(tagged_days(fields), self.received, self.mentions)
+        name = sender_tokens(fields)
+        person = np.zeros(len(self.ids))
+        if name:
+            person[eligible] = [PERSON_BONUS if name <= self.senders[i] else 0 for i in eligible]
+        variants = {"full": base + temporal + person}
+        if ablations:
+            variants.update(e5=base, date=base+temporal, sender=base+person)
+        rankings = {}
+        for mode, scores in variants.items():
+            top = eligible[np.argsort(-scores[eligible], kind="stable")[:100]]
+            rankings[mode] = [self.ids[i] for i in top]
+        return rankings
+
+
+def prepared_query(q):
+    _, text = receipt_date(q.query, q.query_date)
+    return " ".join(w for w in text.split() if w.lower() not in {"найди","покажи"}) or text
+
+
 def rank(ds, facts, encoder, vectors):
-    ids = sorted(ds.documents)
-    docs = [ds.documents[i] for i in ids]
-    boxes = np.array([d.synthetic_user for d in docs])
-    received = np.array([d.doc_dt.toordinal() if d.doc_dt else -1 for d in docs])
-    senders = [sender_tokens(facts[i]) for i in ids]
-    mentions = {role: defaultdict(list) for role in ("event", "deadline")}
-    for index, did in enumerate(ids):
-        for role, day in tagged_days(facts[did]):
-            if role in mentions:
-                mentions[role][day].append(index)
-    content = []
-    for q in ds.queries:
-        _, text = receipt_date(q.query, q.query_date)
-        content.append(" ".join(w for w in text.split() if w.lower() not in {"найди","покажи"}) or text)
-    queries = encode_sorted(encoder, content, query=True)
+    index = MailIndex(ds.documents, facts, vectors)
+    queries = encode_sorted(encoder, [prepared_query(q) for q in ds.queries], query=True)
     predictions = {key: {} for key in ("e5", "date", "sender", "full")}
     for q, vector in zip(ds.queries, queries, strict=True):
-        base = vectors @ vector
-        eligible = np.flatnonzero((boxes == q.synthetic_user) & (received <= q.query_date.toordinal()))
-        f = facts[q.query_id]
-        temporal = date_bonus(tagged_days(f), received, mentions)
-        name = sender_tokens(f)
-        person = np.zeros(len(ids))
-        if name:
-            person[eligible] = [PERSON_BONUS if name <= senders[i] else 0 for i in eligible]
-        for mode, scores in (("e5",base),("date",base + temporal),("sender",base + person),
-                             ("full",base + temporal + person)):
-            top = eligible[np.argsort(-scores[eligible], kind="stable")[:100]]
-            predictions[mode][q.query_id] = [ids[i] for i in top]
+        for mode, hits in index.search(q, vector, facts[q.query_id], ablations=True).items():
+            predictions[mode][q.query_id] = hits
     return predictions
 
 
