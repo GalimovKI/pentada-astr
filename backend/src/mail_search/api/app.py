@@ -16,7 +16,7 @@ from ..application.evaluations import Evaluations
 from ..core.datasets import ARCHIVE_USER, mail_datasets, PUBLIC_DATASET
 from ..application.mail import MailService, ServiceError
 from ..core.engine import LoadedEngine
-from ..core.presets import MODELS, model_options, model_settings
+from ..core.presets import MAIL_THRESHOLDS, MODELS, model_options, model_settings
 from ..core.settings import Settings
 from ..storage.database import database_engine
 from ..storage.repository import ArchiveStore, MailStore, UnknownMailbox
@@ -172,7 +172,8 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
     def features():
         if app.state.evaluations is None:
             return {"evaluations": False}
-        return {"evaluations": True, "mail_models": model_options(app.state.evaluations.models)}
+        return {"evaluations": True, "mail_models": [dict(item, threshold=MAIL_THRESHOLDS[item["id"]])
+                for item in model_options(app.state.evaluations.models)]}
 
     def evaluations():
         if app.state.evaluations is None:
@@ -224,6 +225,10 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
               response_model_exclude_unset=True)
     def search(synthetic_user: str, body: SearchBody, explain: bool = False,
                model: Annotated[str | None, Query(max_length=64)] = None, dataset: str = PUBLIC_DATASET):
+        if body.relevance_threshold is not None:
+            if model is None or body.min_similarity is not None or body.offset or (
+                    model != "e5-cosine" and body.relevance_threshold < 0):
+                raise ServiceError(422, "invalid_relevance_threshold")
         if body.min_similarity is not None and model != "e5-cosine":
             raise ServiceError(422, "similarity_requires_e5")
         if body.offset and body.min_similarity is None:
@@ -235,6 +240,7 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
                 raise ServiceError(422, "model_selection_disabled")
             active = app.state.mail_model(dataset, model if model is not None else next(iter(MODELS)), archive)
         return active.search(synthetic_user, body.query, body.query_date, body.limit, explain=explain,
-                             min_similarity=body.min_similarity, offset=body.offset)
+                             min_similarity=body.min_similarity, offset=body.offset,
+                             relevance_threshold=body.relevance_threshold)
 
     return app

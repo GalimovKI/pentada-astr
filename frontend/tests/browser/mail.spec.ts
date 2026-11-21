@@ -380,3 +380,37 @@ test("primary boxes and the two complete Enron archives can be selected independ
     await expect(cards(page).first()).toHaveId("message-" + value);
   }
 });
+
+test("dev mail shows the complete matching set and remembers a separate cutoff for each model", async ({ page }) => {
+  await mockApi(page, async (route, url) => {
+    if (url.pathname.endsWith("/features")) {
+      await reply(route, { evaluations: true, mail_models: [
+        { id: "bm25", name: "BM25", threshold: 0.7 }, { id: "e5-cosine", name: "E5", threshold: 0.85 },
+      ] });
+      return true;
+    }
+    if (url.pathname.endsWith("/search")) {
+      const body = route.request().postDataJSON();
+      expect(body.limit).toBeUndefined();
+      const count = body.relevance_threshold === 0.9 ? 2 : 61;
+      await reply(route, { total: count, items: Array.from({ length: count }, (_, i) => ({ ...preview(String(i)), score: 0.95 })) });
+      return true;
+    }
+    return false;
+  });
+  await page.goto("./");
+  const threshold = page.getByLabel("Порог отбора писем");
+  const picker = page.getByLabel("Модель поиска писем");
+  await expect(threshold).toHaveValue("0.7");
+  await searchFor(page);
+  await expect(cards(page)).toHaveCount(61);
+  await expect(page.getByRole("button", { name: "Загрузить ещё" })).toHaveCount(0);
+  await threshold.fill("0.9");
+  await searchFor(page);
+  await expect(cards(page)).toHaveCount(2);
+  await picker.selectOption("e5-cosine");
+  await expect(threshold).toHaveValue("0.85");
+  await expect(cards(page)).toHaveCount(61);
+  await page.reload();
+  await expect(threshold).toHaveValue("0.9");
+});

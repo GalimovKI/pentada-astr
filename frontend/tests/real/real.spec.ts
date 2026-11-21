@@ -36,9 +36,12 @@ test("prepared local corpus: browse, paginate, search, read and change context",
   await expect(cards(page)).toHaveCount(100);
   const query =
     "Найди уведомления о завершении досмотра контейнеров, полученные вчера";
+  const options = await (await request.get("/api/v1/features")).json();
+  const preset = options.mail_models?.[0];
   const expected = (await (
-    await request.post(`${path}/search`, {
-      data: { query, query_date: "2028-09-11", limit: 10 },
+    await request.post(`${path}/search${preset ? "?model=" + preset.id : ""}`, {
+      data: { query, query_date: "2028-09-11", ...(preset?.threshold !== undefined
+        ? { relevance_threshold: preset.threshold } : { limit: 10 }) },
     })
   ).json()) as SearchResponse;
   expect(expected.items.length).toBeGreaterThan(0);

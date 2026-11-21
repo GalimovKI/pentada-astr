@@ -119,6 +119,9 @@ class E5Engine:
             boxes[single_mailbox or doc.synthetic_user].append(i)
         self.boxes = {user: np.array(rows) for user, rows in boxes.items()}
 
+    def relevance_scores(self, request):
+        return self.search(request, len(self.ids))
+
     def search(self, request, k):
         hits, _ = self.search_page(request, k)
         return hits

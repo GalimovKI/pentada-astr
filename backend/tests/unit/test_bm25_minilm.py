@@ -29,6 +29,12 @@ class BM25MiniLMTests(TestCase):
         self.assertEqual(output[-1].doc_id, "20")
         model.score.assert_called_once_with("заказ", [doc.doc for doc in documents[:20]])
 
+        relevance = engine.relevance_scores(request)
+        self.assertEqual([hit.doc_id for hit in relevance], [hit.doc_id for hit in output])
+        self.assertAlmostEqual(relevance[1].score, 0.75 + 0.25 * 0.5)
+        self.assertAlmostEqual(relevance[-1].score, 0.75 / 21)
+        self.assertNotEqual(relevance[1].score, output[1].score)
+
     def test_date_only_skips_minilm(self):
         day = date(2028, 11, 20)
         model = Mock()

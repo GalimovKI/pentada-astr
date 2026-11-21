@@ -19,6 +19,7 @@ class SearchBody(BaseModel):
     query_date: ScenarioDate
     limit: int = Field(default=10, strict=True, ge=1, le=100)
 
+    relevance_threshold: float | None = Field(default=None, strict=True, ge=-1, le=1, allow_inf_nan=False)
     min_similarity: float | None = Field(default=None, strict=True, ge=-1, le=1, allow_inf_nan=False)
     offset: int = Field(default=0, strict=True, ge=0)
 

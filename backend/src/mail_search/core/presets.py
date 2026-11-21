@@ -14,6 +14,17 @@ MODELS = {
 }
 
 
+# Mail defaults calibrated separately from the fixed-K evaluation protocol.
+MAIL_THRESHOLDS = {
+    "bm25-event-aware": 0.84,
+    "e5-cosine": 0.835,
+    "bm25-minilm": 0.63,
+    "bm25-improved": 0.84,
+    "bm25-stemmed": 0.75,
+    "bm25": 0.76,
+}
+
+
 def available_models(settings):
     directories = {
         "bm25-minilm": settings.minilm_model_dir or repository_root() / "artifacts/models/minilm",

@@ -90,6 +90,14 @@ class ApiTests(PostgreSQLTestCase):
                 self.assertEqual([(item["doc_id"], item["score"]) for item in response.json()["items"]],
                                  [(hit.doc_id, hit.score) for hit in hits])
 
+                threshold = preset["threshold"]
+                query = SearchRequest(body["query"], "a", date(2025, 1, 2))
+                expected = [hit for hit in engine.engine.relevance_scores(query) if hit.score >= threshold]
+                selected = client.post(path, params={"model": model}, json={**body, "relevance_threshold": threshold})
+                self.assertEqual(selected.status_code, 200, selected.text)
+                self.assertEqual(selected.json()["total"], len(expected))
+                self.assertEqual([item["doc_id"] for item in selected.json()["items"]], [h.doc_id for h in expected])
+
     def test_http_flow(self):
         with self.client() as c:
             self.assertEqual(c.get("/health/live").json(), {"status": "live"})
