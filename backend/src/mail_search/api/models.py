@@ -58,12 +58,22 @@ class MailboxGroup(BaseModel):
     items: list[str]
 
 
+class Archive(BaseModel):
+    id: str
+    name: str
+    mailbox: str
+    total: int
+    latest_date: date | None
+
+
 class Mailboxes(BaseModel):
+    archives: list[Archive] | None = None
     items: list[str]
     groups: list[MailboxGroup] | None = None
 
 
 class Messages(BaseModel):
+    total: int
     items: list[Preview]
     next_cursor: str | None
 

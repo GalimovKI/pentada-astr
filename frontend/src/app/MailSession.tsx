@@ -104,7 +104,9 @@ export function MailSession({ context, models, model, onModelChange }: {
             </time></p>
           )}
           <p className="list-caption">
-            {items.length > 0
+            {!searching && list.data?.total != null
+              ? `Показано ${items.length.toLocaleString("ru-RU")} из ${list.data.total.toLocaleString("ru-RU")}`
+              : items.length > 0
               ? `${searching ? "Найдено" : "Загружено"}: ${items.length}`
               : "Письма на выбранную дату"}
             {searching && " · В порядке релевантности"}

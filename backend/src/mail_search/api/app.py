@@ -13,13 +13,13 @@ from starlette.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 from sqlalchemy.exc import SQLAlchemyError
 from ..application.evaluations import Evaluations
-from ..core.datasets import mail_datasets, PUBLIC_DATASET
+from ..core.datasets import ARCHIVE_USER, mail_datasets, PUBLIC_DATASET
 from ..application.mail import MailService, ServiceError
 from ..core.engine import LoadedEngine
 from ..core.presets import MODELS, model_options, model_settings
 from ..core.settings import Settings
 from ..storage.database import database_engine
-from ..storage.repository import MailStore, UnknownMailbox
+from ..storage.repository import ArchiveStore, MailStore, UnknownMailbox
 from . import cursors
 from .models import (ErrorResponse, Health, Mailboxes, Messages, MessageResponse,
                      SearchResponse, SearchBody, ScenarioDate, PageLimit, EvaluationSelection)
@@ -37,6 +37,8 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
         cached_models = {}
         app.state.services = {}
         app.state.mail_groups = []
+        app.state.archive_stores = {}
+        app.state.archives = []
         app.state.evaluations = None
         try:
             stage = "settings"
@@ -47,29 +49,30 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
                 stage = "database_configuration"
                 datasets = mail_datasets(config)
 
-                def initialize(settings, factory=None):
+                def initialize(settings, factory=None, *, archive=False):
                     if factory is None:
                         module, name = settings.search_engine_factory.split(":")
                         factory = getattr(importlib.import_module(module), name)
-                    result = factory(settings)
+                    result = factory(settings, single_mailbox=ARCHIVE_USER) if archive else factory(settings)
                     if not isinstance(result, LoadedEngine):
                         raise ValueError("Loader must return LoadedEngine")
                     return result
-                def select_model(dataset, model):
+                def select_model(dataset, model, archive):
                     if model not in MODELS:
                         raise ServiceError(422, "unknown_search_model")
                     scoped = configs[dataset]
                     active = app.state.services[dataset]
                     chosen = model_settings(scoped, model)
-                    if (chosen.search_config == scoped.search_config and
+                    if (not archive and chosen.search_config == scoped.search_config and
                             chosen.search_engine_factory == scoped.search_engine_factory):
                         return active
-                    key = (dataset, model)
+                    key = (dataset, model, archive)
                     if key not in cached_models:
-                        cached_models[key] = initialize(chosen)
-                    return MailService(active.store, cached_models[key], executor)
+                        cached_models[key] = initialize(chosen, archive=archive)
+                    store = app.state.archive_stores[dataset] if archive else active.store
+                    return MailService(store, cached_models[key], executor)
 
-                app.state.mail_model = lambda dataset, model: executor.submit(select_model, dataset, model).result()
+                app.state.mail_model = lambda dataset, model, archive: executor.submit(select_model, dataset, model, archive).result()
 
                 for dataset, (label, archive, url) in datasets.items():
                     scoped = config.model_copy(update=dict(search_dataset=archive, database_url=url))
@@ -83,6 +86,12 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
                     configs[dataset] = scoped
                     stage = "compatibility"
                     await run_in_threadpool(active.ready)
+                    if config.enable_evaluations:
+                        store = ArchiveStore(db)
+                        total, latest_date = await run_in_threadpool(store.summary)
+                        app.state.archive_stores[dataset] = store
+                        app.state.archives.append(dict(id=dataset, name=label, mailbox=ARCHIVE_USER,
+                                                       total=total, latest_date=latest_date))
                     if dataset != PUBLIC_DATASET:
                         users = await run_in_threadpool(active.store.list_mailboxes)
                         app.state.mail_groups.append(dict(id=dataset, name=label, items=users))
@@ -153,6 +162,12 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
         result.ready()
         return result
 
+    def mail_store(dataset, user):
+        active = service(dataset)
+        if user == ARCHIVE_USER and dataset in app.state.archive_stores:
+            return app.state.archive_stores[dataset]
+        return active.store
+
     @app.get("/api/v1/features")
     def features():
         if app.state.evaluations is None:
@@ -187,19 +202,20 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
 
     @app.get("/api/v1/mailboxes", response_model=Mailboxes, response_model_exclude_none=True)
     def mailboxes():
-        return {"items": service().store.list_mailboxes(), "groups": app.state.mail_groups or None}
+        return {"items": service().store.list_mailboxes(), "groups": app.state.mail_groups or None,
+                "archives": app.state.archives or None}
 
     @app.get("/api/v1/mailboxes/{synthetic_user}/messages", response_model=Messages)
     def messages(synthetic_user: str, query_date: ScenarioDate,
                  limit: Annotated[PageLimit, Query(ge=1, le=500)] = 50,
                  cursor: Annotated[str | None, Query(max_length=4096)] = None, dataset: str = PUBLIC_DATASET):
         after = cursors.decode(cursor, synthetic_user, query_date, dataset)
-        page = service(dataset).store.list_messages(synthetic_user, query_date=query_date, limit=limit, after=after)
-        return {"items": page.items, "next_cursor": cursors.encode(page.next_cursor, dataset)}
+        page = mail_store(dataset, synthetic_user).list_messages(synthetic_user, query_date=query_date, limit=limit, after=after)
+        return {"total": page.total, "items": page.items, "next_cursor": cursors.encode(page.next_cursor, dataset)}
 
     @app.get("/api/v1/mailboxes/{synthetic_user}/messages/{doc_id:path}", response_model=MessageResponse)
     def message(synthetic_user: str, doc_id: str, query_date: ScenarioDate, dataset: str = PUBLIC_DATASET):
-        result = service(dataset).store.get_message(synthetic_user, doc_id, query_date=query_date)
+        result = mail_store(dataset, synthetic_user).get_message(synthetic_user, doc_id, query_date=query_date)
         if result is None:
             raise ServiceError(404, "message_not_found")
         return {"item": result}
@@ -209,10 +225,11 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
     def search(synthetic_user: str, body: SearchBody, explain: bool = False,
                model: Annotated[str | None, Query(max_length=64)] = None, dataset: str = PUBLIC_DATASET):
         active = service(dataset)
-        if model is not None:
+        archive = synthetic_user == ARCHIVE_USER and dataset in app.state.archive_stores
+        if model is not None or archive:
             if app.state.evaluations is None:
                 raise ServiceError(422, "model_selection_disabled")
-            active = app.state.mail_model(dataset, model)
+            active = app.state.mail_model(dataset, model if model is not None else next(iter(MODELS)), archive)
         return active.search(synthetic_user, body.query, body.query_date, body.limit, explain=explain)
 
     return app

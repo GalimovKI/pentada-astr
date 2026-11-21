@@ -161,6 +161,29 @@ class ApiTests(PostgreSQLTestCase):
             self.assertEqual(client.get(path, params=params).status_code, 200)
             self.assertEqual(client.get(path, params={**params, "dataset": "enronqa-en"}).status_code, 422)
 
+    def test_dev_archive_reads_and_ranks_all_owners_on_selected_date(self):
+        import_corpus(self.engine, self.path)
+        url = self.engine.url.render_as_string(hide_password=False)
+        settings = Settings(database_url=url, search_dataset=self.path, enable_evaluations=True,
+                            evaluation_dir=self.path / "runs")
+        with TestClient(create_app(settings)) as client:
+            archive, = client.get("/api/v1/mailboxes").json()["archives"]
+            self.assertEqual((archive["total"], archive["latest_date"]), (5, "2025-01-03"))
+            path = "/api/v1/mailboxes/" + archive["mailbox"]
+            params = dict(dataset=archive["id"], query_date="2025-01-02", limit=2)
+            page = client.get(path + "/messages", params=params).json()
+            next_page = client.get(path + "/messages", params={**params, "cursor": page["next_cursor"]}).json()
+            self.assertEqual(page["total"], next_page["total"])
+            self.assertEqual(page["total"], 4)
+            self.assertEqual({r["synthetic_user"] for r in page["items"] + next_page["items"]}, {"a", "b"})
+            result = client.post(path + "/search?model=bm25", json=dict(query="чек", query_date="2025-01-02", limit=10))
+            self.assertEqual({r["synthetic_user"] for r in result.json()["items"]}, {"a", "b"})
+            self.assertNotIn("future", {r["doc_id"] for r in result.json()["items"]})
+            self.assertEqual(client.get(path + "/messages/other-box", params=params).json()["item"]["synthetic_user"], "b")
+        with self.client() as client:
+            self.assertNotIn("archives", client.get("/api/v1/mailboxes").json())
+            self.assertEqual(client.get(path + "/messages", params=params).status_code, 404)
+
     def test_cursor_context(self):
         with self.client() as c:
             cursor = c.get("/api/v1/mailboxes/a/messages?query_date=2025-01-02&limit=1").json()["next_cursor"]

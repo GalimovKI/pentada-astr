@@ -1,4 +1,5 @@
 """Mail corpora available to the interactive and evaluation APIs."""
+ARCHIVE_USER = "@archive"
 PUBLIC_DATASET = "mail-public"
 
 

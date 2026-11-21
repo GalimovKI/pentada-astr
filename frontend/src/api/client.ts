@@ -17,10 +17,12 @@ export interface Hit extends Preview {
   score: number;
 }
 export interface Mailboxes {
+  archives?: { id: string; name: string; mailbox: string; total: number; latest_date?: string | null }[];
   items: string[];
   groups?: { id: string; name: string; items: string[] }[];
 }
 export interface Messages {
+  total: number;
   items: Preview[];
   next_cursor: string | null;
 }

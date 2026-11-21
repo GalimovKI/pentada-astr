@@ -4,6 +4,7 @@ from datetime import date
 
 from sqlalchemy import and_, func, or_, select
 
+from ..core.datasets import ARCHIVE_USER
 from ..domain.models import Document
 from .schema import mailboxes, messages
 
@@ -30,6 +31,7 @@ class MessageCursor:
 
 @dataclass(frozen=True)
 class MessagePage:
+    total: int
     items: tuple[MessagePreview, ...]
     next_cursor: MessageCursor | None
 
@@ -60,6 +62,7 @@ class MailStore:
             raise ValueError("Cursor belongs to a different mailbox or query_date")
         with self.engine.connect() as connection:
             filters = self._scope(connection, synthetic_user, query_date)
+            total = connection.scalar(select(func.count()).select_from(messages).where(*filters))
             if after:
                 if after.doc_dt is None:
                     filters.append(and_(messages.c.doc_dt.is_(None), messages.c.doc_id > after.doc_id))
@@ -76,7 +79,7 @@ class MailStore:
         if len(rows) > limit:
             last = items[-1]
             cursor = MessageCursor(synthetic_user, query_date, last.doc_dt, last.doc_id)
-        return MessagePage(items, cursor)
+        return MessagePage(total, items, cursor)
 
     def get_message(self, synthetic_user, doc_id, *, query_date=None):
         result = self.get_messages(synthetic_user, [doc_id], query_date=query_date)
@@ -114,3 +117,19 @@ class MailStore:
                 .where(*filters, messages.c.doc_id.in_(ids))).mappings()
             found = {r["doc_id"]: MessagePreview(**r) for r in rows}
         return [found[did] for did in ids if did in found]
+
+
+class ArchiveStore(MailStore):
+    """Dataset-wide reads for the explicit dev archive view."""
+    def list_mailboxes(self):
+        return [ARCHIVE_USER]
+
+    @staticmethod
+    def _scope(connection, synthetic_user, query_date):
+        if synthetic_user != ARCHIVE_USER:
+            raise UnknownMailbox(synthetic_user)
+        return [] if query_date is None else [or_(messages.c.doc_dt <= query_date, messages.c.doc_dt.is_(None))]
+
+    def summary(self):
+        with self.engine.connect() as connection:
+            return connection.execute(select(func.count(), func.max(messages.c.doc_dt)).select_from(messages)).one()

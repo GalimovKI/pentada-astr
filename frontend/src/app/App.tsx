@@ -10,7 +10,7 @@ import { validDate } from "./validation";
 export function App() {
   const { data, pending, error, run } = useTask<Mailboxes>();
   const [box, setBox] = useState<Pick<Context, "mailbox" | "dataset">>({ mailbox: "" });
-  const [date, setDate] = useState("2028-09-11");
+  const [chosenDate, setDate] = useState<string | null>(null);
   useEffect(() => {
     void run(api.mailboxes);
   }, [run]);
@@ -26,7 +26,9 @@ export function App() {
   }, [loadFeatures]);
   const dev = features.data?.evaluations === true;
   const showEvaluation = dev && view === "#evaluations";
-  const selected = box.mailbox || data?.items[0] || "";
+  const archive = data?.archives?.find(item => item.id === box.dataset) ?? data?.archives?.[0];
+  const selected = archive?.mailbox ?? (box.mailbox || data?.items[0] || "");
+  const date = chosenDate ?? archive?.latest_date ?? "2028-09-11";
   const dateValid = validDate(date);
   return (
     <div className="app-shell">
@@ -62,7 +64,7 @@ export function App() {
             <MailboxPicker
               boxes={data}
               mailbox={selected}
-              dataset={box.dataset}
+              dataset={archive?.id}
               onChange={setBox}
             />
           )}
@@ -88,7 +90,7 @@ export function App() {
           </div>
           <div className="context-note">
             <span className="note-dot" aria-hidden="true" />
-            {box.dataset ? "Архив EnronQA" : "Синтетические ящики"}
+            {archive ? archive.name : "Синтетические ящики"}
             <p>
               Выбор ящика задаёт контекст демонстрации. Вход в реальную почту не
               требуется.
@@ -104,8 +106,8 @@ export function App() {
           </div>
           {selected && dateValid && data && (
             <MailSession
-              key={JSON.stringify([box.dataset, selected, date])}
-              context={{ mailbox: selected, date, dataset: box.dataset }}
+              key={JSON.stringify([archive?.id, selected, date])}
+              context={{ mailbox: selected, date, dataset: archive?.id }}
               models={features.data?.mail_models}
               model={mailModel || features.data?.mail_models?.[0]?.id}
               onModelChange={setMailModel}
