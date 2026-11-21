@@ -17,7 +17,7 @@ from diagnostic import contrast_set
 from encode import encode_sorted
 from roles import EMAIL, NAME, RoleModel, headers, rule_role, spans
 
-MODES = ("e5", "hard_day", "rule_soft", "llm_date", "llm_people", "llm_both")
+MODES = ("e5", "hard_day", "rule_date", "rule_people", "rule_soft", "llm_date", "llm_people", "llm_both")
 DATE_BONUS, PERSON_BONUS = 0.16, 0.12
 
 
@@ -82,13 +82,13 @@ def score_set(dataset, encoder, roles, vectors, root):
     for query, embedding, hard_day, matches in zip(dataset.queries, queries, hard_days, mentions, strict=True):
         scores = vectors @ embedding
         eligible = (boxes == query.synthetic_user) & (days <= query.query_date.toordinal())
-        boosts = {key: np.zeros(len(docs)) for key in ("rule", "date", "person")}
+        boosts = {key: np.zeros(len(docs)) for key in ("rule_date", "rule_person", "date", "person")}
         audits[query.query_id] = []
         for m in matches:
             role, confidence = next(decoded)
             rule = rule_role(query.query, m)
             audits[query.query_id].append(asdict(m) | dict(role=role, confidence=confidence, rule=rule))
-            for target, label, weight in (("rule", rule, 1.0), (m.kind, role, confidence)):
+            for target, label, weight in (("rule_" + m.kind, rule, 1.0), (m.kind, role, confidence)):
                 if label == "receipt":
                     delta = np.abs(days - date.fromisoformat(m.value).toordinal())
                     boosts[target] += weight * DATE_BONUS * np.exp(-delta / 1.5)
@@ -100,7 +100,9 @@ def score_set(dataset, encoder, roles, vectors, root):
             if mode == "hard_day" and hard_day is not None:
                 mask = eligible & (days == hard_day)
             elif mode == "rule_soft":
-                adjusted = scores + boosts["rule"]
+                adjusted = scores + boosts["rule_date"] + boosts["rule_person"]
+            elif mode in ("rule_date", "rule_people"):
+                adjusted = scores + boosts["rule_date" if mode == "rule_date" else "rule_person"]
             elif mode == "llm_both":
                 adjusted = scores + boosts["date"] + boosts["person"]
             elif mode in ("llm_date", "llm_people"):
