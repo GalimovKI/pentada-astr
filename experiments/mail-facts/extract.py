@@ -134,6 +134,18 @@ def validate_object(raw, item):
     return dict(sender=sender, sender_source=source, dates=dates, rejected=rejected)
 
 
+def messages_for(item):
+    label = "Письмо" if item["kind"] == "letter" else "Запрос"
+    messages = [dict(role="system", content=INSTRUCTION)]
+    for group, sample, answer in EXAMPLES:
+        messages.append(dict(role="user",content=group+"\n"+sample))
+        messages.append(dict(role="assistant",content=json.dumps(answer,ensure_ascii=False)))
+    if item["kind"] == "query":
+        messages = [dict(role="system", content=QUERY_INSTRUCTION)]
+    messages.append(dict(role="user",content=label+"\n"+item["text"]))
+    return messages
+
+
 class Extractor:
     def __init__(self, model_path, device):
         import torch
@@ -148,14 +160,7 @@ class Extractor:
         for item in items:
             if item["kind"] not in ("letter", "query"):
                 raise ValueError("kind must be letter or query")
-            label = "Письмо" if item["kind"] == "letter" else "Запрос"
-            messages = [dict(role="system", content=INSTRUCTION)]
-            for group, sample, answer in EXAMPLES:
-                messages.append(dict(role="user",content=group+"\n"+sample))
-                messages.append(dict(role="assistant",content=json.dumps(answer,ensure_ascii=False)))
-            if item["kind"] == "query":
-                messages = [dict(role="system", content=QUERY_INSTRUCTION)]
-            messages.append(dict(role="user",content=label+"\n"+item["text"]))
+            messages = messages_for(item)
             prompts.append(self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, enable_thinking=False))
         enc = self.tokenizer(prompts, padding=True, return_tensors="pt", add_special_tokens=False).to(self.model.device)
         limit = 512
