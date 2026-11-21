@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+release=$(readlink -f /opt/pentada/current)
+export APP_IMAGE_TAG=$(basename "$release")
+exec docker compose -p pentada-edge -f "$release/compose.edge.yaml" "$@"

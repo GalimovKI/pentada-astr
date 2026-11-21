@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+export PATH="$HOME/.local/lib/pentada-docker/bin:$HOME/bin:$PATH"
+release=$(readlink -f "$HOME/pentada-astr/current")
+export APP_IMAGE_TAG=$(basename "$release")
+exec docker --context rootless compose --env-file "$HOME/pentada-astr/shared/.env.production" \
+  -p pentada-mailsearch -f "$release/compose.production.yaml" -f "$release/compose.origin.yaml" "$@"

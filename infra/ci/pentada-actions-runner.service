@@ -1,0 +1,19 @@
+[Unit]
+Description=GitHub Actions runner for pentada main deployment
+After=network-online.target docker.service
+Wants=network-online.target docker.service
+StartLimitIntervalSec=0
+
+[Service]
+WorkingDirectory=%h/actions-runner-pentada
+ExecStart=%h/actions-runner-pentada/run.sh
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Environment=ACTIONS_RUNNER_HOOK_JOB_STARTED=%h/.local/lib/pentada-ci/runner-guard.sh
+Restart=always
+RestartSec=10
+TimeoutStopSec=300
+KillMode=control-group
+UMask=0077
+
+[Install]
+WantedBy=default.target
