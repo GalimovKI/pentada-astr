@@ -25,7 +25,7 @@ test("prepared local corpus: browse, paginate, search, read and change context",
   expect(boxes.items).toContain("box-84bd433469cb");
   await page.goto("/");
   await page.getByLabel("Почтовый ящик").selectOption("box-84bd433469cb");
-  await page.getByLabel("Дата сценария", { exact: true }).fill("2028-09-11");
+  await page.getByLabel("Почта на дату", { exact: true }).fill("2028-09-11");
   const path = "/api/v1/mailboxes/box-84bd433469cb";
   const messages = (await (
     await request.get(`${path}/messages?query_date=2028-09-11&limit=50`)
@@ -45,6 +45,8 @@ test("prepared local corpus: browse, paginate, search, read and change context",
   await page.getByLabel("Найти письмо своими словами").fill(query);
   await page.getByLabel("Найти письмо своими словами").press("Enter");
   await expect(cards(page)).toHaveCount(expected.items.length);
+  await expect(page.locator(".receipt-date time")).toHaveAttribute("datetime", "2028-09-10");
+  const match = await cards(page).first().locator("mark").first().innerText();
   for (let i = 0; i < expected.items.length; i++)
     await expect(cards(page).nth(i)).toHaveId(`message-${expected.items[i].doc_id}`);
   await page.screenshot({
@@ -58,6 +60,7 @@ test("prepared local corpus: browse, paginate, search, read and change context",
       `${path}/messages/${encodeURIComponent(expected.items[0].doc_id)}?query_date=2028-09-11`,
     )
   ).json()) as MessageResponse;
+  await expect(page.getByRole("article").locator("mark").first()).toHaveText(match);
   const letter = parseLetter(full.item.doc);
   await expect(page.locator(".message-body")).toHaveJSProperty("textContent", letter.body);
   await expect(
@@ -74,7 +77,7 @@ test("prepared local corpus: browse, paginate, search, read and change context",
   });
   await page.getByRole("button", { name: "← К списку" }).click();
   await expect(cards(page).first()).toBeFocused();
-  await page.getByLabel("Дата сценария", { exact: true }).fill("2014-01-01");
+  await page.getByLabel("Почта на дату", { exact: true }).fill("2014-01-01");
   await expect(
     page.getByRole("heading", { name: "Результаты поиска" }),
   ).toHaveCount(0);

@@ -1,5 +1,6 @@
 import { parseLetter } from "./parseLetter";
-import type { Preview } from "../../api/client";
+import { HighlightedText } from "./HighlightedText";
+import type { Preview, Hit } from "../../api/client";
 import { MessageDate } from "../../components/Status";
 
 export function MessageList({
@@ -7,7 +8,7 @@ export function MessageList({
   selected,
   onOpen,
 }: {
-  items: Preview[];
+  items: (Preview | Hit)[];
   selected: string | null;
   onOpen: (id: string) => void;
 }) {
@@ -15,6 +16,7 @@ export function MessageList({
     <ol className="message-list" aria-label="Письма">
       {items.map((item) => {
         const { sender, subject, body } = parseLetter(item.snippet);
+        const passage = "passage" in item ? item.passage : null;
         return (
           <li key={item.doc_id}>
             <button
@@ -28,8 +30,12 @@ export function MessageList({
                 <strong className="list-sender">{sender}</strong>
                 <MessageDate value={item.doc_dt} />
               </span>
-              <span className="list-subject">{subject || body || "Без темы"}</span>
-              {subject && body && <span className="snippet">{body}</span>}
+              <span className="list-subject">{subject || (passage ? "Без темы" : body) || "Без темы"}</span>
+              {passage ? (
+                <span className="snippet matched-snippet">
+                  <HighlightedText text={passage.text} offset={passage.offset} passage={passage} />
+                </span>
+              ) : subject && body && <span className="snippet">{body}</span>}
             </button>
           </li>
         );

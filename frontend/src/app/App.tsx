@@ -46,7 +46,7 @@ export function App() {
             />
           )}
           <div className="field">
-            <label htmlFor="scenario-date">Дата сценария</label>
+            <label htmlFor="scenario-date">Почта на дату</label>
             <input
               id="scenario-date"
               type="date"
@@ -61,7 +61,7 @@ export function App() {
               role={dateValid ? undefined : "alert"}
             >
               {dateValid
-                ? "Поиск и просмотр выполняются относительно этой даты. Будущие письма скрыты."
+                ? "Это «сегодня» для ящика. Письма, полученные позже, скрыты."
                 : "Укажите корректную дату в формате ГГГГ-ММ-ДД."}
             </p>
           </div>
@@ -78,7 +78,7 @@ export function App() {
           <div className="context-bar">
             <span>Почтовый архив</span>
             <span>
-              Дата сценария: <strong>{dateValid ? date : "не задана"}</strong>
+              Почта на <strong>{dateValid ? date : "не задана"}</strong>
             </span>
           </div>
           {selected && dateValid && data && (
@@ -89,7 +89,7 @@ export function App() {
           )}
           {!dateValid && (
             <div className="empty">
-              <h2>Задайте дату сценария</h2>
+              <h2>Выберите дату просмотра</h2>
               <p>
                 Выберите дату, чтобы просматривать письма и искать в архиве.
               </p>

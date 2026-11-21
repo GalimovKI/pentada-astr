@@ -140,8 +140,9 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
             raise ServiceError(404, "message_not_found")
         return {"item": result}
 
-    @app.post("/api/v1/mailboxes/{synthetic_user}/search", response_model=SearchResponse)
-    def search(synthetic_user: str, body: SearchBody):
-        return {"items": service().search(synthetic_user, body.query, body.query_date, body.limit)}
+    @app.post("/api/v1/mailboxes/{synthetic_user}/search", response_model=SearchResponse,
+              response_model_exclude_unset=True)
+    def search(synthetic_user: str, body: SearchBody, explain: bool = False):
+        return service().search(synthetic_user, body.query, body.query_date, body.limit, explain=explain)
 
     return app

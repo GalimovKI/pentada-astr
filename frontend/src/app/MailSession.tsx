@@ -50,6 +50,7 @@ export function MailSession({ context }: { context: Context }) {
       document.getElementById(`message-${id}`)?.focus(),
     );
   }
+  const receiptDate = search.data?.receipt_date;
   const searching = submitted !== null;
   const task = searching ? search : list;
   const items = task.data?.items ?? [];
@@ -77,6 +78,13 @@ export function MailSession({ context }: { context: Context }) {
             )}
           </header>
           {searching && <p className="submitted">«{submitted}»</p>}
+          {searching && receiptDate && (
+            <p className="receipt-date">Получено <time dateTime={receiptDate}>
+              {new Date(receiptDate + "T00:00:00Z").toLocaleDateString("ru-RU", {
+                day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
+              })}
+            </time></p>
+          )}
           <p className="list-caption">
             {items.length > 0
               ? `${searching ? "Найдено" : "Загружено"}: ${items.length}`
@@ -109,7 +117,7 @@ export function MailSession({ context }: { context: Context }) {
               title={searching ? "Писем не найдено" : "Здесь пока нет писем"}
             >
               {searching
-                ? "Попробуйте другие слова или проверьте дату сценария."
+                ? "Попробуйте другие слова или проверьте дату просмотра."
                 : "На выбранную дату в этом ящике нет доступных писем."}
             </Empty>
           )}
@@ -128,6 +136,7 @@ export function MailSession({ context }: { context: Context }) {
               key={selected}
               context={context}
               id={selected}
+              passage={search.data?.items.find((item) => item.doc_id === selected)?.passage}
               onClose={closeMessage}
             />
           ) : (

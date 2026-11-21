@@ -1,16 +1,19 @@
+import { HighlightedText } from "./HighlightedText";
 import { parseLetter } from "./parseLetter";
 import { useEffect, useRef } from "react";
-import { api, type Context, type MessageResponse } from "../../api/client";
+import { api, type Context, type Passage, type MessageResponse } from "../../api/client";
 import { useTask } from "../../app/useTask";
 import { Failure, Loading, MessageDate } from "../../components/Status";
 
 export function MessageReader({
   context,
   id,
+  passage,
   onClose,
 }: {
   context: Context;
   id: string;
+  passage?: Passage | null;
   onClose: () => void;
 }) {
   const { data, pending, error, run } = useTask<MessageResponse>();
@@ -21,14 +24,22 @@ export function MessageReader({
     heading.current?.focus();
   }, [context.mailbox, context.date, id, run]);
   const letter = data && parseLetter(data.item.doc);
+  const reader = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (data && passage)
+      reader.current?.querySelector("mark")?.scrollIntoView({ block: "nearest" });
+  }, [data, passage]);
+  function field(name: "sender" | "subject" | "recipient" | "body") {
+    return letter && <HighlightedText text={letter[name]} offset={letter.offsets[name]} passage={passage} />;
+  }
   return (
-    <article className="reader" aria-label="Открытое письмо">
+    <article ref={reader} className="reader" aria-label="Открытое письмо">
       <header className="reader-header">
         <button className="back" type="button" onClick={onClose}>
           ← К списку
         </button>
         <h2 ref={heading} tabIndex={-1}>
-          {letter ? letter.subject || "Без темы" : "Письмо"}
+          {letter ? (letter.subject ? field("subject") : "Без темы") : "Письмо"}
         </h2>
         {letter && data && (
           <div className="reader-meta">
@@ -36,8 +47,8 @@ export function MessageReader({
               {letter.sender.slice(0, 1).toUpperCase() || "@"}
             </span>
             <div className="reader-address">
-              <strong>{letter.sender || "Отправитель не указан"}</strong>
-              {letter.recipient && <span>Кому: {letter.recipient}</span>}
+              <strong>{letter.sender ? field("sender") : "Отправитель не указан"}</strong>
+              {letter.recipient && <span>Кому: {field("recipient")}</span>}
             </div>
             <MessageDate value={data.item.doc_dt} />
           </div>
@@ -45,7 +56,7 @@ export function MessageReader({
       </header>
       {pending && <Loading>Загружаем письмо…</Loading>}
       {error != null && <Failure error={error} retry={load} />}
-      {letter && <div className="message-body">{letter.body}</div>}
+      {letter && <div className="message-body">{field("body")}</div>}
     </article>
   );
 }

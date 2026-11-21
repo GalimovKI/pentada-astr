@@ -682,3 +682,24 @@ h1 {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.receipt-date {
+  display: table;
+  margin: 6px 20px 10px;
+  border-radius: 6px;
+  padding: 3px 8px;
+  background: #edf4fd;
+  color: #214e81;
+  font-size: 12px;
+}
+.matched-snippet {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  white-space: normal;
+}
+mark {
+  color: inherit;
+  background: #ffeb9e;
+  border-radius: 2px;
+}

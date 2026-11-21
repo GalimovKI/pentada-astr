@@ -7,7 +7,13 @@ export interface Preview {
 export interface Message extends Omit<Preview, "snippet"> {
   doc: string;
 }
+export interface Passage {
+  text: string;
+  offset: number;
+  ranges: [number, number][];
+}
 export interface Hit extends Preview {
+  passage?: Passage | null;
   score: number;
 }
 export interface Mailboxes {
@@ -18,6 +24,7 @@ export interface Messages {
   next_cursor: string | null;
 }
 export interface SearchResponse {
+  receipt_date?: string | null;
   items: Hit[];
 }
 export interface MessageResponse {
@@ -117,7 +124,7 @@ export const api = {
     );
   },
   search: (context: Context, query: string, signal: AbortSignal) =>
-    request<SearchResponse>(`${mailboxPath(context)}/search`, signal, {
+    request<SearchResponse>(`${mailboxPath(context)}/search?explain=true`, signal, {
       query,
       query_date: context.date,
       limit: 10,
@@ -132,7 +139,7 @@ export function errorMessage(error: unknown): string {
   if (error.code === "message_not_found" || error.status === 404)
     return "Письмо недоступно в выбранном ящике на эту дату.";
   if (error.status === 422)
-    return "Проверьте запрос и дату сценария. Сервер отклонил параметры.";
+    return "Проверьте запрос и дату просмотра. Сервер отклонил параметры.";
   if (error.status === 503)
     return "Сервис пока не готов. Попробуйте ещё раз немного позже.";
   if (
