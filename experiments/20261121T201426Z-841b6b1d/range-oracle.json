@@ -1,0 +1,8 @@
+{
+  "queries": 17,
+  "ranking_scope": "status top 100",
+  "used_annotation_ranges": true,
+  "ndcg": 0.8734088394811785,
+  "recall": 0.8369506423258959,
+  "mrr": 0.8602941176470589
+}

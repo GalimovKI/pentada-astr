@@ -1,0 +1,4 @@
+36430f8245ee3337dda6825eaf5711f1e26fb08ca9b930c3c73cb00bdd8dd21c  data/benchmarks/team-holdout-v1/cases.tsv
+6143500d60627fd37d12a8b75c1dade9ce2b6811c3f11bd67b91267fba9cb495  data/benchmarks/team-holdout-v1/prepare.py
+17c14974b7494129e54934e95d3ad9e669706c251b147d24e314745e2b0dc4a4  data/benchmarks/team-holdout-v1/eval/manifest.json
+58b1885b8d755d4b0736904c119b7188f475043f3be43bbca161acc48e771ab0  data/benchmarks/team-holdout-v1/eval/slices.jsonl

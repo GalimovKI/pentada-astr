@@ -1,0 +1,92 @@
+{
+  "format_version": 1,
+  "created_at": "2026-11-21T20:19:38.248898+00:00",
+  "dataset": {
+    "fingerprint": "2fbf150de7ccbb001109a060c6036d33c8349d7e00fd01792c101cc7f699164e",
+    "sha256": {
+      "README.md": "ef1364069b4e27dc07b4896c87e087ff30161983ac0f5c48e383995d21745dfa",
+      "documents.jsonl": "06feb4791a52faeb777f1a8d4c22d99efd26a279943a19bdfbd0b14bc9c8daa5",
+      "queries_dev.jsonl": "ff0fb1524ef52fe806b1c39da6307a7272ca08d121561625e1983c639ee4abc5",
+      "qrels_dev.jsonl": "113238234c6b24f9217974fd3a8aa5373a772f17d0cadb15827f910d99a5ba12"
+    },
+    "documents": 16376,
+    "queries": 60,
+    "qrels": 222,
+    "mailboxes": 12,
+    "unknown_document_dates": 433,
+    "single_relevant_queries": 36,
+    "queries_without_relevant_documents": 0,
+    "documents_by_mailbox": {
+      "box-12259a301ee2": 2401,
+      "box-2d28af4e4602": 1784,
+      "box-84bd433469cb": 720,
+      "box-84dd8d9560e6": 902,
+      "box-90560850fd8e": 713,
+      "box-a55c522c6949": 561,
+      "box-a971835ab404": 980,
+      "box-d7961fc39a68": 1459,
+      "box-dfac33a7123c": 1094,
+      "box-f9410417c091": 3010,
+      "box-fad2b057e79a": 1955,
+      "box-fda57474896e": 797
+    },
+    "queries_by_mailbox": {
+      "box-12259a301ee2": 12,
+      "box-90560850fd8e": 12,
+      "box-a55c522c6949": 12,
+      "box-fad2b057e79a": 12,
+      "box-fda57474896e": 12
+    }
+  },
+  "python": "3.11.14",
+  "platform": "macOS-26.3.1-arm64-arm-64bit",
+  "machine": "arm64",
+  "ks": [
+    1,
+    5,
+    10,
+    20,
+    50,
+    100
+  ],
+  "source": "eval",
+  "engine": "mail_search.search.bm25_minilm:create_engine",
+  "engine_config": {
+    "minilm_model": "/Users/rinya/Documents/rinya/MIPT/hackaton_mail/artifacts/models/minilm/model.onnx",
+    "minilm_weight": 0.25,
+    "rerank_depth": 20,
+    "inference_threads": 4,
+    "model_identity": {
+      "weights_sha256": "1825907d6c1a9001ff78124780bbde20a614a8c3df3b63409cf3c72c6fe5c8b4",
+      "tokenizer_sha256": "62c24cdc13d4c9952d63718d6c9fa4c287974249e16b7ade6d5a85e7bbb75626"
+    },
+    "runtime": "1.32.0",
+    "max_tokens": 192,
+    "rrf_constant": 60
+  },
+  "supplied_config": {
+    "minilm_model": "artifacts/models/minilm/model.onnx",
+    "minilm_weight": 0.25,
+    "rerank_depth": 20,
+    "inference_threads": 4
+  },
+  "engine_build_ms": 3473.026667,
+  "engine_latency": {
+    "scope": "in_process_engine_call",
+    "mode": "sequential_one_pass_no_explicit_warmup",
+    "unit": "ms",
+    "samples": 60,
+    "percentile_method": "nearest_rank",
+    "p50": 208.840625,
+    "p95": 212.61375,
+    "p99": 213.632209,
+    "max": 213.632209,
+    "official_server_p99_measured": false
+  },
+  "code": {
+    "sha256": "391306246ee3079125041b8e054c838428cd91a57c51f0f8c8c3bea110097513",
+    "git_commit": "ea8c2f4b3cebb0b99b230eb9fe93f13d26def5f5",
+    "git_dirty": false
+  },
+  "status": "ok"
+}
