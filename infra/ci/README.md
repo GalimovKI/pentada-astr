@@ -218,3 +218,8 @@ PR выполняются на GitHub-hosted runners. Pre-job guard на уче�
 [Pre-job hooks](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/run-scripts)
 дают дополнительную проверку, а не границу изоляции ОС. Guard и receiver обновляются
 администратором отдельно от application deploy.
+
+В релизе dev дополнительный файл `compose.dev-evaluations.yaml` включает оценку моделей.
+Сервис prepare создаёт и заполняет БД `enronqa_ru` и `enronqa_en` в PostgreSQL dev.
+Архивы берутся из релиза. Успешные прогоны сохраняются в томе `dev_evaluations` проекта Compose.
+Вкладка доступна по адресу [Оценка моделей](http://176.12.68.100/dev/#evaluations).

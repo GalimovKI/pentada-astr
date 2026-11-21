@@ -41,7 +41,14 @@ class Message(BaseModel):
     doc: str
 
 
+class Passage(BaseModel):
+    text: str
+    offset: int
+    ranges: list[tuple[int, int]]
+
+
 class Hit(Preview):
+    passage: Passage | None = None
     score: float
 
 
@@ -59,6 +66,7 @@ class MessageResponse(BaseModel):
 
 
 class SearchResponse(BaseModel):
+    receipt_date: date | None = None
     items: list[Hit]
 
 
@@ -83,3 +91,9 @@ def page_integer(value):
 
 
 PageLimit = Annotated[int, BeforeValidator(page_integer)]
+
+
+class EvaluationSelection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    model: str = Field(max_length=64)
+    dataset: str = Field(max_length=64)

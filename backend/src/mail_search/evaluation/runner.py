@@ -127,6 +127,11 @@ def format_report(run: dict, metrics: dict, per_query: list[dict]) -> str:
                   f"p50 / p95 / p99: {latency['p50']:.3f} / {latency['p95']:.3f} / {latency['p99']:.3f} мс.",
                   "Перцентили: nearest rank. Измерен только вызов движка в процессе, без построения индекса, "
                   "загрузки данных, проверки выдачи и расчёта метрик. Это не серверный p99 под нагрузкой."]
+    elif "server_latency" in run:
+        timing = run["server_latency"]
+        p99 = "—" if timing["p99"] is None else f"{timing['p99']:.3f} мс"
+        lines += ["", f"Серверный p99 по {timing['samples']} успешным запросам — {p99}.",
+                  "Последовательный проход через API (ASGI), без отдельного прогрева."]
     else:
         lines += ["", "Время поиска для внешней выдачи не измерялось."]
     focus = "10" if "10" in metrics["by_k"] else str(max(map(int, metrics["by_k"])))

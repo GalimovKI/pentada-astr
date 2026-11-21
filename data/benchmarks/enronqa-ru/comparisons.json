@@ -1,0 +1,98 @@
+[
+  {
+    "dataset": "enronqa-ru",
+    "model": "bm25-stemmed",
+    "fingerprint": "d95b74df572f33b2b1aa428d3b6bd31a87ca957c7290950ede600e30bf059952",
+    "created_at": "2026-11-21T18:10:52.138827+00:00",
+    "recall": 0.9564144736842105,
+    "ndcg": 0.8771513754541485,
+    "mrr": 0.8514071637426901,
+    "mrr_single": 0.8514071637426901,
+    "p99_ms": 15.786,
+    "source": "Apple M1 Pro · локальный замер"
+  },
+  {
+    "dataset": "enronqa-en",
+    "model": "bm25",
+    "fingerprint": "d9032ea03bf92075c04fb938250d1ed07dcdcd8892a0b5936a59de0ce8ed7821",
+    "created_at": "2026-11-21T18:13:06.803587+00:00",
+    "recall": 0.9872532894736842,
+    "ndcg": 0.9425753384059193,
+    "mrr": 0.9279788011695906,
+    "mrr_single": 0.9279788011695906,
+    "p99_ms": 25.335,
+    "source": "Apple M1 Pro · локальный замер"
+  },
+  {
+    "dataset": "enronqa-ru",
+    "model": "bm25",
+    "fingerprint": "d95b74df572f33b2b1aa428d3b6bd31a87ca957c7290950ede600e30bf059952",
+    "created_at": "2026-11-21T18:11:18.682327+00:00",
+    "recall": 0.8474506578947368,
+    "ndcg": 0.7472418551349732,
+    "mrr": 0.7153715995718463,
+    "mrr_single": 0.7153715995718463,
+    "p99_ms": 21.456,
+    "source": "Apple M1 Pro · локальный замер"
+  },
+  {
+    "dataset": "enronqa-ru",
+    "model": "bm25-event-aware",
+    "fingerprint": "d95b74df572f33b2b1aa428d3b6bd31a87ca957c7290950ede600e30bf059952",
+    "created_at": "2026-11-21T18:09:57.513544+00:00",
+    "recall": 0.9564144736842105,
+    "ndcg": 0.8833578913428713,
+    "mrr": 0.8594340669381788,
+    "mrr_single": 0.8594340669381788,
+    "p99_ms": 25.729,
+    "source": "Apple M1 Pro · локальный замер"
+  },
+  {
+    "dataset": "enronqa-ru",
+    "model": "bm25-improved",
+    "fingerprint": "d95b74df572f33b2b1aa428d3b6bd31a87ca957c7290950ede600e30bf059952",
+    "created_at": "2026-11-21T18:10:26.573445+00:00",
+    "recall": 0.9564144736842105,
+    "ndcg": 0.8833578913428713,
+    "mrr": 0.8594340669381788,
+    "mrr_single": 0.8594340669381788,
+    "p99_ms": 22.531,
+    "source": "Apple M1 Pro · локальный замер"
+  },
+  {
+    "dataset": "enronqa-en",
+    "model": "bm25-improved",
+    "fingerprint": "d9032ea03bf92075c04fb938250d1ed07dcdcd8892a0b5936a59de0ce8ed7821",
+    "created_at": "2026-11-21T18:12:10.597244+00:00",
+    "recall": 0.9893092105263158,
+    "ndcg": 0.9483254206598474,
+    "mrr": 0.9348969755116958,
+    "mrr_single": 0.9348969755116958,
+    "p99_ms": 21.226,
+    "source": "Apple M1 Pro · локальный замер"
+  },
+  {
+    "dataset": "enronqa-en",
+    "model": "bm25-event-aware",
+    "fingerprint": "d9032ea03bf92075c04fb938250d1ed07dcdcd8892a0b5936a59de0ce8ed7821",
+    "created_at": "2026-11-21T18:11:43.882712+00:00",
+    "recall": 0.9893092105263158,
+    "ndcg": 0.9483254206598474,
+    "mrr": 0.9348969755116958,
+    "mrr_single": 0.9348969755116958,
+    "p99_ms": 20.741,
+    "source": "Apple M1 Pro · локальный замер"
+  },
+  {
+    "dataset": "enronqa-en",
+    "model": "bm25-stemmed",
+    "fingerprint": "d9032ea03bf92075c04fb938250d1ed07dcdcd8892a0b5936a59de0ce8ed7821",
+    "created_at": "2026-11-21T18:12:39.222433+00:00",
+    "recall": 0.9872532894736842,
+    "ndcg": 0.9425753384059193,
+    "mrr": 0.9279788011695906,
+    "mrr_single": 0.9279788011695906,
+    "p99_ms": 28.654,
+    "source": "Apple M1 Pro · локальный замер"
+  }
+]

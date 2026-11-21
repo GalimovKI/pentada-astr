@@ -7,7 +7,13 @@ export interface Preview {
 export interface Message extends Omit<Preview, "snippet"> {
   doc: string;
 }
+export interface Passage {
+  text: string;
+  offset: number;
+  ranges: [number, number][];
+}
 export interface Hit extends Preview {
+  passage?: Passage | null;
   score: number;
 }
 export interface Mailboxes {
@@ -18,6 +24,7 @@ export interface Messages {
   next_cursor: string | null;
 }
 export interface SearchResponse {
+  receipt_date?: string | null;
   items: Hit[];
 }
 export interface MessageResponse {
@@ -31,6 +38,25 @@ export interface SearchBody {
   query: string;
   query_date: string;
   limit: number;
+}
+type EvalSelection = { model: string; dataset: string };
+type MetricRow = { recall: number; ndcg: number; mrr: number; mrr_single: number | null };
+export type EvalOption = { id: string; name: string };
+export interface Features { evaluations: boolean; mail_models?: EvalOption[] }
+export interface EvaluationCatalog {
+  models: EvalOption[];
+  datasets: EvalOption[];
+  comparisons: (EvalSelection & MetricRow & { fingerprint: string; source?: string; created_at: string; p99_ms: number | null })[];
+  run: (EvalSelection & {
+    id: string;
+    status: "running" | "completed" | "partial" | "failed";
+    phase: string;
+    completed: number;
+    total: number | null;
+    metrics?: { failed_queries: number; single_relevant_queries: number; by_k: Record<string, MetricRow> };
+    p99_ms?: number | null;
+    samples?: number;
+  }) | null;
 }
 export const QUERY_MAX_LENGTH = 4000;
 
@@ -46,7 +72,7 @@ export class ApiError extends Error {
 async function request<T>(
   path: string,
   signal: AbortSignal,
-  body?: SearchBody,
+  body?: SearchBody | EvalSelection,
 ): Promise<T> {
   let response: Response;
   try {
@@ -97,6 +123,10 @@ async function request<T>(
 const mailboxPath = (context: Context) =>
   `/mailboxes/${encodeURIComponent(context.mailbox)}`;
 export const api = {
+  features: (signal: AbortSignal) => request<Features>("/features", signal),
+  evaluations: (signal: AbortSignal) => request<EvaluationCatalog>("/evaluations", signal),
+  startEvaluation: (model: string, dataset: string, signal: AbortSignal) =>
+    request<EvaluationCatalog>("/evaluations", signal, { model, dataset }),
   mailboxes: (signal: AbortSignal) => request<Mailboxes>("/mailboxes", signal),
   messages: (context: Context, signal: AbortSignal, cursor?: string) => {
     const params = new URLSearchParams({
@@ -116,23 +146,27 @@ export const api = {
       signal,
     );
   },
-  search: (context: Context, query: string, signal: AbortSignal) =>
-    request<SearchResponse>(`${mailboxPath(context)}/search`, signal, {
+  search: (context: Context, query: string, signal: AbortSignal, model?: string) => {
+    const params = new URLSearchParams({ explain: "true" });
+    if (model) params.set("model", model);
+    return request<SearchResponse>(`${mailboxPath(context)}/search?${params}`, signal, {
       query,
       query_date: context.date,
       limit: 10,
-    }),
+    });
+  },
 };
 
 export function errorMessage(error: unknown): string {
   if (!(error instanceof ApiError))
     return "Не удалось получить ответ сервиса. Повторите попытку.";
+  if (error.code === "evaluation_running") return "На сервере уже идёт прогон. Обновите статус.";
   if (error.code === "mailbox_not_found")
     return "Ящик не найден. Выберите другой ящик.";
   if (error.code === "message_not_found" || error.status === 404)
     return "Письмо недоступно в выбранном ящике на эту дату.";
   if (error.status === 422)
-    return "Проверьте запрос и дату сценария. Сервер отклонил параметры.";
+    return "Проверьте запрос и дату просмотра. Сервер отклонил параметры.";
   if (error.status === 503)
     return "Сервис пока не готов. Попробуйте ещё раз немного позже.";
   if (

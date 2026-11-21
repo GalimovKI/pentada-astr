@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   api,
   type Context,
+  type EvalOption,
   type Messages,
   type SearchResponse,
 } from "../api/client";
@@ -11,7 +12,12 @@ import { MessageList } from "../features/messages/MessageList";
 import { MessageReader } from "../features/messages/MessageReader";
 import { Empty, Failure, Loading } from "../components/Status";
 
-export function MailSession({ context }: { context: Context }) {
+export function MailSession({ context, models, model, onModelChange }: {
+  context: Context;
+  models?: EvalOption[];
+  model?: string;
+  onModelChange: (model: string) => void;
+}) {
   const list = useTask<Messages>();
   const search = useTask<SearchResponse>();
   const [submitted, setSubmitted] = useState<string | null>(null);
@@ -32,10 +38,10 @@ export function MailSession({ context }: { context: Context }) {
       }),
     });
   }
-  function find(query: string) {
+  function find(query: string, selectedModel = model) {
     setSubmitted(query);
     setSelected(null);
-    void search.run((signal) => api.search(context, query, signal));
+    void search.run((signal) => api.search(context, query, signal, selectedModel));
   }
   function backToList() {
     search.reset();
@@ -50,12 +56,25 @@ export function MailSession({ context }: { context: Context }) {
       document.getElementById(`message-${id}`)?.focus(),
     );
   }
+  const receiptDate = search.data?.receipt_date;
   const searching = submitted !== null;
   const task = searching ? search : list;
   const items = task.data?.items ?? [];
   return (
     <>
       <section className="search-area" aria-label="Поиск">
+        {!!models?.length && (
+          <div className="mail-model field">
+            <label htmlFor="mail-model">Модель поиска писем</label>
+            <select id="mail-model" value={model} onChange={event => {
+              const next = event.target.value;
+              onModelChange(next);
+              if (submitted !== null) find(submitted, next);
+            }}>
+              {models.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
+            </select>
+          </div>
+        )}
         <SearchForm onSearch={find} pending={search.pending} />
       </section>
       <div className={`mail-workspace ${selected ? "reading" : ""}`}>
@@ -77,6 +96,13 @@ export function MailSession({ context }: { context: Context }) {
             )}
           </header>
           {searching && <p className="submitted">«{submitted}»</p>}
+          {searching && receiptDate && (
+            <p className="receipt-date">Получено <time dateTime={receiptDate}>
+              {new Date(receiptDate + "T00:00:00Z").toLocaleDateString("ru-RU", {
+                day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
+              })}
+            </time></p>
+          )}
           <p className="list-caption">
             {items.length > 0
               ? `${searching ? "Найдено" : "Загружено"}: ${items.length}`
@@ -109,7 +135,7 @@ export function MailSession({ context }: { context: Context }) {
               title={searching ? "Писем не найдено" : "Здесь пока нет писем"}
             >
               {searching
-                ? "Попробуйте другие слова или проверьте дату сценария."
+                ? "Попробуйте другие слова или проверьте дату просмотра."
                 : "На выбранную дату в этом ящике нет доступных писем."}
             </Empty>
           )}
@@ -128,6 +154,7 @@ export function MailSession({ context }: { context: Context }) {
               key={selected}
               context={context}
               id={selected}
+              passage={search.data?.items.find((item) => item.doc_id === selected)?.passage}
               onClose={closeMessage}
             />
           ) : (

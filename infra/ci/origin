@@ -12,5 +12,8 @@ release=$(readlink -f "$root/current")
 APP_IMAGE_TAG=$(basename "$release")
 if [ -f "$release/DEPLOYMENT_ENV" ]; then APP_IMAGE_TAG="$environment-$APP_IMAGE_TAG"; fi
 export APP_IMAGE_TAG
+if [ "$environment" = dev ] && [ -f "$release/compose.dev-evaluations.yaml" ]; then
+  set -- -f "$release/compose.dev-evaluations.yaml" "$@"
+fi
 exec docker --context rootless compose --env-file "$root/shared/.env.production" \
   -p "$project" -f "$release/compose.production.yaml" -f "$release/compose.origin.yaml" "$@"

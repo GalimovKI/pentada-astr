@@ -90,9 +90,13 @@ def main():
 
             def compose(version, *arguments, **kwargs):
                 env = {**os.environ, 'APP_IMAGE_TAG': image_tag(version, environment)}
+                overlays = ['-f', version / 'compose.origin.yaml']
+                dev_overlay = version / 'compose.dev-evaluations.yaml'
+                if environment == 'dev' and dev_overlay.is_file():
+                    overlays.extend(['-f', dev_overlay])
                 return run(docker, '--context', 'rootless', 'compose', '--env-file', env_file,
                            '-p', target['origin_project'], '-f', version / 'compose.production.yaml',
-                           '-f', version / 'compose.origin.yaml', *arguments, env=env,
+                           *overlays, *arguments, env=env,
                            stdin=subprocess.DEVNULL, **kwargs)
 
             def migrations(path):

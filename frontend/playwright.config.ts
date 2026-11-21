@@ -1,5 +1,6 @@
 import { defineConfig } from "@playwright/test";
-const base = process.env.APP_BASE_PATH || "/";
+const port = Number(process.env.MAIL_UI_PORT || 5173);
+const baseURL = `http://127.0.0.1:${port}${process.env.APP_BASE_PATH || "/"}`;
 export default defineConfig({
   testDir: "./tests/browser",
   testMatch: "**/*.spec.ts",
@@ -9,7 +10,7 @@ export default defineConfig({
   workers: 3,
   reporter: "list",
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:5173${base}`,
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || baseURL,
     browserName: "chromium",
     channel: process.env.PLAYWRIGHT_CHANNEL || undefined,
     trace: "retain-on-failure",
@@ -26,8 +27,8 @@ export default defineConfig({
     },
   ],
   webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : {
-    command: "npm run dev",
-    url: `http://127.0.0.1:5173${base}`,
+    command: `npm run dev -- --port ${port}`,
+    url: baseURL,
     reuseExistingServer: !process.env.CI,
   },
 });

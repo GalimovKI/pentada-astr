@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { api, type Mailboxes } from "../api/client";
+import { api, type Features, type Mailboxes } from "../api/client";
 import { Failure, Loading } from "../components/Status";
 import { MailboxPicker } from "../features/mailboxes/MailboxPicker";
+import { EvaluationPanel } from "../features/evaluations/EvaluationPanel";
 import { MailSession } from "./MailSession";
 import { useTask } from "./useTask";
 import { validDate } from "./validation";
@@ -13,6 +14,18 @@ export function App() {
   useEffect(() => {
     void run(api.mailboxes);
   }, [run]);
+  const [mailModel, setMailModel] = useState("");
+  const features = useTask<Features>();
+  const { run: loadFeatures } = features;
+  const [view, setView] = useState(window.location.hash);
+  useEffect(() => {
+    void loadFeatures(api.features);
+    const update = () => setView(window.location.hash);
+    window.addEventListener("hashchange", update);
+    return () => window.removeEventListener("hashchange", update);
+  }, [loadFeatures]);
+  const dev = features.data?.evaluations === true;
+  const showEvaluation = dev && view === "#evaluations";
   const selected = mailbox || data?.items[0] || "";
   const dateValid = validDate(date);
   return (
@@ -20,11 +33,18 @@ export function App() {
       <header className="app-header">
         <a className="brand" href="#main">
           <span>
-            Почта<span className="brand-subtitle">Умный поиск</span>
+            Почта<span className="brand-subtitle">{dev ? "Dev-версия" : "Умный поиск"}</span>
           </span>
         </a>
       </header>
-      <main id="main" className="app-layout">
+      {dev && (
+        <nav className="dev-nav" aria-label="Вкладки dev-сайта">
+          <a href="#main" aria-current={showEvaluation ? undefined : "page"}>Почта</a>
+          <a href="#evaluations" aria-current={showEvaluation ? "page" : undefined}>Оценка моделей</a>
+        </nav>
+      )}
+      {dev && <EvaluationPanel visible={showEvaluation} />}
+      <main id="main" className="app-layout" hidden={showEvaluation}>
         <aside className="sidebar" aria-label="Контекст сценария">
           <div>
             <span className="eyebrow">Почта</span>
@@ -46,7 +66,7 @@ export function App() {
             />
           )}
           <div className="field">
-            <label htmlFor="scenario-date">Дата сценария</label>
+            <label htmlFor="scenario-date">Почта на дату</label>
             <input
               id="scenario-date"
               type="date"
@@ -61,7 +81,7 @@ export function App() {
               role={dateValid ? undefined : "alert"}
             >
               {dateValid
-                ? "Поиск и просмотр выполняются относительно этой даты. Будущие письма скрыты."
+                ? "Это «сегодня» для ящика. Письма, полученные позже, скрыты."
                 : "Укажите корректную дату в формате ГГГГ-ММ-ДД."}
             </p>
           </div>
@@ -78,18 +98,21 @@ export function App() {
           <div className="context-bar">
             <span>Почтовый архив</span>
             <span>
-              Дата сценария: <strong>{dateValid ? date : "не задана"}</strong>
+              Почта на <strong>{dateValid ? date : "не задана"}</strong>
             </span>
           </div>
           {selected && dateValid && data && (
             <MailSession
               key={JSON.stringify([selected, date])}
               context={{ mailbox: selected, date }}
+              models={features.data?.mail_models}
+              model={mailModel || features.data?.mail_models?.[0]?.id}
+              onModelChange={setMailModel}
             />
           )}
           {!dateValid && (
             <div className="empty">
-              <h2>Задайте дату сценария</h2>
+              <h2>Выберите дату просмотра</h2>
               <p>
                 Выберите дату, чтобы просматривать письма и искать в архиве.
               </p>

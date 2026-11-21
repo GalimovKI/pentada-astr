@@ -20,7 +20,7 @@ test("mailboxes, date, opaque pagination, opening and keyboard return", async ({
   ).toBeVisible();
   await page.getByLabel("Почтовый ящик").selectOption("box-b");
   await expect(cards(page).first()).toContainText("box-b-1");
-  await page.getByLabel("Дата сценария", { exact: true }).fill("2029-10-25");
+  await page.getByLabel("Почта на дату", { exact: true }).fill("2029-10-25");
   await expect
     .poll(
       () =>
@@ -37,7 +37,7 @@ test("mailboxes, date, opaque pagination, opening and keyboard return", async ({
   await page.keyboard.press("Enter");
   await expect(page.getByRole("article")).toContainText("Полный текст box-b-1");
   await expect(
-    page.getByRole("heading", { name: "Письмо", exact: true }),
+    page.getByRole("heading", { name: "Без темы", exact: true }),
   ).toBeFocused();
   await expect(page.getByRole("article")).toContainText(
     "<script>window.hacked=true</script>",
@@ -67,7 +67,7 @@ test("search by Enter and button preserves ranking, draft is separate, text is s
   await page.goto("./");
   await searchFor(page, "  Важное письмо вчера  ", true);
   await expect(cards(page)).toHaveCount(2);
-  await expect(cards(page).first()).toContainText("z");
+  await expect(cards(page).first()).toHaveId("message-z");
   await expect(cards(page).nth(1)).toContainText("Фрагмент a");
   await expect(cards(page).first()).toContainText(
     '<img src=x onerror="alert(1)">',
@@ -111,7 +111,7 @@ test("blank, whitespace, long query and missing date are rejected locally", asyn
   await searchFor(page, "я".repeat(4001));
   await expect(page.getByRole("alert")).toContainText("4000");
   expect(searches).toBe(0);
-  await page.getByLabel("Дата сценария", { exact: true }).fill("");
+  await page.getByLabel("Почта на дату", { exact: true }).fill("");
   await expect(page.getByRole("alert")).toContainText("корректную дату");
   await expect(cards(page)).toHaveCount(0);
   await expect(
@@ -233,7 +233,7 @@ test("mailbox and date switches discard search, selection, cursor and delayed ol
   });
   await page.goto("./");
   await searchFor(page);
-  await expect(cards(page).first()).toContainText("z");
+  await expect(cards(page).first()).toHaveId("message-z");
   await cards(page).first().click();
   await expect(page.getByRole("article")).toBeVisible();
   await page.getByLabel("Почтовый ящик").selectOption("box-b");
@@ -249,9 +249,9 @@ test("mailbox and date switches discard search, selection, cursor and delayed ol
   await page.getByRole("button", { name: "Загрузить ещё" }).click();
   await expect(cards(page)).toHaveCount(3);
   await searchFor(page);
-  await expect(cards(page).first()).toContainText("z");
+  await expect(cards(page).first()).toHaveId("message-z");
   await cards(page).first().click();
-  await page.getByLabel("Дата сценария", { exact: true }).fill("2029-01-01");
+  await page.getByLabel("Почта на дату", { exact: true }).fill("2029-01-01");
   await expect(page.getByRole("article")).toHaveCount(0);
   await expect(page.getByLabel("Найти письмо своими словами")).toHaveValue("");
   await expect(cards(page)).toHaveCount(2);

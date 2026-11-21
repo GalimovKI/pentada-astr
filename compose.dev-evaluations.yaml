@@ -1,0 +1,24 @@
+# Applied only to releases of the dev environment on the academic host.
+x-corpora: &corpora
+  - ./data/benchmarks/enronqa-ru:/data/enronqa:ro
+
+services:
+  prepare:
+    environment:
+      PREPARE_ENRONQA: "true"
+      ENRONQA_DIRECTORY: /data/enronqa
+    volumes: *corpora
+
+  backend:
+    environment:
+      ENABLE_EVALUATIONS: "true"
+      ENRONQA_DIRECTORY: /data/enronqa
+      ENRONQA_RU_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/enronqa_ru
+      ENRONQA_EN_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/enronqa_en
+      EVALUATION_DIR: /home/app/evaluations
+    volumes:
+      - ./data/benchmarks/enronqa-ru:/data/enronqa:ro
+      - dev_evaluations:/home/app/evaluations
+
+volumes:
+  dev_evaluations:

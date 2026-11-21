@@ -17,7 +17,7 @@ COPY backend/alembic.ini /app/backend/alembic.ini
 COPY backend/migrations /app/backend/migrations
 COPY configs/search /app/configs/search
 COPY infra/docker/prepare.py /app/infra/docker/prepare.py
-RUN useradd --uid 10001 --create-home app
+RUN useradd --uid 10001 --create-home app && install -d -o app -g app /home/app/evaluations
 USER app
 EXPOSE 8000
 CMD ["uvicorn", "mail_search.api.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--no-access-log"]

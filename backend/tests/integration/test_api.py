@@ -32,6 +32,61 @@ class ApiTests(PostgreSQLTestCase):
         return client.post("/api/v1/mailboxes/a/search", json={
             **dict(query="чек", query_date="2025-01-02", limit=3), **changes})
 
+    def test_evaluation_modes_and_artifacts(self):
+        from pathlib import Path
+        import json
+        import time
+
+        with self.client() as client:
+            self.assertFalse(client.get("/api/v1/features").json()["evaluations"])
+            self.assertEqual(client.get("/api/v1/evaluations").status_code, 404)
+        folder = Path(self.temp.name) / "runs"
+        settings = Settings(database_url=self.engine.url.render_as_string(hide_password=False),
+                            search_dataset=self.path, evaluation_dir=folder, enable_evaluations=True)
+        with TestClient(create_app(settings)) as client:
+            url = "/api/v1/evaluations"
+            self.assertTrue(client.get("/api/v1/features").json()["evaluations"])
+            self.assertEqual(client.post(url, json={"model": "unknown", "dataset": "mail-public"}).status_code, 422)
+            self.assertEqual([d["id"] for d in client.get(url).json()["datasets"]], ["mail-public"])
+            self.assertEqual(client.post(url, json={"model": "bm25", "dataset": "enronqa-ru"}).status_code, 422)
+            reply = client.post(url, json={"model": "bm25", "dataset": "mail-public"})
+            self.assertEqual(reply.status_code, 202)
+            deadline = time.monotonic() + 20
+            while (job := client.get(url).json()["run"])["status"] == "running" and time.monotonic() < deadline:
+                time.sleep(.05)
+            self.assertEqual(job["status"], "completed")
+            self.assertEqual(job["metrics"]["failed_queries"], 0)
+            self.assertEqual(job["samples"], job["total"])
+            self.assertGreater(job["p99_ms"], 0)
+            self.assertEqual(json.loads((folder / job["id"] / "metrics.json").read_text()), job["metrics"])
+
+        # The summary remains available when a new dev worker opens the run directory.
+        with TestClient(create_app(settings)) as client:
+            row, = client.get(url).json()["comparisons"]
+            self.assertEqual((row["dataset"], row["model"]), ("mail-public", "bm25"))
+            self.assertEqual(row["ndcg"], job["metrics"]["by_k"]["10"]["ndcg"])
+
+    def test_dev_mail_presets_match_their_engines(self):
+        from mail_search.core.presets import model_settings
+
+        path = "/api/v1/mailboxes/a/search"
+        body = dict(query="чеки", query_date="2025-01-02", limit=3)
+        with self.client() as client:
+            self.assertEqual(client.post(path, params={"model": "bm25"}, json=body).status_code, 422)
+        settings = Settings(database_url=self.engine.url.render_as_string(hide_password=False),
+                            search_dataset=self.path, enable_evaluations=True)
+        with TestClient(create_app(settings)) as client:
+            self.assertEqual(client.post(path, params={"model": "unknown"}, json=body).status_code, 422)
+            for preset in client.get("/api/v1/features").json()["mail_models"]:
+                model = preset["id"]
+                config = model_settings(settings, model)
+                engine = (load_event_aware if model == "bm25-event-aware" else load_bm25)(config)
+                hits = engine.engine.search(SearchRequest(body["query"], "a", date(2025, 1, 2)), 3)
+                response = client.post(path, params={"model": model}, json=body)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual([(item["doc_id"], item["score"]) for item in response.json()["items"]],
+                                 [(hit.doc_id, hit.score) for hit in hits])
+
     def test_http_flow(self):
         with self.client() as c:
             self.assertEqual(c.get("/health/live").json(), {"status": "live"})
