@@ -20,6 +20,15 @@ if [ -f "$root/shared/gpu-device" ] && [ -f "$release/compose.gpu.yaml" ]; then
   export GPU_CDI_DEVICE
   set -- -f "$release/compose.gpu.yaml" "$@"
 fi
+if [ "$environment" = dev ] && [ -n "${PENTADA_DEV_E5_GPU:-}" ] && [ -f "$release/compose.dev-gpu.yaml" ]; then
+  if ! printf '%s\n' "$PENTADA_DEV_E5_GPU" | grep -Eq '^([0-9]+|GPU-[0-9a-fA-F-]{36})$'; then
+    echo 'Expected one E5 GPU index or UUID' >&2; exit 1
+  fi
+  if [ -n "${GPU_CDI_DEVICE:-}" ] && [ "$GPU_CDI_DEVICE" != "nvidia.com/gpu=$PENTADA_DEV_E5_GPU" ]; then
+    echo 'E5 and MiniLM must select the same CDI identifier' >&2; exit 1
+  fi
+  set -- -f "$release/compose.dev-gpu.yaml" "$@"
+fi
 if [ "$environment" = dev ] && [ -f "$release/compose.dev-evaluations.yaml" ]; then
   set -- -f "$release/compose.dev-evaluations.yaml" "$@"
 fi

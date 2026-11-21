@@ -2,8 +2,9 @@
 from collections import defaultdict
 from functools import lru_cache
 from hashlib import file_digest, sha256
+import json
 from pathlib import Path
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 import numpy as np
 
@@ -14,12 +15,12 @@ MAX_TOKENS = 512
 
 
 @lru_cache(maxsize=2)
-def encoder(model_dir: Path):
-    return E5Encoder(model_dir)
+def encoder(model_dir: Path, device="cpu"):
+    return E5Encoder(model_dir, device)
 
 
 class E5Encoder:
-    def __init__(self, directory):
+    def __init__(self, directory, device):
         import onnxruntime as ort
         from tokenizers import Tokenizer
 
@@ -32,8 +33,25 @@ class E5Encoder:
         options.intra_op_num_threads = 4
         options.inter_op_num_threads = 1
         options.add_session_config_entry("session.intra_op.allow_spinning", "0")
-        self.session = ort.InferenceSession(str(model), options, providers=["CPUExecutionProvider"])
-        self.inputs = [item.name for item in self.session.get_inputs()]
+        provider = {"cpu": "CPUExecutionProvider", "cuda": "CUDAExecutionProvider"}[device]
+        if device == "cuda":
+            if provider not in ort.get_available_providers():
+                raise RuntimeError("E5 requires ONNX Runtime with CUDA")
+            ort.preload_dlls(directory="")
+        with TemporaryDirectory() as temp:
+            if device == "cuda":
+                options.enable_profiling = True
+                options.profile_file_prefix = str(Path(temp) / "e5")
+            self.session = ort.InferenceSession(str(model), options, providers=[provider])
+            self.inputs = [item.name for item in self.session.get_inputs()]
+            if self.session.get_providers()[0] != provider:
+                raise RuntimeError(f"E5 could not activate {provider}")
+            if device == "cuda":
+                self.session.disable_fallback()
+                self.encode(["query: проверка"])
+                events = json.loads(Path(self.session.end_profiling()).read_text())
+                verify_cuda_profile(events)
+                print("E5 verified CUDAExecutionProvider on transformer inference", flush=True)
         with model.open("rb") as weights, tokenizer.open("rb") as vocab:
             self.identity = (file_digest(weights, "sha256").hexdigest() +
                              file_digest(vocab, "sha256").hexdigest())
@@ -48,6 +66,14 @@ class E5Encoder:
         mask = inputs["attention_mask"][:, :, None].astype(np.float32)
         pooled = (hidden * mask).sum(axis=1) / mask.sum(axis=1)
         return pooled / np.linalg.norm(pooled, axis=1, keepdims=True)
+
+
+def verify_cuda_profile(events):
+    providers = {args["provider"] for event in events if event.get("cat") == "Node"
+                 for args in [event.get("args", {})] if "provider" in args and
+                 args.get("op_name") in {"MatMul", "FusedMatMul", "Gemm", "Attention", "MultiHeadAttention"}}
+    if providers != {"CUDAExecutionProvider"}:
+        raise RuntimeError("E5 transformer computation was not verified on CUDA")
 
 
 def passage_vectors(documents, corpus_hash, model, directory):
@@ -108,8 +134,8 @@ class E5Engine:
         return [SearchHit(self.ids[eligible[i]], float(scores[i])) for i in order]
 
 
-def dataset_engine(dataset, model_dir, index_dir, single_mailbox=None):
+def dataset_engine(dataset, model_dir, index_dir, single_mailbox=None, *, device="cpu"):
     documents = sorted(dataset.documents.values(), key=lambda doc: doc.doc_id)
-    model = encoder(model_dir)
+    model = encoder(model_dir, device)
     vectors = passage_vectors(documents, dataset.summary["sha256"]["documents.jsonl"], model, index_dir)
     return E5Engine(documents, vectors, model, single_mailbox)

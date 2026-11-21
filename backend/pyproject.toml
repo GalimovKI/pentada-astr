@@ -23,13 +23,16 @@ minilm = ["numpy>=1.26,<3", "onnxruntime==1.32.0", "tokenizers>=0.21,<1"]
 
 minilm-gpu = ["numpy>=1.26,<3", "onnxruntime-gpu[cuda,cudnn]==1.32.0; sys_platform == 'linux' and platform_machine == 'x86_64'", "tokenizers>=0.21,<1"]
 
+# E5 and MiniLM can share the same GPU runtime without changing CPU inference.
+e5-gpu = ["numpy>=1.26,<3", "onnxruntime-gpu[cuda,cudnn]==1.32.0; sys_platform == 'linux' and platform_machine == 'x86_64'", "tokenizers>=0.21,<1"]
+
 [tool.uv]
 # Match the academic host's CUDA 13.0 driver without silently upgrading the toolkit.
 constraint-dependencies = [
     "nvidia-cuda-runtime<13.1", "nvidia-cuda-nvrtc<13.1", "nvidia-cublas<13.1",
     "nvidia-nvjitlink<13.1", "nvidia-cufft<12.1", "nvidia-curand<10.4.1", "nvidia-cudnn-cu13<9.14",
 ]
-conflicts = [[{extra = "minilm"}, {extra = "minilm-gpu"}]]
+conflicts = [[{extra = "minilm"}, {extra = "minilm-gpu"}], [{extra = "minilm"}, {extra = "e5-gpu"}]]
 
 [project.scripts]
 mailsearch = "mail_search.cli:main"

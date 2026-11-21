@@ -2,15 +2,15 @@ version = 1
 revision = 5
 requires-python = ">=3.11"
 resolution-markers = [
-    "python_full_version >= '3.12' and extra != 'extra-19-pentada-mail-search-minilm' and extra == 'extra-19-pentada-mail-search-minilm-gpu'",
-    "python_full_version >= '3.12' and extra == 'extra-19-pentada-mail-search-minilm' and extra != 'extra-19-pentada-mail-search-minilm-gpu'",
-    "python_full_version < '3.12' and extra != 'extra-19-pentada-mail-search-minilm' and extra == 'extra-19-pentada-mail-search-minilm-gpu'",
-    "python_full_version < '3.12' and extra == 'extra-19-pentada-mail-search-minilm' and extra != 'extra-19-pentada-mail-search-minilm-gpu'",
-    "extra != 'extra-19-pentada-mail-search-minilm' and extra != 'extra-19-pentada-mail-search-minilm-gpu'",
+    "python_full_version >= '3.12'",
+    "python_full_version < '3.12'",
 ]
 conflicts = [[
     { package = "pentada-mail-search", extra = "minilm" },
     { package = "pentada-mail-search", extra = "minilm-gpu" },
+], [
+    { package = "pentada-mail-search", extra = "e5-gpu" },
+    { package = "pentada-mail-search", extra = "minilm" },
 ]]
 
 [manifest]
@@ -649,8 +649,8 @@ version = "1.32.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "flatbuffers" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' and extra == 'extra-19-pentada-mail-search-minilm') or (extra == 'extra-19-pentada-mail-search-minilm' and extra == 'extra-19-pentada-mail-search-minilm-gpu')" },
-    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'extra-19-pentada-mail-search-minilm') or (extra == 'extra-19-pentada-mail-search-minilm' and extra == 'extra-19-pentada-mail-search-minilm-gpu')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' or extra == 'extra-19-pentada-mail-search-e5-gpu') and extra == 'extra-19-pentada-mail-search-minilm' or extra == 'extra-19-pentada-mail-search-minilm' and extra == 'extra-19-pentada-mail-search-minilm-gpu'" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' or extra == 'extra-19-pentada-mail-search-e5-gpu') and extra == 'extra-19-pentada-mail-search-minilm' or extra == 'extra-19-pentada-mail-search-minilm' and extra == 'extra-19-pentada-mail-search-minilm-gpu'" },
     { name = "packaging" },
     { name = "protobuf" },
 ]
@@ -687,8 +687,8 @@ version = "1.32.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "flatbuffers" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' or extra == 'extra-19-pentada-mail-search-minilm') and extra == 'extra-19-pentada-mail-search-minilm-gpu'" },
-    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' or extra == 'extra-19-pentada-mail-search-minilm') and extra == 'extra-19-pentada-mail-search-minilm-gpu'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' and extra != 'extra-19-pentada-mail-search-minilm') or (extra == 'extra-19-pentada-mail-search-e5-gpu' and extra == 'extra-19-pentada-mail-search-minilm') or (extra == 'extra-19-pentada-mail-search-minilm' and extra == 'extra-19-pentada-mail-search-minilm-gpu')" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra != 'extra-19-pentada-mail-search-minilm') or (extra == 'extra-19-pentada-mail-search-e5-gpu' and extra == 'extra-19-pentada-mail-search-minilm') or (extra == 'extra-19-pentada-mail-search-minilm' and extra == 'extra-19-pentada-mail-search-minilm-gpu')" },
     { name = "packaging" },
     { name = "protobuf" },
 ]
@@ -759,16 +759,22 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+e5-gpu = [
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' and extra != 'extra-19-pentada-mail-search-minilm') or (extra == 'extra-19-pentada-mail-search-e5-gpu' and extra == 'extra-19-pentada-mail-search-minilm') or (extra == 'extra-19-pentada-mail-search-minilm' and extra == 'extra-19-pentada-mail-search-minilm-gpu')" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra != 'extra-19-pentada-mail-search-minilm') or (extra == 'extra-19-pentada-mail-search-e5-gpu' and extra == 'extra-19-pentada-mail-search-minilm') or (extra == 'extra-19-pentada-mail-search-minilm' and extra == 'extra-19-pentada-mail-search-minilm-gpu')" },
+    { name = "onnxruntime-gpu", extra = ["cuda", "cudnn"], marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-19-pentada-mail-search-minilm') or (extra == 'extra-19-pentada-mail-search-e5-gpu' and extra == 'extra-19-pentada-mail-search-minilm') or (extra == 'extra-19-pentada-mail-search-minilm' and extra == 'extra-19-pentada-mail-search-minilm-gpu')" },
+    { name = "tokenizers" },
+]
 minilm = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' and extra == 'extra-19-pentada-mail-search-minilm') or (extra == 'extra-19-pentada-mail-search-minilm' and extra == 'extra-19-pentada-mail-search-minilm-gpu')" },
-    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'extra-19-pentada-mail-search-minilm') or (extra == 'extra-19-pentada-mail-search-minilm' and extra == 'extra-19-pentada-mail-search-minilm-gpu')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' or extra == 'extra-19-pentada-mail-search-e5-gpu') and extra == 'extra-19-pentada-mail-search-minilm' or extra == 'extra-19-pentada-mail-search-minilm' and extra == 'extra-19-pentada-mail-search-minilm-gpu'" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' or extra == 'extra-19-pentada-mail-search-e5-gpu') and extra == 'extra-19-pentada-mail-search-minilm' or extra == 'extra-19-pentada-mail-search-minilm' and extra == 'extra-19-pentada-mail-search-minilm-gpu'" },
     { name = "onnxruntime" },
     { name = "tokenizers" },
 ]
 minilm-gpu = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' or extra == 'extra-19-pentada-mail-search-minilm') and extra == 'extra-19-pentada-mail-search-minilm-gpu'" },
-    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' or extra == 'extra-19-pentada-mail-search-minilm') and extra == 'extra-19-pentada-mail-search-minilm-gpu'" },
-    { name = "onnxruntime-gpu", extra = ["cuda", "cudnn"], marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-19-pentada-mail-search-minilm-gpu') or (extra == 'extra-19-pentada-mail-search-minilm' and extra == 'extra-19-pentada-mail-search-minilm-gpu')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' or extra == 'extra-19-pentada-mail-search-minilm') and extra == 'extra-19-pentada-mail-search-minilm-gpu' or extra == 'extra-19-pentada-mail-search-e5-gpu' and extra == 'extra-19-pentada-mail-search-minilm'" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' or extra == 'extra-19-pentada-mail-search-minilm') and extra == 'extra-19-pentada-mail-search-minilm-gpu' or extra == 'extra-19-pentada-mail-search-e5-gpu' and extra == 'extra-19-pentada-mail-search-minilm'" },
+    { name = "onnxruntime-gpu", extra = ["cuda", "cudnn"], marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-19-pentada-mail-search-minilm-gpu') or (extra == 'extra-19-pentada-mail-search-e5-gpu' and extra == 'extra-19-pentada-mail-search-minilm') or (extra == 'extra-19-pentada-mail-search-minilm' and extra == 'extra-19-pentada-mail-search-minilm-gpu')" },
     { name = "tokenizers" },
 ]
 
@@ -777,19 +783,22 @@ requires-dist = [
     { name = "alembic", specifier = ">=1.14,<2" },
     { name = "fastapi", specifier = ">=0.115,<1" },
     { name = "httpx", specifier = ">=0.28,<1" },
+    { name = "numpy", marker = "extra == 'e5-gpu'", specifier = ">=1.26,<3" },
     { name = "numpy", marker = "extra == 'minilm'", specifier = ">=1.26,<3" },
     { name = "numpy", marker = "extra == 'minilm-gpu'", specifier = ">=1.26,<3" },
     { name = "onnxruntime", marker = "extra == 'minilm'", specifier = "==1.32.0" },
+    { name = "onnxruntime-gpu", extras = ["cuda", "cudnn"], marker = "platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'e5-gpu'", specifier = "==1.32.0" },
     { name = "onnxruntime-gpu", extras = ["cuda", "cudnn"], marker = "platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'minilm-gpu'", specifier = "==1.32.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2,<4" },
     { name = "pydantic", specifier = ">=2.10,<3" },
     { name = "snowballstemmer", specifier = "==3.1.1" },
     { name = "sqlalchemy", specifier = ">=2.0,<3" },
+    { name = "tokenizers", marker = "extra == 'e5-gpu'", specifier = ">=0.21,<1" },
     { name = "tokenizers", marker = "extra == 'minilm'", specifier = ">=0.21,<1" },
     { name = "tokenizers", marker = "extra == 'minilm-gpu'", specifier = ">=0.21,<1" },
     { name = "uvicorn", specifier = ">=0.34,<1" },
 ]
-provides-extras = ["minilm", "minilm-gpu"]
+provides-extras = ["minilm", "minilm-gpu", "e5-gpu"]
 
 [[package]]
 name = "protobuf"

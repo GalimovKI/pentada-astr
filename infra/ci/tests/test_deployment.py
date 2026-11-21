@@ -124,6 +124,14 @@ class DeploymentTests(unittest.TestCase):
             (version / 'compose.gpu.yaml').unlink()
             self.assertEqual(deploy.gpu_environment(root, version), {})
 
+    def test_two_models_require_one_gpu(self):
+        gpu = {'GPU_CDI_DEVICE': 'nvidia.com/gpu=0'}
+        deploy.validate_e5_device('0', gpu)
+        deploy.validate_e5_device('1', {})
+        for device in ('all', '1'):
+            with self.assertRaises(ValueError):
+                deploy.validate_e5_device(device, gpu)
+
     def test_runner_guard_blocks_prs_branches_and_other_workflows(self):
         env = {**os.environ, 'GITHUB_REPOSITORY': 'GalimovKI/pentada-astr',
                'GITHUB_REF': 'refs/heads/main', 'GITHUB_JOB': 'deploy',

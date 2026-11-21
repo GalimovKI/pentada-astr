@@ -45,6 +45,13 @@ def gpu_environment(root, version):
     return {'GPU_CDI_DEVICE': device}
 
 
+def validate_e5_device(device, minilm_gpu):
+    if not re.fullmatch(r'(?:[0-9]+|GPU-[a-fA-F0-9-]{36})', device):
+        raise ValueError('Expected one E5 GPU index or UUID')
+    if minilm_gpu and minilm_gpu['GPU_CDI_DEVICE'] != 'nvidia.com/gpu=' + device:
+        raise ValueError('E5 and MiniLM must select the same CDI identifier (prefer a UUID)')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--environment', default=os.environ.get('DEPLOY_ENVIRONMENT'), choices=['main', 'dev'])
@@ -99,13 +106,17 @@ def main():
                 source.rename(release)
 
             def compose(version, *arguments, **kwargs):
-                gpu = gpu_environment(root, version)
-                env = {**os.environ, **gpu, 'APP_IMAGE_TAG': image_tag(version, environment)}
+                minilm_gpu = gpu_environment(root, version)
+                env = {**os.environ, **minilm_gpu, 'APP_IMAGE_TAG': image_tag(version, environment)}
                 overlays = ['-f', version / 'compose.origin.yaml']
                 dev_overlay = version / 'compose.dev-evaluations.yaml'
                 if environment == 'dev' and dev_overlay.is_file():
                     overlays.extend(['-f', dev_overlay])
-                if gpu:
+                    e5_gpu = os.environ.get('PENTADA_DEV_E5_GPU')
+                    if e5_gpu and (version / 'compose.dev-gpu.yaml').is_file():
+                        validate_e5_device(e5_gpu, minilm_gpu)
+                        overlays.extend(['-f', version / 'compose.dev-gpu.yaml'])
+                if minilm_gpu:
                     overlays.extend(['-f', version / 'compose.gpu.yaml'])
                 return run(docker, '--context', 'rootless', 'compose', '--env-file', env_file,
                            '-p', target['origin_project'], '-f', version / 'compose.production.yaml',

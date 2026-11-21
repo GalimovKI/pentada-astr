@@ -133,6 +133,10 @@ class Evaluations:
         samples = list(times.values())
         latency = dict(samples=len(samples), p99=percentile(samples, .99),
                        scope="ASGI Server-Timing, sequential, no explicit warmup, limit=100")
+        if model == "e5-cosine":
+            engine_config["device"] = settings.e5_device
+            if settings.e5_device == "cuda":
+                engine_config["graph"] = "onnx/model.onnx"
         metadata = dict(created_at=datetime.now(timezone.utc).isoformat(), status="failed" if errors else "ok",
                         engine=model, engine_config=engine_config, ks=DEFAULT_KS,
                         dataset_id=job["dataset"], dataset=ds.summary, code=code_version(), server_latency=latency)
