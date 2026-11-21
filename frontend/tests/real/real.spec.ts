@@ -24,9 +24,9 @@ test("prepared local corpus: browse, paginate, search, read and change context",
   const boxes = (await boxesResponse.json()) as Mailboxes;
   expect(boxes.items).toContain("box-84bd433469cb");
   await page.goto("/");
-  await page.getByLabel("Почтовый ящик").selectOption(boxes.archives?.length ? "mail-public" : "box-84bd433469cb");
+  await page.getByLabel("Почтовый ящик").selectOption("box-84bd433469cb");
   await page.getByLabel("Почта на дату", { exact: true }).fill("2028-09-11");
-  const path = boxes.archives?.length ? "/api/v1/mailboxes/%40archive" : "/api/v1/mailboxes/box-84bd433469cb";
+  const path = "/api/v1/mailboxes/box-84bd433469cb";
   const messages = (await (
     await request.get(`${path}/messages?query_date=2028-09-11&limit=50`)
   ).json()) as Messages;
@@ -87,7 +87,7 @@ test("prepared local corpus: browse, paginate, search, read and change context",
     await request.get(`${path}/messages?query_date=2014-01-01&limit=50`)
   ).json()) as Messages;
   await expect(cards(page)).toHaveCount(early.items.length);
-  await page.getByLabel("Почтовый ящик").selectOption(boxes.archives?.[0]?.id ?? boxes.items[0]);
+  await page.getByLabel("Почтовый ящик").selectOption(boxes.items[0]);
   await expect(page.getByRole("heading", { name: "Все письма" })).toBeVisible();
   expect(errors).toEqual([]);
 });
@@ -123,7 +123,7 @@ test("dev mail reruns the submitted query with the selected model", async ({ pag
   await page.goto("/");
   const picker = page.getByLabel("Модель поиска писем");
   await expect(picker.locator("option")).toHaveCount(4);
-  await page.getByLabel("Почтовый ящик").selectOption("mail-public");
+  await page.getByLabel("Почтовый ящик").selectOption("box-84bd433469cb");
   await page.getByLabel("Почта на дату", { exact: true }).fill("2028-09-11");
   const query = "Найди уведомления о завершении досмотра контейнеров, полученные вчера";
   const field = page.getByLabel("Найти письмо своими словами");

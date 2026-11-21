@@ -26,9 +26,10 @@ export function App() {
   }, [loadFeatures]);
   const dev = features.data?.evaluations === true;
   const showEvaluation = dev && view === "#evaluations";
-  const archive = data?.archives?.find(item => item.id === box.dataset) ?? data?.archives?.[0];
+  const archive = data?.archives?.find(item => item.id === box.dataset);
   const selected = archive?.mailbox ?? (box.mailbox || data?.items[0] || "");
-  const date = chosenDate ?? archive?.latest_date ?? "2028-09-11";
+  const dateCorpus = archive ?? data?.archives?.find(item => item.id === "mail-public");
+  const date = chosenDate ?? dateCorpus?.latest_date ?? "2028-09-11";
   const dateValid = validDate(date);
   return (
     <div className="app-shell">

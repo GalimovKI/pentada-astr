@@ -356,3 +356,27 @@ test("long IDs and literal multiline text fit the layout", async ({ page }) => {
     ),
   ).toBe(true);
 });
+
+test("primary boxes and the two complete Enron archives can be selected independently", async ({ page }) => {
+  await mockApi(page, async (route, url) => {
+    if (url.pathname === "/api/v1/mailboxes") {
+      await reply(route, { items: ["box-a", "box-b"], archives: ["mail-public", "enronqa-ru", "enronqa-en"].map(id =>
+        ({ id, name: id, mailbox: "@archive", total: 1000 })) });
+      return true;
+    }
+    if (url.pathname.endsWith("/messages")) {
+      const id = url.searchParams.get("dataset") ?? url.pathname.split("/")[4];
+      await reply(route, { items: [preview(id)], next_cursor: null, total: 1 });
+      return true;
+    }
+    return false;
+  });
+  await page.goto("./");
+  const picker = page.getByLabel("Почтовый ящик");
+  await expect(picker.locator("option")).toHaveCount(4);
+  await expect(picker).toHaveValue("box-a");
+  for (const value of ["enronqa-ru", "enronqa-en", "box-b", "box-a"]) {
+    await picker.selectOption(value);
+    await expect(cards(page).first()).toHaveId("message-" + value);
+  }
+});
