@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "20261121T201426Z-841b6b1d",
+  "kind": "experiment",
+  "owner": "evseevgrv",
+  "status": "running",
+  "updated_at": "2026-11-21T20:14:26.471284+00:00",
+  "title": "Контрольный набор на пяти ящиках вне публичных запросов",
+  "hypothesis": "Сравнение штатных BM25 со статусом и BM25 с MiniLM на отдельно размеченных запросах покажет, переносится ли ранжирование на новые ящики и запросы за пределами вчерашнего дня.",
+  "code_branch": "dev",
+  "code_commit": null,
+  "baseline_ref": "configs/search/bm25-event-aware.json@ea8c2f4",
+  "replicates": null,
+  "outcome": null
+}
