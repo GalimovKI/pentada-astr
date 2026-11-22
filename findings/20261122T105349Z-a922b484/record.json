@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "20261122T105349Z-a922b484",
+  "kind": "finding",
+  "owner": "Fu22210",
+  "status": "completed",
+  "updated_at": "2026-11-22T10:53:49.593670+00:00",
+  "title": "Встроенная форма входа в dev и отзыв сеанса",
+  "hypothesis": null,
+  "code_branch": "dev",
+  "code_commit": "6b732ce16a9e357119f1afc1886185d898946ce8",
+  "baseline_ref": "e68bed8eddf492ebf17c0e50644225634122f856",
+  "replicates": null,
+  "outcome": null
+}
