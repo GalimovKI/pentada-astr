@@ -24,7 +24,7 @@ from ..storage.database import database_engine
 from ..storage.repository import ArchiveStore, MailStore, UnknownMailbox
 from . import cursors
 from .models import (ErrorResponse, Health, Mailboxes, Messages, MessageResponse,
-                     SearchResponse, SearchBody, QueryText, ScenarioDate, PageLimit, EvaluationSelection)
+                     SearchResponse, SearchBody, SpellingBody, ScenarioDate, PageLimit, EvaluationSelection)
 
 logger = logging.getLogger("mail_search.api")
 
@@ -193,12 +193,11 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
         return app.state.evaluations
 
     @app.post("/api/v1/spelling")
-    def spelling(body: QueryText):
+    def spelling(body: SpellingBody):
         if app.state.evaluations is None:
             raise ServiceError(404, "spelling_disabled")
-        from ..application.spelling import correct_query
-        _, replacements = correct_query(body.query)
-        return {"changes": replacements}
+        from ..application.spelling import spelling_hints
+        return spelling_hints(body.query, body.cursor)
 
     @app.get("/api/v1/evaluations")
     def evaluation_catalog():

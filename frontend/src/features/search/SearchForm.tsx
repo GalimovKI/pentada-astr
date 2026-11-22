@@ -1,5 +1,5 @@
 import { type ReactNode, useRef, useState } from "react";
-import { SpellingControls, type SpellingMode } from "./SpellingControls";
+import { SpellingModes, SpellingSuggestions, type SpellingMode } from "./SpellingControls";
 import { queryError } from "../../app/validation";
 
 export function SearchForm({
@@ -21,6 +21,10 @@ export function SearchForm({
 }) {
   const queryInput = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState("");
+  const [cursor, setCursor] = useState(0);
+  function updateCursor(input: HTMLInputElement) {
+    setCursor(Array.from(input.value.slice(0, input.selectionEnd ?? input.value.length)).length);
+  }
   const [error, setError] = useState<string | null>(null);
   return (
     <form
@@ -49,7 +53,9 @@ export function SearchForm({
             value={draft}
             aria-invalid={!!error}
             aria-describedby={error ? "query-error" : "query-help"}
+            onSelect={(event) => updateCursor(event.currentTarget)}
             onChange={(event) => {
+              updateCursor(event.currentTarget);
               setDraft(event.target.value);
               setError(null);
             }}
@@ -58,6 +64,24 @@ export function SearchForm({
             Найти
           </button>
         </div>
+        {spellingMode === "suggest" && (
+          <SpellingSuggestions query={draft} cursor={cursor} onAccept={change => {
+            // The API counts Unicode code points; a browser selection uses UTF-16 offsets.
+            const characters = Array.from(draft);
+            const prefix = characters.slice(0, change.start).join("") + change.replacement;
+            const next = prefix + characters.slice(change.end).join("");
+            setDraft(next);
+            setError(null);
+            setCursor(Array.from(prefix).length);
+            requestAnimationFrame(() => {
+              const input = queryInput.current;
+              if (input?.value === next) {
+                input.focus();
+                input.setSelectionRange(prefix.length, prefix.length);
+              }
+            });
+          }} />
+        )}
       </div>
       {modelPicker}
       {threshold !== undefined && (
@@ -68,16 +92,7 @@ export function SearchForm({
           <p className="sr-only" id="similarity-help">{model === "e5-cosine" ? "Косинусное сходство от −1 до 1." : "Оценка релевантности от 0 до 1."} Все письма с оценкой от порога включительно попадут в выдачу.</p>
         </div>
       )}
-      {spellingMode && (
-        <SpellingControls
-          mode={spellingMode} onModeChange={onSpellingMode}
-          query={draft} onAccept={(next) => {
-            setDraft(next);
-            setError(null);
-            queryInput.current?.focus();
-          }}
-        />
-      )}
+      {spellingMode && <SpellingModes mode={spellingMode} onChange={onSpellingMode} />}
       {error ? (
         <p id="query-error" className="validation" role="alert">
           {error}

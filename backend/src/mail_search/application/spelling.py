@@ -1,6 +1,8 @@
 """Conservative single-edit suggestions using local Russian and English word frequencies."""
+from bisect import bisect_left
 from dataclasses import dataclass
 from functools import lru_cache
+from heapq import nsmallest
 import re
 
 from pymorphy3 import MorphAnalyzer
@@ -23,6 +25,45 @@ class Replacement:
 @lru_cache(maxsize=2)
 def dictionary(language: str) -> SpellChecker:
     return SpellChecker(language=language, distance=1)
+
+
+@lru_cache(maxsize=2)
+def completion_words(language: str) -> tuple[str, ...]:
+    return tuple(sorted(word for word in dictionary(language).word_frequency.dictionary if word.isalpha()))
+
+
+@lru_cache(maxsize=2048)
+def top_completions(prefix: str, language: str) -> tuple[str, ...]:
+    words = completion_words(language)
+    start = bisect_left(words, prefix)
+    end = bisect_left(words, prefix + chr(0x10FFFF))
+    frequency = dictionary(language).word_frequency
+    matches = (words[i] for i in range(start, end) if words[i] != prefix)
+    return tuple(nsmallest(3, matches, key=lambda word: (-frequency[word], len(word), word)))
+
+
+def spelling_hints(query: str, cursor: int | None = None) -> dict[str, list[Replacement]]:
+    _, changes = correct_query(query)
+    cursor = len(query) if cursor is None else cursor
+    token = next((token for token in TOKENS.finditer(query) if token.end() == cursor), None)
+    completions = []
+    if token is not None:
+        original = token.group()
+        prefix = original.lower()
+        if re.fullmatch(r"[а-яё]{3,28}", prefix):
+            language = "ru"
+        elif re.fullmatch(r"[a-z]{3,28}", prefix):
+            language = "en"
+        else:
+            language = None
+        if language and (original.islower() or original.istitle()):
+            for word in top_completions(prefix, language):
+                if len(query) + len(word) - len(original) <= 4000:
+                    completions.append(Replacement(token.start(), cursor, original,
+                                                   word.capitalize() if original.istitle() else word))
+    if completions:
+        changes = [change for change in changes if change.start != token.start()]
+    return {"changes": changes, "completions": completions}
 
 
 @lru_cache(maxsize=1)

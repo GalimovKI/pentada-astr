@@ -88,7 +88,7 @@ export class ApiError extends Error {
 async function request<T>(
   path: string,
   signal: AbortSignal,
-  body?: SearchBody | EvalSelection | { query: string },
+  body?: SearchBody | EvalSelection | { query: string; cursor: number },
 ): Promise<T> {
   let response: Response;
   try {
@@ -169,8 +169,8 @@ export const api = {
       signal,
     );
   },
-  spelling: (query: string, signal: AbortSignal) =>
-    request<{ changes: SpellingChange[] }>("/spelling", signal, { query }),
+  spelling: (query: string, cursor: number, signal: AbortSignal) =>
+    request<{ changes: SpellingChange[]; completions: SpellingChange[] }>("/spelling", signal, { query, cursor }),
   search: (context: Context, query: string, signal: AbortSignal, model?: string, threshold?: number, correctTypos = false) => {
     const params = new URLSearchParams({ explain: "true" });
     if (context.dataset) params.set("dataset", context.dataset);

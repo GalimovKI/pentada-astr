@@ -24,6 +24,10 @@ class QueryText(BaseModel):
         return value
 
 
+class SpellingBody(QueryText):
+    cursor: int | None = Field(default=None, strict=True, ge=0, le=4000)
+
+
 class SearchBody(QueryText):
     correct_typos: bool = Field(default=False, strict=True)
     query_date: ScenarioDate

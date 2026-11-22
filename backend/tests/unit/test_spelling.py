@@ -3,7 +3,7 @@ from unittest.mock import Mock
 
 from fastapi.testclient import TestClient
 from mail_search.api.app import create_app
-from mail_search.application.spelling import correct_query
+from mail_search.application.spelling import correct_query, spelling_hints
 from mail_search.core.engine import LoadedEngine
 from mail_search.core.settings import Settings
 
@@ -19,6 +19,19 @@ class SpellingTests(unittest.TestCase):
     def test_ids_names_and_existing_words(self):
         query = "бронь, выслать Тимофею INV-штрфа-2 A45_штрфа @invoiec test@штрфа.ru https://example.org/?q=штрфа"
         self.assertEqual(correct_query(query), (query, []))
+
+    def test_prefixes_at_the_caret_do_not_affect_silent_search(self):
+        query = "📩 испр в отчёте"
+        hints = spelling_hints(query, cursor=6)
+        self.assertEqual(hints["completions"][0].replacement, "исправить")
+        self.assertTrue(all((c.start, c.end) == (2, 6) for c in hints["completions"]))
+        self.assertEqual(len(hints["completions"]), 3)
+        self.assertEqual(hints["changes"], [])
+        self.assertEqual(correct_query("испр"), ("испр", []))
+        self.assertTrue(spelling_hints("штр")["completions"])
+        self.assertEqual(spelling_hints("invoi")["completions"][0].replacement, "invoice")
+        for text in ("ис", "испр ", "https://site.ru/испр", "test@испр", "SKU-испр"):
+            self.assertEqual(spelling_hints(text)["completions"], [], text)
 
     def test_http_suggestions_and_opt_in_search(self):
         store, engine = Mock(), Mock()
@@ -36,6 +49,8 @@ class SpellingTests(unittest.TestCase):
             app.state.evaluations = Mock()
             preview = client.post("/api/v1/spelling", json={"query": "штрфа"})
             self.assertEqual(preview.json()["changes"][0]["replacement"], "штраф")
+            hints = client.post("/api/v1/spelling", json={"query": "испр завтра", "cursor": 4})
+            self.assertEqual(hints.json()["completions"][0]["replacement"], "исправить")
             for flag, expected in (({}, "штрфа"), ({"correct_typos": True}, "штраф")):
                 self.assertEqual(client.post(url, json={**body, **flag}).status_code, 200)
                 self.assertEqual(engine.search.call_args.args[0].query, expected)
