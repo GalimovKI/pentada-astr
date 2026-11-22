@@ -70,6 +70,18 @@ test("URL can select the search context and invalid context falls back", async (
   ]);
 });
 
+test("empty mailbox catalog disables search and leaves a single explanatory status", async ({ page }) => {
+  await mockApi(page, async (route, url) => {
+    if (!url.pathname.endsWith("/mailboxes")) return false;
+    await reply(route, { items: [] });
+    return true;
+  });
+  await page.goto("./");
+  await expect(page.getByRole("status")).toContainText("Нет доступных ящиков");
+  await expect(page.getByRole("button", { name: "Найти", exact: true })).toBeDisabled();
+  await expect(cards(page)).toHaveCount(0);
+});
+
 test("invalid queries are rejected locally and empty search shows an empty state", async ({ page }) => {
   let searches = 0;
   await mockApi(page, async (route, url) => {
