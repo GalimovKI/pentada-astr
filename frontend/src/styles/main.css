@@ -248,7 +248,7 @@ mark { color: #382800; background: #ffe8a6; border-radius: 2px; }
   input, select { font-size: 1rem; padding-inline: 8px; }
   .search-area { padding: 12px; }
   .search-form { display: grid; grid-template-columns: minmax(0,1fr) minmax(90px,.55fr); gap: 10px; }
-  .query-field, .search-form .validation { grid-column: 1 / -1; }
+  .query-field, .spelling-modes, .search-form .validation { grid-column: 1 / -1; }
   .mail-model, .similarity-field { width: auto; }
   label { font-size: .76rem; }
   .mail-workspace { display: block; height: auto; min-height: 350px; }
@@ -273,10 +273,49 @@ mark { color: #382800; background: #ffe8a6; border-radius: 2px; }
 }
 
 .spelling-controls { flex-basis: 100%; min-width: 0; }
-.spelling-modes, .spelling-suggestions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.spelling-modes { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .spelling-controls span { color: var(--muted); margin-right: 4px; font-size: .8rem; }
 .spelling-controls button { min-height: 32px; padding: 5px 10px; font-size: .8rem; }
 .spelling-modes button[aria-pressed=true] { color: var(--action); background: var(--selected); border-color: var(--action); }
-.spelling-suggestions { margin-top: 8px; }
-.spelling-suggestions button { color: var(--action); }
 @media (pointer: coarse) { .spelling-controls button { min-height: 44px; } }
+
+
+/* Align the suggested suffix with the text of the native, editable input. */
+.query-input { --query-inset: 12px; position: relative; min-width: 0; flex: 1; font-size: .925rem; }
+.query-input input { display: block; padding-inline: var(--query-inset); font-size: inherit; }
+.hint-ruler { position: absolute; inset: 0; overflow: hidden; visibility: hidden; pointer-events: none; }
+.hint-ruler span, .hint-prefix { display: inline-block; flex: none; white-space: pre; }
+.inline-hint {
+  position: absolute; inset: 1px 26px 1px calc(var(--query-inset) + 1px);
+  display: flex; align-items: center; overflow: hidden; pointer-events: none;
+}
+.hint-prefix { visibility: hidden; }
+.inline-hint button {
+  pointer-events: auto; min-height: 0; height: 100%; min-width: 0;
+  padding: 0; border: 0; border-radius: 0; background: transparent; font: inherit;
+}
+.inline-hint .hint-word {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;
+}
+.inline-hint .ghost { color: #697990; }
+.inline-hint .corrected {
+  height: auto; min-height: 30px; margin-inline-start: 5px; padding: 2px 8px;
+  color: var(--action); border-radius: 6px; background: var(--selected);
+}
+.inline-hint .more-hints {
+  flex: none; width: 26px; color: var(--muted); font-size: 1.05rem;
+}
+.inline-hint button:hover, .hint-options button:hover { color: var(--action); background: var(--soft); }
+.inline-hint.docked { left: 52%; justify-content: end; }
+.query-input.hint-docked input { padding-inline-end: 49%; }
+.query-input.hint-docked input::-webkit-search-cancel-button { display: none; }
+.hint-options {
+  position: absolute; z-index: 2; top: calc(100% + 4px); inset-inline-start: 0;
+  display: flex; flex-wrap: wrap; max-width: 100%; padding: 4px;
+  border: 1px solid var(--line); border-radius: 9px; background: var(--surface);
+  box-shadow: 0 4px 12px #15294618;
+}
+.hint-options button { padding-inline: 10px; color: var(--action); border: 0; }
+@media (max-width: 700px) {
+  .query-input { --query-inset: 8px; font-size: 1rem; }
+}

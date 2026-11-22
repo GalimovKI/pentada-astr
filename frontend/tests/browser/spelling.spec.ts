@@ -1,7 +1,17 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Locator } from "@playwright/test";
 import { mockApi, reply } from "./helpers";
 
-test("suggestions change only accepted words and silent search preserves the draft", async ({ page }) => {
+async function expectInsideField(input: Locator, hint: Locator) {
+  await expect(hint).toBeVisible();
+  const [field, button] = await Promise.all([input.boundingBox(), hint.boundingBox()]);
+  if (!field || !button) throw new Error("Expected a visible search field and an inline suggestion");
+  expect(button.y).toBeGreaterThanOrEqual(field.y - 1);
+  expect(button.y + button.height).toBeLessThanOrEqual(field.y + field.height + 1);
+  expect(button.x).toBeGreaterThanOrEqual(field.x - 1);
+  expect(button.x + button.width).toBeLessThanOrEqual(field.x + field.width + 1);
+}
+
+test("suggestions change only accepted words and silent search preserves the draft", async ({ page, isMobile }) => {
   const searches: Array<{ query: string; correct_typos?: boolean }> = [];
   await mockApi(page, async (route, url) => {
     if (url.pathname === "/api/v1/features") {
@@ -20,10 +30,14 @@ test("suggestions change only accepted words and silent search preserves the dra
   await page.getByRole("button", { name: "Подсказывать при вводе" }).click();
   await query.fill("📩 штрфа");
   const suggestion = page.getByRole("button", { name: "Заменить штрфа на штраф" });
-  await expect(suggestion).toBeVisible();
+  await expectInsideField(query, suggestion);
   await query.press("Enter");
   await expect.poll(() => searches.at(-1)?.query).toBe("📩 штрфа");
-  await suggestion.click();
+  await query.fill("");
+  await query.fill("📩 штрфа");
+  await expectInsideField(query, suggestion);
+  if (isMobile) await suggestion.tap();
+  else await suggestion.click();
   await expect(query).toHaveValue("📩 штраф");
   await page.getByRole("button", { name: "Исправлять при поиске" }).click();
   await query.fill("штрфа");
@@ -37,7 +51,7 @@ test("suggestions change only accepted words and silent search preserves the dra
   expect(searches.at(-1)).not.toHaveProperty("correct_typos");
 });
 
-test("word completions appear under the field, respect the caret and stop after a space", async ({ page }) => {
+test("inline completions respect the caret, keyboard acceptance, dismissal and trailing spaces", async ({ page }) => {
   const word = "испр";
   await mockApi(page, async (route, url) => {
     if (url.pathname.endsWith("/features")) {
@@ -61,12 +75,27 @@ test("word completions appear under the field, respect the caret and stop after 
   await page.getByRole("button", { name: "Подсказывать при вводе" }).click();
   await query.fill(word);
   const completion = page.getByRole("button", { name: "исправить", exact: true });
-  await expect(completion).toBeVisible();
+  await expectInsideField(query, completion);
+  await expect(query).toHaveValue(word);
+  await query.press("Escape");
+  await expect(completion).toBeHidden();
+  await expect(query).toHaveValue(word);
+  await expect(query).toBeFocused();
+  await query.press("Backspace");
+  await query.pressSequentially("р");
+  await expectInsideField(query, completion);
+  await query.press("Tab");
+  await expect(query).toHaveValue("исправить");
+  await expect(query).toBeFocused();
+  await query.fill(word);
+  await expectInsideField(query, completion);
   await query.press("Space");
   await expect(completion).toHaveCount(0);
   await query.fill("📩 испр завтра");
-  await query.press("Home");
-  for (let i = 0; i < 6; i++) await query.press("ArrowRight");
+  // Home moves the viewport on macOS. Place the caret just before the last
+  // prefix character, then move it as a user would. Selection offsets are UTF-16.
+  await query.evaluate(input => (input as HTMLInputElement).setSelectionRange(6, 6));
+  await query.press("ArrowRight");
   await expect(completion).toBeVisible();
   await completion.click();
   await expect(query).toHaveValue("📩 исправить завтра");

@@ -1,5 +1,6 @@
-import { type ReactNode, useRef, useState } from "react";
-import { SpellingModes, SpellingSuggestions, type SpellingMode } from "./SpellingControls";
+import { type ReactNode, useState } from "react";
+import { SpellingModes, type SpellingMode } from "./SpellingControls";
+import { QueryInput } from "./QueryInput";
 import { queryError } from "../../app/validation";
 
 export function SearchForm({
@@ -19,12 +20,7 @@ export function SearchForm({
   spellingMode?: SpellingMode;
   onSpellingMode: (mode: SpellingMode) => void;
 }) {
-  const queryInput = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState("");
-  const [cursor, setCursor] = useState(0);
-  function updateCursor(input: HTMLInputElement) {
-    setCursor(Array.from(input.value.slice(0, input.selectionEnd ?? input.value.length)).length);
-  }
   const [error, setError] = useState<string | null>(null);
   return (
     <form
@@ -43,45 +39,12 @@ export function SearchForm({
       <div className="query-field">
         <label htmlFor="query">Найти письмо своими словами</label>
         <div className="search-row">
-          <input
-            ref={queryInput}
-            id="query"
-            autoCorrect={spellingMode ? "off" : undefined}
-            spellCheck={spellingMode ? false : undefined}
-            type="search"
-            placeholder="Например, перенос встречи"
-            value={draft}
-            aria-invalid={!!error}
-            aria-describedby={error ? "query-error" : "query-help"}
-            onSelect={(event) => updateCursor(event.currentTarget)}
-            onChange={(event) => {
-              updateCursor(event.currentTarget);
-              setDraft(event.target.value);
-              setError(null);
-            }}
-          />
+          <QueryInput value={draft} mode={spellingMode} invalid={Boolean(error)}
+            onChange={value => { setDraft(value); setError(null); }} />
           <button className="primary" type="submit">
             Найти
           </button>
         </div>
-        {spellingMode === "suggest" && (
-          <SpellingSuggestions query={draft} cursor={cursor} onAccept={change => {
-            // The API counts Unicode code points; a browser selection uses UTF-16 offsets.
-            const characters = Array.from(draft);
-            const prefix = characters.slice(0, change.start).join("") + change.replacement;
-            const next = prefix + characters.slice(change.end).join("");
-            setDraft(next);
-            setError(null);
-            setCursor(Array.from(prefix).length);
-            requestAnimationFrame(() => {
-              const input = queryInput.current;
-              if (input?.value === next) {
-                input.focus();
-                input.setSelectionRange(prefix.length, prefix.length);
-              }
-            });
-          }} />
-        )}
       </div>
       {modelPicker}
       {threshold !== undefined && (
