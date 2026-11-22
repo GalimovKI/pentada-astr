@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "20261122T140803Z-93975eac",
+  "kind": "experiment",
+  "owner": "Fu22210",
+  "status": "running",
+  "updated_at": "2026-11-22T14:08:03.757616+00:00",
+  "title": "Обучаемое восстановление основы русских уменьшительных форм",
+  "hypothesis": "Распределения преобразований суффиксов могут восстановить основы новых словообразовательных семейств, включая штрафик, сохраняя ранжирование на 99 публичных запросах и защищая самостоятельные слова.",
+  "code_branch": "codex/learned-russian-stemmer",
+  "code_commit": null,
+  "baseline_ref": "bd3ad733fceabf0215603c6b0ca87e718cbed780",
+  "replicates": null,
+  "outcome": null
+}
