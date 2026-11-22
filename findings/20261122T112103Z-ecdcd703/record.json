@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "20261122T112103Z-ecdcd703",
+  "kind": "finding",
+  "owner": "Fu22210",
+  "status": "completed",
+  "updated_at": "2026-11-22T11:21:03.990370+00:00",
+  "title": "Исправление опечаток и ложные срабатывания в dev-поиске",
+  "hypothesis": null,
+  "code_branch": "dev",
+  "code_commit": "a31ae640d1ec830339d2858e08fccc663668cafc",
+  "baseline_ref": null,
+  "replicates": null,
+  "outcome": null
+}
