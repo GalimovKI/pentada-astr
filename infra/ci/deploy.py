@@ -83,6 +83,8 @@ def main():
     os.environ['PATH'] = str(Path(docker).parent) + ':' + os.environ['PATH']
     with (root / '.deploy.lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
+        if environment == 'dev' and not args.bootstrap:
+            run('python3', 'scripts/check_production.py', '--url', target['public_url'], '--expect-dev-auth')
         previous = (root / 'current').resolve(strict=True) if (root / 'current').exists() else None
         previous_edge = output(*ssh, f'current {environment}')
         if previous_edge != 'none' and not re.fullmatch('[0-9a-f]{40}', previous_edge):
@@ -157,7 +159,9 @@ def main():
             run(*ssh, f'activate {environment} {sha}', stdin=subprocess.DEVNULL)
             # Edge activation always checks local frontend/API, including in bootstrap.
             if not args.bootstrap:
-                run('python3', release / 'scripts/check_production.py', '--url', target['public_url'])
+                public_checks = ['--expect-dev-auth'] if environment == 'dev' else []
+                run('python3', release / 'scripts/check_production.py', '--url', target['public_url'],
+                    *public_checks)
             link = root / 'current.next'
             link.unlink(missing_ok=True)
             link.symlink_to(release)

@@ -3,7 +3,7 @@
 | | main | dev |
 |---|---|---|
 | Ветка | `main` | `dev` |
-| Адрес | `http://176.12.68.100/main/` | `http://176.12.68.100/dev/` |
+| Адрес | `http://176.12.68.100/main/` | `https://smartmail-hackaton.ru/dev/` |
 | Учебный каталог | `~/pentada-astr` | `~/pentada-astr-dev` |
 | Compose backend/БД | `pentada-mailsearch` | `pentada-mailsearch-dev` |
 | Origin API (loopback) | 28081 | 28091 |
@@ -13,7 +13,7 @@
 | Compose frontend | `pentada-edge-main` | `pentada-edge-dev` |
 
 Корневой `/` перенаправляется на `/main/`, `/main` и `/dev` — на адреса с завершающим
-слешем. Общий Caddy gateway (`pentada-gateway`, порт 80) сохраняет префикс при
+слешем. Общий Caddy gateway (`pentada-gateway`, порты 80 и 443) сохраняет префикс при
 проксировании. Caddy каждого frontend снимает только свой префикс перед чтением
 статики и обращением к backend. Frontend собирается с Vite base `/main/` или `/dev/`;
 его API, JS, favicon и шрифты остаются внутри соответствующего пути.
@@ -174,10 +174,19 @@ Token не сохраняйте в Git/history. Автообновление run
 
 ## Проверки и управление
 
+Для входа в публичный `/dev/` шлюз запрашивает логин и пароль по HTTPS.
+Перед установкой новой конфигурации gateway поместите на VPS файл
+`/opt/pentada/secrets/dev-users.caddy` (права 600) с одной строкой в формате
+`ruslan2005 <bcrypt-хеш>`. Для генерации хеша используйте интерактивный
+`caddy hash-password`. Другой путь к файлу задаётся через `DEV_AUTH_FILE`.
+Если задан `SITE_ADDRESS`, он должен включать HTTPS-домен сайта.
+Обновите gateway до запуска deploy этой версии dev. Публичная проверка проверяет
+запрос пароля, а локальная проверка на VPS обращается напрямую к frontend и API.
+
 ```bash
 # С ноутбука, из checkout
 python3 scripts/check_production.py --url http://176.12.68.100/main
-python3 scripts/check_production.py --url http://176.12.68.100/dev
+python3 scripts/check_production.py --url https://smartmail-hackaton.ru/dev --expect-dev-auth
 
 # Учебный хост
 ~/pentada-astr/origin ps

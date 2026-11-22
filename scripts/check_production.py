@@ -10,7 +10,10 @@ from urllib.request import Request, urlopen
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--url", default="http://localhost:8080")
-    base = parser.parse_args().url.rstrip("/")
+    parser.add_argument("--expect-dev-auth", action="store_true",
+                        help="Check the public dev gateway's Basic authentication challenge")
+    args = parser.parse_args()
+    base = args.url.rstrip("/")
     parsed = urlsplit(base)
     origin = urlunsplit((parsed.scheme, parsed.netloc, "", "", ""))
     prefix = parsed.path.rstrip("/")
@@ -25,6 +28,13 @@ def main():
         with response:
             assert response.status == status, (path, response.status, status)
             return response.headers, response.read()
+
+    if args.expect_dev_auth:
+        for path in ("/", "/api/v1/mailboxes", "/assets/missing.js"):
+            headers, _ = request(path, 401)
+            assert headers.get("WWW-Authenticate") == 'Basic realm="SmartMail-dev"', path
+        print("Dev authentication challenge verified for frontend, API and assets")
+        return
 
     for endpoint, state in (("live", "live"), ("ready", "ready")):
         headers, body = request("/health/" + endpoint)
