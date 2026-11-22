@@ -33,9 +33,7 @@ export function Empty({
 }) {
   return (
     <div className="empty">
-      <span aria-hidden="true" className="empty-icon">
-        ≡
-      </span>
+      <span aria-hidden="true" className="empty-icon"><span className="envelope" /></span>
       <h3>{title}</h3>
       <p>{children}</p>
     </div>

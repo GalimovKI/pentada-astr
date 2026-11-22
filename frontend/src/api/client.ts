@@ -7,17 +7,20 @@ export interface Preview {
 export interface Message extends Omit<Preview, "snippet"> {
   doc: string;
 }
+export interface Passage {
+  text: string;
+  offset: number;
+  ranges: [number, number][];
+}
 export interface Hit extends Preview {
+  passage?: Passage | null;
   score: number;
 }
 export interface Mailboxes {
   items: string[];
 }
-export interface Messages {
-  items: Preview[];
-  next_cursor: string | null;
-}
 export interface SearchResponse {
+  receipt_date?: string | null;
   items: Hit[];
 }
 export interface MessageResponse {
@@ -27,7 +30,15 @@ export interface Context {
   mailbox: string;
   date: string;
 }
+export interface SpellingChange {
+  start: number;
+  end: number;
+  original: string;
+  replacement: string;
+}
 export interface SearchBody {
+  correct_typos: boolean;
+  expand_word_forms: boolean;
   query: string;
   query_date: string;
   limit: number;
@@ -46,7 +57,7 @@ export class ApiError extends Error {
 async function request<T>(
   path: string,
   signal: AbortSignal,
-  body?: SearchBody,
+  body?: SearchBody | { query: string; cursor: number; expand_word_forms: boolean },
 ): Promise<T> {
   let response: Response;
   try {
@@ -98,17 +109,6 @@ const mailboxPath = (context: Context) =>
   `/mailboxes/${encodeURIComponent(context.mailbox)}`;
 export const api = {
   mailboxes: (signal: AbortSignal) => request<Mailboxes>("/mailboxes", signal),
-  messages: (context: Context, signal: AbortSignal, cursor?: string) => {
-    const params = new URLSearchParams({
-      query_date: context.date,
-      limit: "50",
-    });
-    if (cursor !== undefined) params.set("cursor", cursor);
-    return request<Messages>(
-      `${mailboxPath(context)}/messages?${params}`,
-      signal,
-    );
-  },
   message: (context: Context, id: string, signal: AbortSignal) => {
     const params = new URLSearchParams({ query_date: context.date });
     return request<MessageResponse>(
@@ -116,11 +116,17 @@ export const api = {
       signal,
     );
   },
+  spelling: (query: string, cursor: number, signal: AbortSignal) =>
+    request<{ changes: SpellingChange[]; completions: SpellingChange[] }>(
+      "/spelling", signal, { query, cursor, expand_word_forms: true },
+    ),
   search: (context: Context, query: string, signal: AbortSignal) =>
-    request<SearchResponse>(`${mailboxPath(context)}/search`, signal, {
+    request<SearchResponse>(`${mailboxPath(context)}/search?explain=true`, signal, {
       query,
       query_date: context.date,
       limit: 10,
+      correct_typos: true,
+      expand_word_forms: true,
     }),
 };
 

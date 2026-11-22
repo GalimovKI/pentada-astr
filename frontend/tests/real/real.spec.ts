@@ -1,88 +1,45 @@
 import { test, expect } from "@playwright/test";
-import { cards } from "../browser/helpers";
-import type {
-  Mailboxes,
-  Messages,
-  SearchResponse,
-  MessageResponse,
-} from "../../src/api/client";
+import { type Mailboxes, type SearchResponse, type MessageResponse } from "../../src/api/client";
+import { parseLetter } from "../../src/features/messages/parseLetter";
+import { cards, searchFor } from "../browser/helpers";
 
-// Read-only test against the existing imported official corpus and current BM25.
-// This is an integration scenario, not an assessment of search quality.
-test("prepared local corpus: browse, paginate, search, read and change context", async ({
-  page,
-  request,
-}, testInfo) => {
+test("public search uses the real corpus and opens only returned messages", async ({ page, request }, info) => {
   const errors: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  page.on("console", (message) => {
-    if (message.type() === "error") errors.push(message.text());
+  page.on("pageerror", e => errors.push(e.message));
+  const box = "box-84bd433469cb", date = "2028-09-11";
+  const boxes = await request.get("./api/v1/mailboxes");
+  expect(boxes.ok()).toBe(true);
+  expect(((await boxes.json()) as Mailboxes).items).toContain(box);
+  await page.goto(`./?mailbox=${box}&date=${date}`);
+  await expect(cards(page)).toHaveCount(0);
+  await expect(page.getByRole("button", {name:"Найти",exact:true})).toBeEnabled();
+  await page.screenshot({path:info.outputPath("landing.png"),fullPage:true});
+  const query = "Найди уведомления о завершении досмотра контейнеров, полученные вчера";
+  const endpoint = `./api/v1/mailboxes/${box}`;
+  const response = await request.post(`${endpoint}/search?explain=true`, {
+    data:{query, query_date:date, limit:10, correct_typos:true, expand_word_forms:true},
   });
-  const boxesResponse = await request.get("/api/v1/mailboxes");
-  expect(boxesResponse.ok()).toBe(true);
-  const boxes = (await boxesResponse.json()) as Mailboxes;
-  expect(boxes.items).toContain("box-84bd433469cb");
-  await page.goto("/");
-  await page.getByLabel("Почтовый ящик").selectOption("box-84bd433469cb");
-  await page.getByLabel("Дата сценария", { exact: true }).fill("2028-09-11");
-  const path = "/api/v1/mailboxes/box-84bd433469cb";
-  const messages = (await (
-    await request.get(`${path}/messages?query_date=2028-09-11&limit=50`)
-  ).json()) as Messages;
-  await expect(cards(page)).toHaveCount(messages.items.length);
-  await expect(cards(page).first()).toContainText(messages.items[0].doc_id);
-  await page.getByRole("button", { name: "Загрузить ещё" }).click();
-  await expect(cards(page)).toHaveCount(100);
-  const query =
-    "Найди уведомления о завершении досмотра контейнеров, полученные вчера";
-  const expected = (await (
-    await request.post(`${path}/search`, {
-      data: { query, query_date: "2028-09-11", limit: 10 },
-    })
-  ).json()) as SearchResponse;
+  expect(response.ok()).toBe(true);
+  const expected = (await response.json()) as SearchResponse;
   expect(expected.items.length).toBeGreaterThan(0);
-  await page.getByLabel("Найти письмо своими словами").fill(query);
-  await page.getByLabel("Найти письмо своими словами").press("Enter");
+  await searchFor(page, query, true);
   await expect(cards(page)).toHaveCount(expected.items.length);
-  for (let i = 0; i < expected.items.length; i++)
-    await expect(cards(page).nth(i)).toContainText(expected.items[i].doc_id);
-  await page.screenshot({
-    path: testInfo.outputPath("search.png"),
-    fullPage: true,
-  });
+  for (const [i,item] of expected.items.entries())
+    await expect(cards(page).nth(i)).toHaveId("message-" + item.doc_id);
+  await page.screenshot({path:info.outputPath("results.png"),fullPage:true});
   await cards(page).first().focus();
   await page.keyboard.press("Enter");
-  const full = (await (
-    await request.get(
-      `${path}/messages/${encodeURIComponent(expected.items[0].doc_id)}?query_date=2028-09-11`,
-    )
-  ).json()) as MessageResponse;
-  await expect(page.locator(".message-body")).toHaveJSProperty("textContent", full.item.doc);
-  await expect(
-    page.getByRole("heading", { name: "Письмо", exact: true }),
-  ).toBeFocused();
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= window.innerWidth,
-    ),
-  ).toBe(true);
-  await page.screenshot({
-    path: testInfo.outputPath("reader.png"),
-    fullPage: true,
-  });
-  await page.getByRole("button", { name: "← К списку" }).click();
+  const message = await request.get(`${endpoint}/messages/${encodeURIComponent(expected.items[0].doc_id)}?query_date=${date}`);
+  expect(message.ok()).toBe(true);
+  const letter = parseLetter(((await message.json()) as MessageResponse).item.doc);
+  await expect(page.locator(".message-body")).toHaveText(letter.body);
+  await expect(page.getByRole("article").getByRole("heading")).toBeFocused();
+  await page.screenshot({path:info.outputPath("reader.png"),fullPage:true});
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole("button", {name:"← К списку"}).click();
   await expect(cards(page).first()).toBeFocused();
-  await page.getByLabel("Дата сценария", { exact: true }).fill("2014-01-01");
-  await expect(
-    page.getByRole("heading", { name: "Результаты поиска" }),
-  ).toHaveCount(0);
-  await expect(page.getByRole("article")).toHaveCount(0);
+  await page.getByRole("button", {name:"Очистить поиск", exact:true}).click();
+  await expect(cards(page)).toHaveCount(0);
   await expect(page.getByLabel("Найти письмо своими словами")).toHaveValue("");
-  const early = (await (
-    await request.get(`${path}/messages?query_date=2014-01-01&limit=50`)
-  ).json()) as Messages;
-  await expect(cards(page)).toHaveCount(early.items.length);
-  await page.getByLabel("Почтовый ящик").selectOption(boxes.items[0]);
-  await expect(page.getByRole("heading", { name: "Все письма" })).toBeVisible();
   expect(errors).toEqual([]);
 });

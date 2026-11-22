@@ -14,20 +14,12 @@ it.each(["/main/", "/dev/"])("keeps API requests inside %s", async (base) => {
   expect(mock.mock.calls[0][0]).toBe(`${base}api/v1/mailboxes`);
 });
 
-it("encodes mailbox, message and opaque cursor without changing dates", async () => {
+it("encodes the mailbox, message and date during a read", async () => {
   const mock = vi.fn().mockResolvedValue(new Response("{}"));
   vi.stubGlobal("fetch", mock);
-  await api.messages(context, signal(), "opaque+/= ?&ю");
-  const url = new URL(mock.mock.calls[0][0], "http://local");
-  expect(url.pathname).toBe(
-    "/api/v1/mailboxes/box%20%2B%3F%2F%23%D1%8E/messages",
-  );
-  expect(url.searchParams.get("query_date")).toBe("2028-09-11");
-  expect(url.searchParams.get("cursor")).toBe("opaque+/= ?&ю");
-  mock.mockResolvedValue(new Response("{}"));
   await api.message(context, "d/?#", signal());
-  expect(mock.mock.calls[1][0]).toContain(
-    "/messages/d%2F%3F%23?query_date=2028-09-11",
+  expect(mock.mock.calls[0][0]).toBe(
+    "/api/v1/mailboxes/box%20%2B%3F%2F%23%D1%8E/messages/d%2F%3F%23?query_date=2028-09-11",
   );
 });
 
@@ -42,10 +34,13 @@ it("sends the exact user text and preserves server ordering and scores", async (
   vi.stubGlobal("fetch", mock);
   const result = await api.search(context, "  вчера & <text>  ", signal());
   expect(result.items).toEqual(items);
+  expect(new URL(mock.mock.calls[0][0], "http://local").searchParams.get("explain")).toBe("true");
   expect(JSON.parse(mock.mock.calls[0][1].body)).toEqual({
     query: "  вчера & <text>  ",
     query_date: context.date,
     limit: 10,
+    correct_typos: true,
+    expand_word_forms: true,
   });
 });
 

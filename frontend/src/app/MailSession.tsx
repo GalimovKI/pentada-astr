@@ -1,142 +1,77 @@
-import { useEffect, useState } from "react";
-import {
-  api,
-  type Context,
-  type Messages,
-  type SearchResponse,
-} from "../api/client";
-import { useTask } from "./useTask";
-import { SearchForm } from "../features/search/SearchForm";
+import { useState, type ReactNode } from "react";
+import { api, type Context, type SearchResponse } from "../api/client";
+import smartmailLogo from "../assets/smartmail-logo-vk.png";
+import { Empty, Failure, Loading } from "../components/Status";
 import { MessageList } from "../features/messages/MessageList";
 import { MessageReader } from "../features/messages/MessageReader";
-import { Empty, Failure, Loading } from "../components/Status";
+import { SearchForm } from "../features/search/SearchForm";
+import { useTask } from "./useTask";
+import { queryError } from "./validation";
 
-export function MailSession({ context }: { context: Context }) {
-  const list = useTask<Messages>();
+export function MailSession({ context, children }: { context?: Context; children: ReactNode }) {
   const search = useTask<SearchResponse>();
+  const [draft, setDraft] = useState("");
+  const [invalid, setInvalid] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  const { run: loadList } = list;
-  useEffect(() => {
-    void loadList((signal) => api.messages(context, signal));
-  }, [context.mailbox, context.date, loadList]);
 
-  function nextPage() {
-    const cursor = list.data?.next_cursor;
-    if (list.busy() || !cursor) return;
-    void list.run((signal) => api.messages(context, signal, cursor), {
-      keepData: true,
-      merge: (previous, next) => ({
-        ...next,
-        items: [...(previous?.items ?? []), ...next.items],
-      }),
-    });
-  }
   function find(query: string) {
+    const issue = queryError(query);
+    setInvalid(issue);
+    if (!context || issue) return;
     setSubmitted(query);
     setSelected(null);
-    void search.run((signal) => api.search(context, query, signal));
+    void search.run(signal => api.search(context, query, signal));
   }
-  function backToList() {
+  function clear() {
     search.reset();
+    setDraft("");
     setSubmitted(null);
     setSelected(null);
+    setInvalid(null);
+    document.getElementById("query")?.focus();
   }
   function closeMessage() {
     const id = selected;
     setSelected(null);
-    // Restore focus after the mobile list becomes visible again.
-    requestAnimationFrame(() =>
-      document.getElementById(`message-${id}`)?.focus(),
-    );
+    requestAnimationFrame(() => document.getElementById(`message-${id}`)?.focus());
   }
-  const searching = submitted !== null;
-  const task = searching ? search : list;
-  const items = task.data?.items ?? [];
+  const items = search.data?.items ?? [];
+  const receiptDate = search.data?.receipt_date;
   return (
-    <>
-      <section className="search-area" aria-label="Поиск">
-        <SearchForm onSearch={find} pending={search.pending} />
-      </section>
-      <div className={`mail-workspace ${selected ? "reading" : ""}`}>
-        <section
-          className="list-pane"
-          aria-label={searching ? "Результаты поиска" : "Список писем"}
-        >
-          <header className="list-header">
-            <div>
-              <span className="eyebrow">
-                {searching ? "По вашему запросу" : "Выбранный ящик"}
-              </span>
-              <h2>{searching ? "Результаты поиска" : "Все письма"}</h2>
-            </div>
-            {searching && (
-              <button type="button" onClick={backToList}>
-                Все письма
-              </button>
-            )}
+    <main className={submitted === null ? "landing" : undefined}>
+      <header className="search-panel">
+        <h1><img className="brand-logo" src={smartmailLogo} alt="SmartMail" width="1881" height="408" /></h1>
+        <SearchForm value={draft} error={invalid} ready={Boolean(context)}
+          onChange={value => { setDraft(value); setInvalid(null); }}
+          onSubmit={() => find(draft)} />
+      </header>
+      {children}
+      {submitted !== null && (
+        <section className="search-results" aria-labelledby="results-title">
+          <header className="results-heading">
+            <h2 id="results-title">Результаты поиска</h2>
+            <button type="button" onClick={clear}>Очистить поиск</button>
           </header>
-          {searching && <p className="submitted">«{submitted}»</p>}
-          <p className="list-caption">
-            {items.length > 0
-              ? `${searching ? "Найдено" : "Загружено"}: ${items.length}`
-              : "Письма на выбранную дату"}
-            {searching && " · В порядке релевантности"}
-          </p>
-          {task.pending && (
-            <Loading>
-              {searching
-                ? "Выполняем поиск…"
-                : list.data
-                  ? "Загружаем следующую страницу…"
-                  : "Загружаем письма…"}
-            </Loading>
-          )}
-          {task.error != null && (
-            <Failure
-              error={task.error}
-              retry={() =>
-                searching
-                  ? find(submitted)
-                  : list.data
-                    ? nextPage()
-                    : void list.run((signal) => api.messages(context, signal))
-              }
-            />
-          )}
-          {task.data && !task.pending && items.length === 0 && (
-            <Empty
-              title={searching ? "Писем не найдено" : "Здесь пока нет писем"}
-            >
-              {searching
-                ? "Попробуйте другие слова или проверьте дату сценария."
-                : "На выбранную дату в этом ящике нет доступных писем."}
-            </Empty>
-          )}
-          <MessageList items={items} selected={selected} onOpen={setSelected} />
-          {!searching && list.data?.next_cursor && (
-            <div className="pagination">
-              <button type="button" disabled={list.pending} onClick={nextPage}>
-                Загрузить ещё
-              </button>
-            </div>
+          <p className="submitted">«{submitted}»</p>
+          {receiptDate && <p className="receipt-date">Получено <time dateTime={receiptDate}>
+            {new Date(receiptDate + "T00:00:00Z").toLocaleDateString("ru-RU", { timeZone: "UTC" })}
+          </time></p>}
+          {search.pending && <Loading>Выполняем поиск…</Loading>}
+          {search.error != null && <Failure error={search.error} retry={() => find(submitted)} />}
+          {search.data && (
+            items.length === 0 ? <Empty title="Писем не найдено">Попробуйте другие слова.</Empty> : (
+              <div className={`mail-workspace${selected ? " reading" : ""}`}>
+                <div className="list-pane"><MessageList items={items} selected={selected} onOpen={setSelected} /></div>
+                {selected && context && <section className="reader-pane" aria-label="Область чтения">
+                  <MessageReader key={selected} context={context} id={selected}
+                    passage={items.find(item => item.doc_id === selected)?.passage} onClose={closeMessage} />
+                </section>}
+              </div>
+            )
           )}
         </section>
-        <section className="reader-pane" aria-label="Область чтения">
-          {selected ? (
-            <MessageReader
-              key={selected}
-              context={context}
-              id={selected}
-              onClose={closeMessage}
-            />
-          ) : (
-            <Empty title="Выберите письмо">
-              Откройте письмо из списка, чтобы прочитать полный исходный текст.
-            </Empty>
-          )}
-        </section>
-      </div>
-    </>
+      )}
+    </main>
   );
 }

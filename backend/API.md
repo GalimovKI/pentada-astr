@@ -19,6 +19,7 @@ NULL-даты последними. Поиск сохраняет порядок
 | `GET /api/v1/mailboxes/{synthetic_user}/messages` | `query_date`, `limit` (1–500, по умолчанию 50), `cursor` (до 4096 символов) | `{"items":[{"doc_id":"d1","synthetic_user":"a","doc_dt":null,"snippet":"Текст"}],"next_cursor":null}` |
 | `GET /api/v1/mailboxes/{synthetic_user}/messages/{doc_id}` | `query_date` | `{"item":{"doc_id":"d1","synthetic_user":"a","doc_dt":null,"doc":"Полный исходный текст"}}` |
 | `POST /api/v1/mailboxes/{synthetic_user}/search` | JSON ниже | `{"items":[{"doc_id":"d1","synthetic_user":"a","doc_dt":null,"snippet":"Текст","score":1.25}]}` |
+| `POST /api/v1/spelling` | JSON `query`, необязательные `cursor` и `expand_word_forms` | `changes` и `completions` |
 | `GET /health/live` | — | `{"status":"live"}` |
 | `GET /health/ready` | — | `{"status":"ready"}` |
 
@@ -28,6 +29,10 @@ NULL-даты последними. Поиск сохраняет порядок
 Лишние поля тела запрещены. Фрагменты — первые 200 символов, извлекаемые в SQL;
 полный текст возвращается только при открытии письма. `total` отсутствует.
 Пустой результат — `{"items":[]}` с 200. Разметка и qrels в ответах отсутствуют.
+
+Поиск также принимает флаги `correct_typos` и `expand_word_forms` в теле запроса. Оба по умолчанию выключены. Сначала сервер исправляет опечатки, если включён `correct_typos`. Затем `expand_word_forms` приводит распознанные слова к основной форме. Например, `штрфаик` исправляется в `штрафик`, а движок получает `штраф` первым. Если основной запрос вернул меньше `limit` писем, поиск дополняет выдачу по исправленной формулировке и связанным формам, пропуская повторы. Параметр URL `explain=true` добавляет `receipt_date` и найденный фрагмент `passage`. Смещения подсветки в `passage` измеряются в единицах UTF-16.
+
+В `/spelling` поле `cursor` и диапазоны `start`, `end` в предложениях измеряются в кодовых точках Unicode. Сервер предлагает изменения текста, выбор применяет клиент.
 
 Все ошибки имеют `{"error":{"code":"..."}}`, без входных значений и traceback:
 

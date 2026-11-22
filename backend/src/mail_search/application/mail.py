@@ -2,6 +2,8 @@
 import math
 import re
 from itertools import islice
+from .passages import find_passage, query_terms
+from ..search.dates import receipt_day, target_day
 from ..domain.models import SearchRequest, SearchHit
 from ..storage.repository import UnknownMailbox
 
@@ -26,27 +28,59 @@ class MailService:
         if fingerprint != self.loaded.fingerprint:
             raise ServiceError(503, "dataset_mismatch")
 
-    def search(self, user, query, query_date, limit):
+    def search(self, user, query, query_date, limit, *, explain=False, alternatives=()):
         self.ready()
         if user not in self.store.list_mailboxes():
             raise UnknownMailbox(user)
-        def invoke():
+
+        def retrieve(text):
             # Bound materialization, including a misbehaving lazy engine result.
-            hits = list(islice(self.loaded.engine.search(SearchRequest(query, user, query_date), limit), limit + 1))
+            hits = list(islice(self.loaded.engine.search(SearchRequest(text, user, query_date), limit), limit + 1))
             if len(hits) > limit or any(
                 not isinstance(h, SearchHit) or not isinstance(h.doc_id, str) or not h.doc_id
                 or type(h.score) not in (int, float) or not math.isfinite(h.score) for h in hits
             ) or len({h.doc_id for h in hits}) != len(hits):
                 raise ServiceError(500, "engine_contract_violation")
             return hits
+        def invoke():
+            hits = retrieve(query)
+            if not alternatives:
+                return hits
+            seen = {hit.doc_id for hit in hits}
+            for alternative in alternatives:
+                if len(hits) >= limit:
+                    break
+                for hit in retrieve(alternative):
+                    if hit.doc_id not in seen:
+                        hits.append(hit)
+                        seen.add(hit.doc_id)
+                        if len(hits) == limit:
+                            break
+            return hits
+
         try:
             hits = self.executor.submit(invoke).result()
         except ServiceError:
             raise
         except Exception:
             raise ServiceError(500, "engine_failure") from None
-        previews = self.store.get_previews(user, [h.doc_id for h in hits], query_date=query_date)
-        if [p.doc_id for p in previews] != [h.doc_id for h in hits]:
+        ids = [h.doc_id for h in hits]
+        if explain:
+            config = getattr(self.loaded.engine, "config", {})
+            parser = target_day if isinstance(config, dict) and config.get("date_mode") == "legacy" else receipt_day
+            day, content = parser(query, query_date)
+            terms = query_terms(content)
+            for alternative in alternatives:
+                terms.update(query_terms(parser(alternative, query_date)[1]))
+            documents = self.store.get_messages(user, ids, query_date=query_date)
+            if [d.doc_id for d in documents] != ids:
+                raise ServiceError(500, "engine_contract_violation")
+            return dict(receipt_date=day, items=[
+                dict(doc_id=d.doc_id, synthetic_user=d.synthetic_user, doc_dt=d.doc_dt,
+                     snippet=d.doc[:200], score=h.score, passage=find_passage(d.doc, terms))
+                for h, d in zip(hits, documents)])
+        previews = self.store.get_previews(user, ids, query_date=query_date)
+        if [p.doc_id for p in previews] != ids:
             raise ServiceError(500, "engine_contract_violation")
-        return [dict(doc_id=p.doc_id, synthetic_user=p.synthetic_user, doc_dt=p.doc_dt,
-                     snippet=p.snippet, score=h.score) for h, p in zip(hits, previews)]
+        return {"items": [dict(doc_id=p.doc_id, synthetic_user=p.synthetic_user, doc_dt=p.doc_dt,
+                               snippet=p.snippet, score=h.score) for h, p in zip(hits, previews)]}
