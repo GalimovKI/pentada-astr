@@ -3,13 +3,13 @@
   "id": "20261122T115222Z-0654f293",
   "kind": "experiment",
   "owner": "Fu22210",
-  "status": "running",
-  "updated_at": "2026-11-22T11:52:22.621594+00:00",
+  "status": "completed",
+  "updated_at": "2026-11-22T11:55:34.183055+00:00",
   "title": "Комбинированная коррекция и поиск родственных слов в dev",
   "hypothesis": "Новый режим расширит выдачу штрафик и оштрафовали по письмам со словом штраф без ухудшения ранжирования на 99 неизменённых Mail Public запросах.",
   "code_branch": "dev",
-  "code_commit": null,
+  "code_commit": "5ffd93c2edec1680da7f64e0042b7c97b7d7726d",
   "baseline_ref": "1b739cdef92df31ae025ec88628768502cf7340c",
   "replicates": null,
-  "outcome": null
+  "outcome": "no_gain"
 }

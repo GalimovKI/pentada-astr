@@ -1,0 +1,22 @@
+{
+  "штраф": {
+    "count": 662,
+    "with_literal_input": 662,
+    "with_substring_shtraf": 662
+  },
+  "штрфа": {
+    "count": 0,
+    "with_literal_input": 0,
+    "with_substring_shtraf": 0
+  },
+  "штрафик": {
+    "count": 0,
+    "with_literal_input": 0,
+    "with_substring_shtraf": 0
+  },
+  "оштрафовали": {
+    "count": 0,
+    "with_literal_input": 0,
+    "with_substring_shtraf": 0
+  }
+}
