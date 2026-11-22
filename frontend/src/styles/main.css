@@ -47,8 +47,8 @@ body, h1, h2, h3, p { margin: 0; }
   clip-path: inset(50%);
   white-space: nowrap;
 }
-button, input { font: inherit; color: inherit; }
-button, input {
+button, input, select { font: inherit; color: inherit; }
+button, input, select {
   min-height: var(--control);
   border: 1px solid var(--line);
   border-radius: 9px;
@@ -59,7 +59,7 @@ button { padding: 8px 16px; cursor: pointer; font-size: .875rem; font-weight: 50
 button:hover { background: var(--soft); }
 button:active:not(:disabled) { background: var(--selected); }
 button:disabled { opacity: .6; cursor: wait; }
-:where(a, button, input, [tabindex]):focus-visible {
+:where(a, button, input, select, [tabindex]):focus-visible {
   outline: 3px solid var(--action);
   outline-offset: 2px;
 }
@@ -85,6 +85,10 @@ main { width: min(100%, 1240px); margin-inline: auto; padding: var(--pad); }
 .search-panel { display: flex; align-items: center; gap: var(--pad); margin: 8px 0 var(--pad); }
 .search-panel h1 { flex: none; }
 .search-panel .brand-logo { display: block; width: clamp(130px, 15vw, 190px); height: auto; }
+.search-controls { display: grid; gap: var(--gap-sm); width: 100%; min-width: 0; }
+.mailbox-picker { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; }
+.mailbox-picker label { margin: 0; color: var(--muted); }
+.mailbox-picker select { max-width: 100%; padding: 0 8px; font-size: .9rem; cursor: pointer; }
 .search-form { width: 100%; min-width: 0; }
 .search-row { display: flex; gap: 8px; }
 .search-row input { border-color: #b7c7df; }

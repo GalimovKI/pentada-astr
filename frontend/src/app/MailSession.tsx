@@ -5,23 +5,36 @@ import { Empty, Failure, Loading } from "../components/Status";
 import { MessageList } from "../features/messages/MessageList";
 import { MessageReader } from "../features/messages/MessageReader";
 import { SearchForm } from "../features/search/SearchForm";
+import type { MailboxOption } from "./publicMailboxes";
 import { useTask } from "./useTask";
 import { queryError } from "./validation";
 
-export function MailSession({ context, children }: { context?: Context; children: ReactNode }) {
+export function MailSession({ context, mailboxes, onMailboxChange, children }: {
+  context?: Context;
+  mailboxes: MailboxOption[];
+  onMailboxChange: (id: string) => void;
+  children: ReactNode;
+}) {
   const search = useTask<SearchResponse>();
   const [draft, setDraft] = useState("");
   const [invalid, setInvalid] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
 
-  function find(query: string) {
+  const current = mailboxes.find(box => box.id === context?.mailbox);
+
+  function find(query: string, scope = context) {
     const issue = queryError(query);
     setInvalid(issue);
-    if (!context || issue) return;
+    if (!scope || issue) return;
     setSubmitted(query);
     setSelected(null);
-    void search.run(signal => api.search(context, query, signal));
+    void search.run(signal => api.search(scope, query, signal));
+  }
+  function switchMailbox(id: string) {
+    if (!context || id === context.mailbox) return;
+    onMailboxChange(id);
+    if (submitted !== null) find(submitted, { ...context, mailbox: id });
   }
   function clear() {
     search.reset();
@@ -42,9 +55,18 @@ export function MailSession({ context, children }: { context?: Context; children
     <main className={submitted === null ? "landing" : undefined}>
       <header className="search-panel">
         <h1><img className="brand-logo" src={smartmailLogo} alt="SmartMail" width="1881" height="408" /></h1>
-        <SearchForm value={draft} error={invalid} ready={Boolean(context)}
-          onChange={value => { setDraft(value); setInvalid(null); }}
-          onSubmit={() => find(draft)} />
+        <div className="search-controls">
+          {context && <div className="mailbox-picker">
+            <label htmlFor="mailbox">Почтовый ящик</label>
+            <select id="mailbox" value={context.mailbox} onChange={event => switchMailbox(event.target.value)}>
+              {!current && <option value={context.mailbox} hidden>{context.mailbox}</option>}
+              {mailboxes.map(box => <option key={box.id} value={box.id}>{box.name}</option>)}
+            </select>
+          </div>}
+          <SearchForm value={draft} error={invalid} ready={Boolean(context)} example={current?.example}
+            onChange={value => { setDraft(value); setInvalid(null); }}
+            onSubmit={() => find(draft)} />
+        </div>
       </header>
       {children}
       {submitted !== null && (

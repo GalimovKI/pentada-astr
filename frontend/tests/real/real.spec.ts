@@ -11,6 +11,11 @@ test("public search uses the real corpus and opens only returned messages", asyn
   expect(boxes.ok()).toBe(true);
   expect(((await boxes.json()) as Mailboxes).items).toContain(box);
   await page.goto(`./?mailbox=${box}&date=${date}`);
+  const picker = page.getByRole("combobox", { name: "Почтовый ящик" });
+  await expect(picker.locator("option")).toHaveText([
+    "Штрафы и счета", "Заказы покупателей", "Контейнерные перевозки",
+  ]);
+  await expect(picker).toHaveValue(box);
   await expect(cards(page)).toHaveCount(0);
   await expect(page.getByRole("button", {name:"Найти",exact:true})).toBeEnabled();
   await page.screenshot({path:info.outputPath("landing.png"),fullPage:true});
