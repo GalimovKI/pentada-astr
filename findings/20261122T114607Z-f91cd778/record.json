@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "20261122T114607Z-f91cd778",
+  "kind": "finding",
+  "owner": "Fu22210",
+  "status": "completed",
+  "updated_at": "2026-11-22T11:46:07.808160+00:00",
+  "title": "Позиция курсора после принятия встроенной подсказки поиска",
+  "hypothesis": null,
+  "code_branch": "dev",
+  "code_commit": "1b739cdef92df31ae025ec88628768502cf7340c",
+  "baseline_ref": "57c20f5da58b0ae14d8bf6a493279d2020abde74",
+  "replicates": null,
+  "outcome": null
+}
