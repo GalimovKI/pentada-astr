@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "20261122T123953Z-6968d61e",
+  "kind": "experiment",
+  "owner": "Fu22210",
+  "status": "running",
+  "updated_at": "2026-11-22T12:39:53.695263+00:00",
+  "title": "Расширенная нормализация и коррекция русскоязычного почтового поиска",
+  "hypothesis": "Варианты из разных словарных семейств дадут ту же выдачу, что и проверенные нейтральные запросы, при сохранении метрик на 99 исходных запросах.",
+  "code_branch": "codex/main-general-word-forms",
+  "code_commit": null,
+  "baseline_ref": "38601f2cb35f174ca300c667f6663060f5cc63dc",
+  "replicates": null,
+  "outcome": null
+}
