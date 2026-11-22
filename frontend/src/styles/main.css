@@ -114,8 +114,10 @@ h1, h2, h3, strong { font-weight: 500; }
 .app-layout, .eval-page { max-width: 1536px; margin: 0 auto; padding: 0 var(--pad) var(--pad); }
 .mail-context { display: flex; align-items: end; gap: var(--gap); padding: 22px 0; }
 .mail-context h1 { margin: auto auto auto 0; }
-.mail-context .field { width: min(22vw, 310px); }
+.mail-context .field { width: min(22vw, 310px); min-width: 0; }
 .mail-context .field:last-child { width: 165px; }
+.mail-context input, .mail-context select { display: block; height: var(--control); }
+.mail-context input[type=date] { appearance: none; }
 .content, .eval-form, .eval-result {
   min-width: 0;
   background: var(--surface);
@@ -260,6 +262,9 @@ mark { color: #382800; background: #ffe8a6; border-radius: 2px; }
   .eval-table tbody th { min-width: 9rem; }
   .eval-table tr > :first-child { position: sticky; left: 0; background: var(--surface); box-shadow: 1px 0 var(--line); }
   .eval-table thead tr > :first-child { background: var(--soft); }
+}
+@media (max-width: 480px) {
+  .mail-context { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
