@@ -80,6 +80,7 @@ jobs:
           persist-credentials: false
       - name: Build and deploy both hosts
         env:
+          DEV_AUTH_BCRYPT: ${{ github.ref_name == 'dev' && secrets.DEV_AUTH_BCRYPT || '' }}
           PENTADA_DEV_E5_GPU: ${{ vars.PENTADA_DEV_E5_GPU }}
           DEPLOY_ENVIRONMENT: ${{ github.ref_name }}
         run: python3 infra/ci/deploy.py

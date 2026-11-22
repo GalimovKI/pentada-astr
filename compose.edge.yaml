@@ -16,6 +16,7 @@ services:
       WEB_HEALTH_PORT: ${WEB_HEALTH_PORT:-8081}
       WEB_BIND: ${WEB_BIND:-0.0.0.0}
     volumes:
+      - ./infra/docker/runtime-auth:/run/smartmail-auth:ro
       - caddy_data:/data
       - caddy_config:/config
     restart: unless-stopped

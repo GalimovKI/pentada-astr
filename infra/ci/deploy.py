@@ -83,8 +83,6 @@ def main():
     os.environ['PATH'] = str(Path(docker).parent) + ':' + os.environ['PATH']
     with (root / '.deploy.lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        if environment == 'dev' and not args.bootstrap:
-            run('python3', 'scripts/check_production.py', '--url', target['public_url'], '--expect-dev-auth')
         previous = (root / 'current').resolve(strict=True) if (root / 'current').exists() else None
         previous_edge = output(*ssh, f'current {environment}')
         if previous_edge != 'none' and not re.fullmatch('[0-9a-f]{40}', previous_edge):
@@ -136,6 +134,15 @@ def main():
             if gpu_environment(root, release):
                 compose(release, 'run', '--rm', '--no-deps', 'backend',
                         'python', '/app/scripts/check_minilm_gpu.py')
+            if environment == 'dev':
+                verifier = os.environ.get('DEV_AUTH_BCRYPT', '')
+                if not re.fullmatch(r'\$2[aby]\$(?:1[0-6])\$[./A-Za-z0-9]{53}', verifier):
+                    raise ValueError('Configure the DEV_AUTH_BCRYPT repository secret for dev')
+                users = Path(temp) / 'users.caddy'
+                users.write_text(f'ruslan2005 {verifier}\n')
+                users.chmod(0o600)
+                run('git', 'archive', '--format=tar.gz', '-o', archive,
+                    '--prefix=infra/docker/runtime-auth/', f'--add-file={users}', '--prefix=', sha)
             with archive.open('rb') as stream:
                 run(*ssh, f'stage {environment} {sha}', stdin=stream)
 

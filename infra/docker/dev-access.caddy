@@ -1,0 +1,7 @@
+# The public gateway supplies X-Forwarded-Proto to the loopback-only dev listener.
+@plain not header X-Forwarded-Proto https
+redir @plain https://smartmail-hackaton.ru{uri} 308
+basic_auth bcrypt SmartMail-dev {
+    import /run/smartmail-auth/users.caddy
+}
+request_header -Authorization

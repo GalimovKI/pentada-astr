@@ -18,9 +18,13 @@ def main():
     origin = urlunsplit((parsed.scheme, parsed.netloc, "", "", ""))
     prefix = parsed.path.rstrip("/")
 
+    local_dev = parsed.hostname in ("127.0.0.1", "localhost") and parsed.port == 18090 and prefix == "/dev"
     def request(path, status=200, *, method="GET", body=None, asset=False):
+        headers = {"Content-Type": "application/json"} if body else {}
+        if local_dev:
+            headers["X-Forwarded-Proto"] = "https"
         req = Request((origin if asset else base) + path, data=body, method=method,
-                      headers={"Content-Type": "application/json"} if body else {})
+                      headers=headers)
         try:
             response = urlopen(req, timeout=30)
         except HTTPError as error:
@@ -29,7 +33,7 @@ def main():
             assert response.status == status, (path, response.status, status)
             return response.headers, response.read()
 
-    if args.expect_dev_auth:
+    if args.expect_dev_auth or local_dev:
         for path in ("/", "/api/v1/mailboxes", "/assets/missing.js"):
             headers, _ = request(path, 401)
             assert headers.get("WWW-Authenticate") == 'Basic realm="SmartMail-dev"', path

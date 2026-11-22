@@ -7,12 +7,7 @@ http://127.0.0.1:8081 {
 	respond /health/web "live" 200
 }
 
-{$SITE_ADDRESS} {
-	@devHttp {
-		path /dev /dev/*
-		protocol http
-	}
-	redir @devHttp https://smartmail-hackaton.ru{uri} 308
+{$SITE_ADDRESS:http://:80} {
 	redir / /main/ 302
 	redir /main /main/ 308
 	redir /dev /dev/ 308
@@ -20,12 +15,7 @@ http://127.0.0.1:8081 {
 		reverse_proxy 127.0.0.1:18080
 	}
 	handle /dev/* {
-		basic_auth bcrypt SmartMail-dev {
-			import /run/secrets/dev_users
-		}
-		reverse_proxy 127.0.0.1:18090 {
-			header_up -Authorization
-		}
+		reverse_proxy 127.0.0.1:18090
 	}
 	respond 404
 }
