@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "20261122T111606Z-497e2e58",
+  "kind": "experiment",
+  "owner": "Fu22210",
+  "status": "running",
+  "updated_at": "2026-11-22T11:16:06.931358+00:00",
+  "title": "Сравнение E5, BM25 и трёх гибридов на SmartMail и EnronQA",
+  "hypothesis": "Раннее ограничение кандидатов по тексту и дате либо слияние рангов уменьшит ошибки чистого E5. Сравниваем обе очередности каскада с RRF и с BM25.",
+  "code_branch": "dev",
+  "code_commit": null,
+  "baseline_ref": "6b732ce16a9e357119f1afc1886185d898946ce8",
+  "replicates": null,
+  "outcome": null
+}
