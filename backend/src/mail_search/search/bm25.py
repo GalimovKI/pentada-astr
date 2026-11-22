@@ -12,7 +12,7 @@ from ..indexing.text import normalize, tokenize, tokenize_stemmed
 from .dates import receipt_day, target_day
 from .deadline import check_deadline
 
-LEADING_COMMAND = re.compile(r"^\s*(?:найди|покажи|поищи|отыщи|выведи|найдите|покажите)\b[\s,:-]*")
+LEADING_COMMAND = re.compile(r"^\s*(?:найди|найти|покажи|показать|поищи|поискать|отыщи|отыскать|выведи|вывести|найдите|покажите)\b[\s,:-]*")
 MAIL_INTRO = re.compile(r"^\s*(?:письм[а-я]*|уведомлен[а-я]*|сообщени[а-я]*)\s+(?:о|об|про|с)\s+")
 
 

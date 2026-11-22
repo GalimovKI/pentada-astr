@@ -8,8 +8,8 @@ import re
 from spellchecker import SpellChecker
 
 from .word_forms import (
-    FAMILY_WORDS, PRODUCTIVE_DIMINUTIVE, PROPER_TAGS, Replacement,
-    diminutive_base, editable_tokens, query_words, russian_morphology,
+    PROPER_TAGS, Replacement, suffix_stemmer,
+    diminutive_base, editable_tokens, russian_morphology,
 )
 
 RU = re.compile("[а-яё]{3,32}")
@@ -85,7 +85,7 @@ def plausible_substitution(word: str, candidate: str, language: str) -> bool:
 
 def recognized(word: str, language: str, checker: SpellChecker) -> bool:
     return word in checker or language == "ru" and (
-        russian_morphology().word_is_known(word) or word in FAMILY_WORDS or diminutive_base(word) is not None
+        russian_morphology().word_is_known(word) or diminutive_base(word) is not None
     )
 
 
@@ -105,7 +105,7 @@ def russian_vowel_correction(word: str) -> str | None:
         if morphology.word_is_known(candidate):
             if not any(p.is_known and not p.tag.grammemes & PROPER_TAGS for p in morphology.parse(candidate)):
                 continue
-        elif not (PRODUCTIVE_DIMINUTIVE.fullmatch(candidate) and diminutive_base(candidate)):
+        elif not (suffix_stemmer().may_match(candidate) and diminutive_base(candidate)):
             continue
         if match is not None:
             return None
@@ -149,7 +149,7 @@ def replacement_for(word: str, language: str) -> str | None:
         # OpenCorpora covers inflections and the derivation lookup covers productive
         # diminutives absent from both frequency dictionaries.
         variants = {w for w in swaps
-                    if w in FAMILY_WORDS or PRODUCTIVE_DIMINUTIVE.fullmatch(w) and diminutive_base(w)}
+                    if suffix_stemmer().may_match(w) and diminutive_base(w)}
         if len(variants) == 1:
             return variants.pop()
     plausible = {w for w in candidates if len(word) != len(w) or plausible_substitution(word, w, language)}
@@ -167,21 +167,18 @@ def replacement_for(word: str, language: str) -> str | None:
 
 
 def correct_query(query: str, *, preserve_forms: bool = False) -> tuple[str, list[Replacement]]:
-    protected = set()
-    if preserve_forms:
-        protected = {word.start for word in query_words(query)}
     changes = []
     corrected_length = len(query)
     pieces, cursor = [], 0
     for token in editable_tokens(query):
-        if token.start() in protected:
-            continue
         original = token.group()
         lower = original.lower()
         language = "ru" if RU.fullmatch(lower) else "en" if EN.fullmatch(lower) else None
         # Preserve acronyms, mixed-case names and capitalised names within a phrase.
         first_title = original.istitle() and not query[:token.start()].strip()
         if language is None or not (original.islower() or first_title):
+            continue
+        if preserve_forms and language == "ru" and diminutive_base(lower) is not None:
             continue
         replacement = replacement_for(lower, language)
         if replacement is None:

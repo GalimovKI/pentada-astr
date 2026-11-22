@@ -10,15 +10,6 @@ import unicodedata
 RUSSIAN = re.compile(r"[а-яё]+")
 RU_GLOSS = re.compile(r"(?:разг\. )?уменьш\.(?:-ласк\.)? (?:к|от) ([а-яё]+)(?:; то же, что \1)?")
 
-# Productive, unambiguous mail vocabulary missing from both source snapshots.
-# Only use these if neither edition has a conflicting sense or base.
-MAIL_DIMINUTIVES = {
-    "доставочка": "доставка",
-    "заказик": "заказ",
-    "упаковочка": "упаковка",
-}
-
-
 def unaccent(word: str) -> str:
     return unicodedata.normalize("NFC", word.replace("\u0301", ""))
 
@@ -67,8 +58,6 @@ def extract(en_source: Path, ru_source: Path) -> dict[str, str]:
                     excluded.add(key)
                 elif previous is None or "ё" in word:
                     candidates[key] = (word, base)
-    for word, base in MAIL_DIMINUTIVES.items():
-        candidates.setdefault(word, (word, base))
     return {
         word: base for key, (word, base) in candidates.items()
         if key not in excluded and base in common_nouns

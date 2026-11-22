@@ -1,12 +1,15 @@
 """Conservative Russian mail search alternatives, including cross-POS derivations."""
 from collections.abc import Iterator
 from dataclasses import dataclass
+from datetime import date
 from functools import lru_cache
 from importlib.resources import files
 import re
 
 from pymorphy3 import MorphAnalyzer
-from ..search.dates import RUSSIAN_DATE
+from ..search.dates import RUSSIAN_DATE, receipt_day
+from .derivational_stemmer import PROPER_TAGS, SuffixStemmer, fit_suffix_stemmer
+from .inflection import contextual_lemma, likely_lemmas
 
 # Keep structured tokens literal, including identifiers and addresses.
 TOKENS = re.compile(r"(?:https?://|www\.)[^\s]+|[\w@#]+(?:[./@:+#'’–—-]+[\w@#]+)*", re.I)
@@ -42,26 +45,22 @@ def editable_tokens(query: str) -> Iterator[re.Match[str]]:
         yield token
 
 
-# A noun and representative surface forms also work in the unstemmed BM25 preset.
-# Keys are lemmas: pymorphy recognises their inflected forms in user input.
-FAMILIES = (
-    (("штраф", "штрафик", "оштрафовали"), ("штраф", "штрафик", "штрафчик", "оштрафовать", "штрафовать")),
-    (("оплата", "платёж", "оплатили"), ("оплата", "платёж", "платёжка", "оплатить", "оплачивать")),
-    (("доставка", "доставили"), ("доставка", "доставить", "доставлять")),
-    (("отчёт", "отчётик"), ("отчёт", "отчётик")),
-    (("договор", "договорчик"), ("договор", "договорчик")),
-)
-FAMILY_WORDS = frozenset(word for forms, lemmas in FAMILIES for word in (*forms, *lemmas))
-FAMILY_BY_LEMMA = {lemma.replace("ё", "е"): forms for forms, lemmas in FAMILIES for lemma in lemmas}
-
-PROPER_TAGS = {"Name", "Surn", "Patr", "Geox", "Orgn", "Abbr", "Trad"}
-CONTENT_POS = {"NOUN", "ADJF", "ADJS", "VERB", "INFN", "PRTF", "PRTS", "GRND"}
-RUSSIAN_TOKEN = re.compile(r"[а-яё]{3,32}")
-# Productive colloquialisms missing from the dictionary, including oblique and plural forms.
-PRODUCTIVE_DIMINUTIVE = re.compile(
-    r"(?P<root>[а-яё]{3,}?)(?:(?P<masc>чик|ик)(?:ом|ами|ам|ах|ов|[ауеи])?"
-    r"|(?:оч|еч)(?:к(?:ами|ам|ах|ой|ою|[ауеи])|ек))"
-)
+# Semantic query expansion after morphological analysis. These output variants
+# also retrieve documents in the legacy, unstemmed BM25 preset.
+RELATED_FORMS = {
+    "штраф": ("штраф", "штрафик", "оштрафовали"),
+    "оплата": ("оплата", "платёж", "оплатили"),
+    "доставка": ("доставка", "доставили"),
+    "отчёт": ("отчёт", "отчётик"),
+    "договор": ("договор", "договорчик"),
+}
+RELATED_LEMMAS = {
+    "оштрафовать": "штраф", "штрафовать": "штраф",
+    "платёж": "оплата", "платёжка": "оплата", "оплатить": "оплата", "оплачивать": "оплата",
+    "доставить": "доставка", "доставлять": "доставка",
+}
+CONTENT_POS = {"NOUN", "ADJF", "ADJS", "VERB", "INFN", "PRTF", "PRTS", "GRND", "COMP", "NUMR", "NPRO"}
+RUSSIAN_TOKEN = re.compile(r"[а-яё]{1,64}")
 
 
 @lru_cache(maxsize=1)
@@ -70,63 +69,55 @@ def diminutive_lexicon() -> dict[str, str]:
         return dict(line.rstrip("\n").split("\t") for line in source if line.strip())
 
 
+@lru_cache(maxsize=1)
+def suffix_stemmer() -> SuffixStemmer:
+    return fit_suffix_stemmer(diminutive_lexicon().items())
+
+
 @lru_cache(maxsize=4096)
 def diminutive_base(word: str) -> str | None:
-    """Prefer attested derivations. Infer a base only for out-of-dictionary forms."""
     if not RUSSIAN_TOKEN.fullmatch(word):
         return None
     morph = russian_morphology()
+    model = suffix_stemmer()
     lexicon = diminutive_lexicon()
-    if morph.word_is_known(word):
-        # Other readings (e.g. «гвоздик» as the plural genitive of «гвоздика»)
-        # and confirmed names are important evidence against silent replacement.
-        parses = morph.parse(word)
-        if any(p.tag.POS != "NOUN" or p.tag.grammemes & PROPER_TAGS for p in parses):
-            return None
-        bases = {lexicon.get(p.normal_form) for p in parses}
-        return bases.pop() if len(bases) == 1 else None
-
-    if word in lexicon:
-        return lexicon[word]
-    match = PRODUCTIVE_DIMINUTIVE.fullmatch(word)
-    if not match:
+    if not morph.word_is_known(word):
+        return model.predict(word, morph) or lexicon.get(word)
+    parses = morph.parse(word)
+    if any(p.tag.POS != "NOUN" or p.tag.grammemes & PROPER_TAGS for p in parses):
         return None
-    root = match["root"]
-    endings = ("", "ь", "й") if match["masc"] else ("ка", "а")
-    gender = "masc" if match["masc"] else "femn"
-    bases = set()
-    for ending in endings:
-        candidate = root + ending
-        if not morph.word_is_known(candidate):
-            continue
-        for p in morph.parse(candidate):
-            if (p.is_known and p.tag.POS == "NOUN" and p.tag.gender == gender
-                    and not p.tag.grammemes & PROPER_TAGS
-                    and p.normal_form.replace("ё", "е") == candidate.replace("ё", "е")):
-                bases.add(p.normal_form)
-    return bases.pop() if len(bases) == 1 else None
+    heads = {p.normal_form for p in parses}
+    if len(heads) != 1:
+        return None
+    head = heads.pop()
+    attested = lexicon.get(head)
+    # Only derive a known word when its diminutive reading has been confirmed.
+    # «упаковочка» is an additional reviewed reading; the model supplies its base.
+    if attested or head == "упаковочка":
+        predicted = model.predict_lemma(head, morph)
+        return predicted if predicted and (not attested or predicted == attested) else attested
+    return None
+
+
+def retrieval_forms(lemma: str) -> tuple[str, ...]:
+    if lemma in RELATED_LEMMAS:
+        # A related noun can retrieve more letters, but the verb's lemma is its infinitive.
+        return tuple(dict.fromkeys((lemma, *RELATED_FORMS[RELATED_LEMMAS[lemma]])))
+    return RELATED_FORMS.get(lemma, (lemma,))
 
 
 @lru_cache(maxsize=4096)
-def word_forms(word: str, standalone: bool) -> tuple[str, ...]:
+def word_forms(word: str) -> tuple[str, ...]:
     if not RUSSIAN_TOKEN.fullmatch(word):
         return ()
-    family = FAMILY_BY_LEMMA.get(word.replace("ё", "е"))
-    if family:
-        return family
-    parses = russian_morphology().parse(word)
-    family = FAMILY_BY_LEMMA.get(parses[0].normal_form.replace("ё", "е"))
-    if family:
-        return family
     base = diminutive_base(word)
     if base:
-        return (base,)
+        return retrieval_forms(base)
+    parses = russian_morphology().parse(word)
     lemma = parses[0].normal_form
-    if lemma != word and all(p.is_known and p.tag.POS in CONTENT_POS and p.normal_form == lemma
-                             and not p.tag.grammemes & PROPER_TAGS for p in parses):
-        # Inside a sentence preserve the original syntax and ranking first. Use lemmas
-        # as a fallback, e.g. for an unstemmed engine or an irregular inflection.
-        return (lemma,) if standalone else (word, lemma)
+    if all(p.is_known and p.tag.POS in CONTENT_POS and p.normal_form == lemma
+           and not p.tag.grammemes & PROPER_TAGS for p in parses):
+        return retrieval_forms(lemma)
     return ()
 
 
@@ -142,23 +133,38 @@ def query_words(query: str) -> list[WordForms]:
     words = []
     dates = RUSSIAN_DATE.finditer(query)
     date = next(dates, None)
-    for token in editable_tokens(query):
+    tokens = list(editable_tokens(query))
+    for index, token in enumerate(tokens):
         while date and date.end() <= token.start():
             date = next(dates, None)
         if date and date.start() <= token.start() < date.end():
             continue
         text = token.group()
-        initial = text.istitle() and not query[:token.start()].strip()
-        if not (initial or text.islower()):
+        capitalized = text.istitle()
+        if not (capitalized or text.islower()) or not RUSSIAN_TOKEN.fullmatch(text.lower()):
             continue
-        forms = word_forms(text.lower(), query.strip() == text)
+        if capitalized and any(p.is_known and p.tag.grammemes & PROPER_TAGS
+                               for p in russian_morphology().parse(text.lower())):
+            continue
+        forms = word_forms(text.lower())
+        if not forms and RUSSIAN_TOKEN.fullmatch(text.lower()) and len(tokens) > 1:
+            previous = following = ""
+            if index and query[tokens[index - 1].end():token.start()].isspace():
+                previous = tokens[index - 1].group().lower()
+            if index + 1 < len(tokens) and query[token.end():tokens[index + 1].start()].isspace():
+                following = tokens[index + 1].group().lower()
+            lemma = contextual_lemma(text.lower(), previous, following, russian_morphology())
+            if lemma:
+                forms = retrieval_forms(lemma)
+        if not forms:
+            forms = likely_lemmas(text.lower(), russian_morphology())
         if forms:
             words.append(WordForms(token.start(), token.end(), text,
-                                   tuple(f.capitalize() for f in forms) if initial else forms))
+                                   tuple(f.capitalize() for f in forms) if capitalized else forms))
     return words
 
 
-def search_queries(query: str) -> tuple[str, ...]:
+def search_queries(query: str, *, query_date: date | None = None) -> tuple[str, ...]:
     """Canonical search first, then the corrected literal and other family members."""
     words = query_words(query)
     variants = []
@@ -172,4 +178,9 @@ def search_queries(query: str) -> tuple[str, ...]:
             variants.append(alternative)
         if index == 0 and query not in variants:
             variants.append(query)
+    if variants and query_date is not None:
+        # A lemma such as «прийти» may lose the receipt cue present in «пришли».
+        # Compare to the user's wording before choosing the primary ranked query.
+        day = receipt_day(query, query_date)[0]
+        variants = [v for v in variants if v == query or receipt_day(v, query_date)[0] == day]
     return tuple(variants) if variants else (query,)
