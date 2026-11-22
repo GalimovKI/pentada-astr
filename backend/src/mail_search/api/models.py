@@ -13,11 +13,9 @@ def exact_date(value):
 ScenarioDate = Annotated[date, BeforeValidator(exact_date)]
 
 
-class SearchBody(BaseModel):
+class QueryText(BaseModel):
     model_config = ConfigDict(extra="forbid")
     query: str = Field(strict=True, min_length=1, max_length=4000)
-    query_date: ScenarioDate
-    limit: int = Field(default=10, strict=True, ge=1, le=100)
 
     @field_validator("query")
     @classmethod
@@ -25,6 +23,18 @@ class SearchBody(BaseModel):
         if not value.strip():
             raise ValueError("Expected nonblank query")
         return value
+
+
+class SpellingBody(QueryText):
+    expand_word_forms: bool = Field(default=False, strict=True)
+    cursor: int | None = Field(default=None, strict=True, ge=0, le=4000)
+
+
+class SearchBody(QueryText):
+    expand_word_forms: bool = Field(default=False, strict=True)
+    correct_typos: bool = Field(default=False, strict=True)
+    query_date: ScenarioDate
+    limit: int = Field(default=10, strict=True, ge=1, le=100)
 
 
 class Preview(BaseModel):
@@ -41,7 +51,14 @@ class Message(BaseModel):
     doc: str
 
 
+class Passage(BaseModel):
+    text: str
+    offset: int
+    ranges: list[tuple[int, int]]
+
+
 class Hit(Preview):
+    passage: Passage | None = None
     score: float
 
 
@@ -59,6 +76,7 @@ class MessageResponse(BaseModel):
 
 
 class SearchResponse(BaseModel):
+    receipt_date: date | None = None
     items: list[Hit]
 
 

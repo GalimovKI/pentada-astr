@@ -1,55 +1,22 @@
-import { useState } from "react";
-import { queryError } from "../../app/validation";
+import { QueryInput } from "./QueryInput";
 
-export function SearchForm({
-  onSearch,
-  pending,
-}: {
-  onSearch: (query: string) => void;
-  pending: boolean;
+export function SearchForm({ value, error, ready, onChange, onSubmit }: {
+  value: string;
+  error: string | null;
+  ready: boolean;
+  onChange: (value: string) => void;
+  onSubmit: () => void;
 }) {
-  const [draft, setDraft] = useState("");
-  const [error, setError] = useState<string | null>(null);
   return (
-    <form
-      className="search-form"
-      noValidate
-      onSubmit={(event) => {
-        event.preventDefault();
-        const issue = queryError(draft);
-        setError(issue);
-        if (!issue) onSearch(draft);
-      }}
-    >
-      <label htmlFor="query">Найти письмо своими словами</label>
+    <form className="search-form" role="search" noValidate
+      onSubmit={event => { event.preventDefault(); onSubmit(); }}>
+      <label htmlFor="query" className="sr-only">Найти письмо своими словами</label>
       <div className="search-row">
-        <input
-          id="query"
-          type="search"
-          placeholder="Например, письма о переносе встречи за вчера"
-          value={draft}
-          aria-invalid={!!error}
-          aria-describedby={error ? "query-error" : "query-help"}
-          onChange={(event) => {
-            setDraft(event.target.value);
-            setError(null);
-          }}
-        />
-        <button className="primary" type="submit">
-          Найти
-        </button>
+        <QueryInput value={value} invalid={Boolean(error)} onChange={onChange} />
+        <button className="primary" type="submit" disabled={!ready}>Найти</button>
       </div>
-      {error ? (
-        <p id="query-error" className="validation" role="alert">
-          {error}
-        </p>
-      ) : (
-        <p id="query-help" className="hint">
-          {pending
-            ? "Ищем письма. Можно отправить новый запрос."
-            : "Опишите, что помните. Поиск учитывает выбранную дату сценария."}
-        </p>
-      )}
+      {error ? <p id="query-error" className="validation" role="alert">{error}</p> :
+        <p id="query-help" className="sr-only">Введите слова или опишите письмо.</p>}
     </form>
   );
 }

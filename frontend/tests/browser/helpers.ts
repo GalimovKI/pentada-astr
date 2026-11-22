@@ -41,16 +41,10 @@ export async function mockApi(
           { ...preview("a"), score: 9.9 },
         ],
       });
-    if (url.pathname.endsWith("/messages")) {
-      const box = url.pathname.includes("box-b") ? "box-b" : "box-a";
-      const items = url.searchParams.has("cursor")
-        ? [preview("next")]
-        : [preview(`${box}-1`), preview(`${box}-2`, "Без даты", null)];
-      return reply(route, {
-        items,
-        next_cursor: url.searchParams.has("cursor") ? null : "opaque +/=?&",
-      });
-    }
+    if (url.pathname === "/api/v1/spelling")
+      return reply(route, { changes: [], completions: [], related: [] });
+    if (!/\/mailboxes\/[^/]+\/messages\/[^/]+$/.test(url.pathname))
+      throw new Error(`Unexpected public mail request: ${url.pathname}`);
     const id = decodeURIComponent(url.pathname.split("/").at(-1)!);
     return reply(route, {
       item: {

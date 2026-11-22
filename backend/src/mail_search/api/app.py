@@ -18,7 +18,7 @@ from ..storage.database import database_engine
 from ..storage.repository import MailStore, UnknownMailbox
 from . import cursors
 from .models import (ErrorResponse, Health, Mailboxes, Messages, MessageResponse,
-                     SearchResponse, SearchBody, ScenarioDate, PageLimit)
+                     SearchResponse, SearchBody, SpellingBody, ScenarioDate, PageLimit)
 
 logger = logging.getLogger("mail_search.api")
 
@@ -112,6 +112,11 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
         result.ready()
         return result
 
+    @app.post("/api/v1/spelling")
+    def spelling(body: SpellingBody):
+        from ..application.spelling import spelling_hints
+        return spelling_hints(body.query, body.cursor, expand_word_forms=body.expand_word_forms)
+
     @app.get("/health/live", response_model=Health)
     async def live():
         return {"status": "live"}
@@ -140,8 +145,18 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
             raise ServiceError(404, "message_not_found")
         return {"item": result}
 
-    @app.post("/api/v1/mailboxes/{synthetic_user}/search", response_model=SearchResponse)
-    def search(synthetic_user: str, body: SearchBody):
-        return {"items": service().search(synthetic_user, body.query, body.query_date, body.limit)}
+    @app.post("/api/v1/mailboxes/{synthetic_user}/search", response_model=SearchResponse,
+              response_model_exclude_unset=True)
+    def search(synthetic_user: str, body: SearchBody, explain: bool = False):
+        query = body.query
+        if body.correct_typos:
+            from ..application.spelling import correct_query
+            query, _ = correct_query(query, preserve_forms=body.expand_word_forms)
+        alternatives = ()
+        if body.expand_word_forms:
+            from ..application.word_forms import search_queries
+            query, *alternatives = search_queries(query)
+        return service().search(synthetic_user, query, body.query_date, body.limit,
+                                explain=explain, alternatives=alternatives)
 
     return app
