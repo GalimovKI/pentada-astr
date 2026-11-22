@@ -5,8 +5,7 @@
 
 <p align="center"><a href="https://smartmail-hackaton.ru/main/"><strong>Открыть сайт · smartmail-hackaton.ru/main/ ↗</strong></a></p>
 
-<!-- Для GIF замените src на docs/assets/search-demo.gif. -->
-<p align="center"><a href="https://smartmail-hackaton.ru/main/"><img src="docs/assets/search-preview.svg" width="880" alt="Пример поиска писем о завершении досмотра контейнеров"></a></p>
+<p align="center"><a href="https://smartmail-hackaton.ru/main/"><img src="docs/assets/search-demo.gif" width="880" alt="Поиск в SmartMail: выбор ящика «Заказы покупателей», исправление «закзаик» на «заказик» и открытие найденного письма"></a></p>
 
 ## Качество поиска
 
@@ -37,3 +36,9 @@
 </details>
 
 [Методика оценки](EVAL.md) · [Сравнение на EnronQA](https://github.com/GalimovKI/pentada-astr/blob/e3781b900d3badfc0fe94c13f7336962c3633433/reports/quality/e5-hybrids.md) · [Запуск](DEPLOYMENT.md) · [Архитектура](COMPONENTS.md)
+
+## Мультфильм «Поиск и двадцать сантиметров»
+
+https://github.com/user-attachments/assets/1194513c-0adf-4dbd-91b2-e1e700cac703
+
+[Скачать мультфильм в MP4 · 1 мин 44 с](https://github.com/GalimovKI/pentada-astr/raw/refs/heads/main/docs/assets/hackfpmi3012-search-cartoon-v3.mp4)
