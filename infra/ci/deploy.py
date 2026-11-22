@@ -166,9 +166,13 @@ def main():
             run(*ssh, f'activate {environment} {sha}', stdin=subprocess.DEVNULL)
             # Edge activation always checks local frontend/API, including in bootstrap.
             if not args.bootstrap:
-                public_checks = ['--expect-dev-auth'] if environment == 'dev' else []
-                run('python3', release / 'scripts/check_production.py', '--url', target['public_url'],
-                    *public_checks)
+                public_url = target['public_url']
+                checks = []
+                if environment == 'dev':
+                    # Older runners use an HTTP IP URL and urllib without 308 support.
+                    public_url = 'https://smartmail-hackaton.ru/dev'
+                    checks.append('--expect-dev-auth')
+                run('python3', release / 'scripts/check_production.py', '--url', public_url, *checks)
             link = root / 'current.next'
             link.unlink(missing_ok=True)
             link.symlink_to(release)
