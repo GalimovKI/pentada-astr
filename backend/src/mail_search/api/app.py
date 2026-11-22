@@ -187,11 +187,6 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
             raise ServiceError(404, "evaluations_disabled")
         return app.state.evaluations
 
-    @app.get("/api/v1/evaluations")
-    def evaluation_catalog():
-        return evaluations().catalog()
-
-    @app.post("/api/v1/evaluations", status_code=202)
     @app.post("/api/v1/spelling")
     def spelling(body: QueryText):
         if app.state.evaluations is None:
@@ -200,6 +195,11 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
         _, replacements = correct_query(body.query)
         return {"changes": replacements}
 
+    @app.get("/api/v1/evaluations")
+    def evaluation_catalog():
+        return evaluations().catalog()
+
+    @app.post("/api/v1/evaluations", status_code=202)
     def start_evaluation(selection: EvaluationSelection):
         manager = evaluations()
         manager.start(selection.model, selection.dataset, selection.device)
