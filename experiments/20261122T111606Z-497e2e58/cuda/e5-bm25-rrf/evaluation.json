@@ -1,0 +1,59 @@
+{
+  "id": "e18f897ed56742738b095e6f93b4eaec",
+  "model": "e5-bm25-rrf",
+  "dataset": "mail-public",
+  "device": "cuda",
+  "status": "completed",
+  "phase": "Прогон завершён",
+  "completed": 99,
+  "total": 99,
+  "metrics": {
+    "queries": 99,
+    "failed_queries": 0,
+    "single_relevant_queries": 42,
+    "aggregation": "macro; no-relevant queries receive zero; failed queries retained",
+    "by_k": {
+      "1": {
+        "recall": 0.5616536422908972,
+        "ndcg": 1,
+        "mrr": 1,
+        "mrr_single": 1
+      },
+      "5": {
+        "recall": 0.8505241037103781,
+        "ndcg": 0.9895891679349179,
+        "mrr": 1,
+        "mrr_single": 1
+      },
+      "10": {
+        "recall": 0.9366458869578299,
+        "ndcg": 0.9956965642439379,
+        "mrr": 1,
+        "mrr_single": 1
+      },
+      "20": {
+        "recall": 0.9772066416451444,
+        "ndcg": 0.9940227272368111,
+        "mrr": 1,
+        "mrr_single": 1
+      },
+      "50": {
+        "recall": 0.9967507240234513,
+        "ndcg": 0.995794343291497,
+        "mrr": 1,
+        "mrr_single": 1
+      },
+      "100": {
+        "recall": 0.998361234724871,
+        "ndcg": 0.9946478058946998,
+        "mrr": 1,
+        "mrr_single": 1
+      }
+    }
+  },
+  "p50_ms": 12.012,
+  "p90_ms": 18.167,
+  "p95_ms": 23.181,
+  "p99_ms": 36.238,
+  "samples": 99
+}

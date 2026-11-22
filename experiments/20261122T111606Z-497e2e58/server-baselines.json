@@ -1,0 +1,40 @@
+[
+  {
+    "dataset": "mail-public",
+    "model": "e5-cosine",
+    "created_at": "2026-11-22T10:06:51.345009+00:00",
+    "fingerprint": "0daa664136d798c1ed2fe50802a7d236f93b4891d56f2353bc5b807b56601665",
+    "recall": 0.29574184892812344,
+    "ndcg": 0.19261683373108074,
+    "mrr": 0.221007696007696,
+    "mrr_single": 0.1989606953892668,
+    "device": "cuda",
+    "precision": null,
+    "source": "NVIDIA A100 80GB PCIe",
+    "rerank_depth": null,
+    "samples": 99,
+    "p50_ms": 20.883,
+    "p90_ms": 60.274,
+    "p95_ms": 79.76,
+    "p99_ms": 98.654
+  },
+  {
+    "dataset": "mail-public",
+    "model": "bm25-event-aware",
+    "created_at": "2026-11-21T22:13:16.400685+00:00",
+    "fingerprint": "0daa664136d798c1ed2fe50802a7d236f93b4891d56f2353bc5b807b56601665",
+    "recall": 0.9375641606033763,
+    "ndcg": 0.9976101932146711,
+    "mrr": 1,
+    "mrr_single": 1,
+    "device": "cpu",
+    "precision": null,
+    "source": null,
+    "rerank_depth": null,
+    "samples": 99,
+    "p50_ms": 5.588,
+    "p90_ms": 8.665,
+    "p95_ms": 9.393,
+    "p99_ms": 12.277
+  }
+]

@@ -1,0 +1,71 @@
+{
+  "format_version": 1,
+  "created_at": "2026-11-22T11:16:49.077006+00:00",
+  "dataset": {
+    "fingerprint": "0daa664136d798c1ed2fe50802a7d236f93b4891d56f2353bc5b807b56601665",
+    "sha256": {
+      "README.md": "237ecc95e3db0e959edb073acd4ddf287248524e9c725f6897921d4a19cddb0b",
+      "documents.jsonl": "06feb4791a52faeb777f1a8d4c22d99efd26a279943a19bdfbd0b14bc9c8daa5",
+      "queries_dev.jsonl": "7a5b587ee7361ca2e35e1929cbbfdcc3154b4302b6fb830ae1c41846518d6017",
+      "qrels_dev.jsonl": "826362ae5592d58b3bb1cd382103dc0aef151cf014025258f0cddba0fefa0dd4"
+    },
+    "documents": 16376,
+    "queries": 99,
+    "qrels": 565,
+    "mailboxes": 12,
+    "unknown_document_dates": 433,
+    "single_relevant_queries": 42,
+    "queries_without_relevant_documents": 0,
+    "documents_by_mailbox": {
+      "box-12259a301ee2": 2401,
+      "box-2d28af4e4602": 1784,
+      "box-84bd433469cb": 720,
+      "box-84dd8d9560e6": 902,
+      "box-90560850fd8e": 713,
+      "box-a55c522c6949": 561,
+      "box-a971835ab404": 980,
+      "box-d7961fc39a68": 1459,
+      "box-dfac33a7123c": 1094,
+      "box-f9410417c091": 3010,
+      "box-fad2b057e79a": 1955,
+      "box-fda57474896e": 797
+    },
+    "queries_by_mailbox": {
+      "box-2d28af4e4602": 22,
+      "box-84bd433469cb": 25,
+      "box-84dd8d9560e6": 2,
+      "box-a971835ab404": 11,
+      "box-d7961fc39a68": 1,
+      "box-dfac33a7123c": 28,
+      "box-f9410417c091": 10
+    }
+  },
+  "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+  "python": "3.14.7",
+  "machine": "arm64",
+  "device": "cpu",
+  "code": {
+    "sha256": "40d88a14cb5a4ba6d27e6784a793b227d5263db7d59e1ae6aebe7569c06c399f",
+    "git_commit": "6b732ce16a9e357119f1afc1886185d898946ce8",
+    "git_dirty": true
+  },
+  "ks": [
+    1,
+    5,
+    10,
+    20,
+    50,
+    100
+  ],
+  "status": "ok",
+  "engine": "bm25-event-aware",
+  "factory": "mail_search.core.engine:load_event_aware",
+  "engine_config": {
+    "rerank_depth": 20,
+    "prospective_penalty": 0.55,
+    "subject_bonus": 0.0
+  },
+  "engine_build_ms": 7218.483208009275,
+  "source": "mipt_mail_search_participants.zip",
+  "timing_scope": "Sequential in-process search, no explicit warmup, limit 100"
+}

@@ -1,0 +1,76 @@
+{
+  "format_version": 1,
+  "created_at": "2026-11-22T11:18:35.958776+00:00",
+  "dataset": {
+    "fingerprint": "d95b74df572f33b2b1aa428d3b6bd31a87ca957c7290950ede600e30bf059952",
+    "sha256": {
+      "README.md": "96595353e94695a16d591c5aae1aa5d8c602459d0eee9a519e862432f4a9f1bf",
+      "documents.jsonl": "457152056cb9fffd8dd796415074798a202820ccffffa449ca8c23c36d98d094",
+      "queries_dev.jsonl": "94f6cb12f08167349a34003de74013469a8b167b5e08b2e7d113b11126e9f247",
+      "qrels_dev.jsonl": "238c4f0883116b5636d35985309a402e4c62496479cc5a5fd8b10b28163ada1b"
+    },
+    "documents": 1000,
+    "queries": 2432,
+    "qrels": 2432,
+    "mailboxes": 10,
+    "unknown_document_dates": 1000,
+    "single_relevant_queries": 2432,
+    "queries_without_relevant_documents": 0,
+    "documents_by_mailbox": {
+      "dasovich-j": 100,
+      "horton-s": 100,
+      "jones-t": 100,
+      "may-l": 100,
+      "sager-e": 100,
+      "sanders-r": 100,
+      "scholtes-d": 100,
+      "skilling-j": 100,
+      "whalley-l": 100,
+      "ybarbo-p": 100
+    },
+    "queries_by_mailbox": {
+      "dasovich-j": 258,
+      "horton-s": 254,
+      "jones-t": 228,
+      "may-l": 234,
+      "sager-e": 244,
+      "sanders-r": 248,
+      "scholtes-d": 238,
+      "skilling-j": 236,
+      "whalley-l": 246,
+      "ybarbo-p": 246
+    }
+  },
+  "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+  "python": "3.14.7",
+  "machine": "arm64",
+  "device": "cpu",
+  "code": {
+    "sha256": "d9495a48fa29bb7dad2859becb0188cc57399cd43018c28510de2a4bab59e260",
+    "git_commit": "6b732ce16a9e357119f1afc1886185d898946ce8",
+    "git_dirty": true
+  },
+  "ks": [
+    1,
+    5,
+    10,
+    20,
+    50,
+    100
+  ],
+  "status": "ok",
+  "engine": "e5-cosine",
+  "factory": "mail_search.core.engine:load_e5",
+  "engine_config": {
+    "model": "intfloat/multilingual-e5-small",
+    "revision": "614241f622f53c4eeff9890bdc4f31cfecc418b3",
+    "graph": "onnx/model_qint8_avx512_vnni.onnx",
+    "max_tokens": 512,
+    "pooling": "attention-mask mean",
+    "similarity": "cosine",
+    "date_mode": "availability_only"
+  },
+  "engine_build_ms": 54180.841000023065,
+  "source": "enronqa-ru-ru.zip",
+  "timing_scope": "Sequential in-process search, no explicit warmup, limit 100"
+}

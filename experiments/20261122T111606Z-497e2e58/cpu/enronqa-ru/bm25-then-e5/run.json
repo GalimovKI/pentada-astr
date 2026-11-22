@@ -1,0 +1,84 @@
+{
+  "format_version": 1,
+  "created_at": "2026-11-22T11:20:16.817940+00:00",
+  "dataset": {
+    "fingerprint": "d95b74df572f33b2b1aa428d3b6bd31a87ca957c7290950ede600e30bf059952",
+    "sha256": {
+      "README.md": "96595353e94695a16d591c5aae1aa5d8c602459d0eee9a519e862432f4a9f1bf",
+      "documents.jsonl": "457152056cb9fffd8dd796415074798a202820ccffffa449ca8c23c36d98d094",
+      "queries_dev.jsonl": "94f6cb12f08167349a34003de74013469a8b167b5e08b2e7d113b11126e9f247",
+      "qrels_dev.jsonl": "238c4f0883116b5636d35985309a402e4c62496479cc5a5fd8b10b28163ada1b"
+    },
+    "documents": 1000,
+    "queries": 2432,
+    "qrels": 2432,
+    "mailboxes": 10,
+    "unknown_document_dates": 1000,
+    "single_relevant_queries": 2432,
+    "queries_without_relevant_documents": 0,
+    "documents_by_mailbox": {
+      "dasovich-j": 100,
+      "horton-s": 100,
+      "jones-t": 100,
+      "may-l": 100,
+      "sager-e": 100,
+      "sanders-r": 100,
+      "scholtes-d": 100,
+      "skilling-j": 100,
+      "whalley-l": 100,
+      "ybarbo-p": 100
+    },
+    "queries_by_mailbox": {
+      "dasovich-j": 258,
+      "horton-s": 254,
+      "jones-t": 228,
+      "may-l": 234,
+      "sager-e": 244,
+      "sanders-r": 248,
+      "scholtes-d": 238,
+      "skilling-j": 236,
+      "whalley-l": 246,
+      "ybarbo-p": 246
+    }
+  },
+  "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+  "python": "3.14.7",
+  "machine": "arm64",
+  "device": "cpu",
+  "code": {
+    "sha256": "370a60d4a0cdb1bb7698397f6bbdef9fa5937cc4aa0deaa50a44e664831ef806",
+    "git_commit": "a31ae640d1ec830339d2858e08fccc663668cafc",
+    "git_dirty": true
+  },
+  "ks": [
+    1,
+    5,
+    10,
+    20,
+    50,
+    100
+  ],
+  "status": "ok",
+  "engine": "bm25-then-e5",
+  "factory": "mail_search.core.engine:load_e5_hybrid",
+  "engine_config": {
+    "strategy": "lexical_first",
+    "candidate_depth": 50,
+    "model_identity": "dd476dd0c2514e9b9be83aeb3853fac0763e0bdf4a71645407587d77c48a2d880b44a9d7b51c3c62626640cda0e2c2f70fdacdc25bbbd68038369d14ebdf4c39"
+  },
+  "engine_build_ms": 536.7015420051757,
+  "engine_latency": {
+    "scope": "in_process_engine_call",
+    "mode": "sequential_one_pass_no_explicit_warmup",
+    "unit": "ms",
+    "samples": 2432,
+    "percentile_method": "nearest_rank",
+    "p50": 7.700167,
+    "p95": 10.352083,
+    "p99": 12.417541,
+    "max": 16.136625,
+    "official_server_p99_measured": false
+  },
+  "source": "enronqa-ru-ru.zip",
+  "timing_scope": "Sequential in-process search, no explicit warmup, limit 100"
+}
