@@ -5,11 +5,15 @@
 
 <p align="center"><a href="https://smartmail-hackaton.ru/main/"><strong>Открыть сайт · smartmail-hackaton.ru/main/ ↗</strong></a></p>
 
+## Рекомендуемая модель
+
+**Для поиска писем используйте «BM25 с учётом событий» (`bm25-event-aware`).** Этот движок включён по умолчанию в основной версии SmartMail и работает на CPU. Среди девяти движков из сравнения ниже он показал лучший **nDCG@10 — 0,9976** на 99 публичных запросах Mail Public. [Конфигурация](configs/search/bm25-event-aware.json) · [Команда запуска](EVAL.md#9-основной-метод-поиска) · [Метрики прогона](https://github.com/GalimovKI/pentada-astr/blob/team-memory/experiments/20261122T123953Z-6968d61e/candidate/public/metrics.json)
+
 <p align="center"><a href="https://smartmail-hackaton.ru/main/"><img src="docs/assets/search-demo.gif" width="880" alt="Поиск в SmartMail: выбор ящика «Заказы покупателей», исправление «закзаик» на «заказик» и открытие найденного письма"></a></p>
 
 ## Качество поиска
 
-Девять движков dev на 99 публичных запросах к 16 376 письмам. Лучший nDCG@10 у BM25 с учётом событий.
+Результаты движков из dev на корпусе Mail Public из 16 376 писем.
 
 | Движок | Recall@10 | nDCG@10 | MRR@10 |
 |---|---:|---:|---:|
