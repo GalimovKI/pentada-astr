@@ -1,48 +1,42 @@
 <h1 align="center"><img src="docs/assets/smartmail-logo.svg" width="310" alt="SmartMail"></h1>
 
-<p align="center"><strong>Найдите письмо, даже если помните только его смысл.</strong><br>
-Умный поиск в Почте · кейс VK Tech на хакатоне МФТИ.</p>
+<p align="center"><strong>Find an email even if you only remember what it was about.</strong><br>
+SmartMail took <strong>second place at the MIPT Hackathon</strong> with its entry for VK Tech’s email search challenge.</p>
 
-<p align="center"><a href="https://smartmail-hackaton.ru/main/"><strong>Открыть сайт · smartmail-hackaton.ru/main/ ↗</strong></a></p>
+<p align="center"><a href="https://smartmail-hackaton.ru/main/"><strong>Try SmartMail ↗</strong></a></p>
 
-## Рекомендуемая модель
+## Recommended search engine
 
-**Для поиска писем используйте «BM25 с учётом событий» (`bm25-event-aware`).** Этот движок включён по умолчанию в основной версии SmartMail и работает на CPU. Среди девяти движков из сравнения ниже он показал лучший **nDCG@10 — 0,9976** на 99 публичных запросах Mail Public. [Конфигурация](configs/search/bm25-event-aware.json) · [Команда запуска](EVAL.md#9-основной-метод-поиска) · [Метрики прогона](https://github.com/GalimovKI/pentada-astr/blob/team-memory/experiments/20261122T123953Z-6968d61e/candidate/public/metrics.json)
+**Use event-aware BM25 (`bm25-event-aware`) for email search.** It powers the live site, runs on CPU, and achieved the highest **nDCG@10 (0.9976)** of the nine engines evaluated on the 99 public queries in Mail Public. [Configuration](configs/search/bm25-event-aware.json) · [Run instructions](EVAL.md#9-основной-метод-поиска) · [Run metrics](https://github.com/GalimovKI/pentada-astr/blob/team-memory/experiments/20261122T123953Z-6968d61e/candidate/public/metrics.json)
 
-<p align="center"><a href="https://smartmail-hackaton.ru/main/"><img src="docs/assets/search-demo.gif" width="880" alt="Поиск в SmartMail: выбор ящика «Заказы покупателей», исправление «закзаик» на «заказик» и открытие найденного письма"></a></p>
+<p align="center"><a href="https://smartmail-hackaton.ru/main/"><img src="docs/assets/search-demo.gif" width="880" alt="SmartMail demo showing a user selecting the customer orders mailbox, correcting a typo in the search field, and opening a matching email."></a></p>
 
-## Качество поиска
+## Search quality
 
-Результаты движков из dev на корпусе Mail Public из 16 376 писем.
+The development benchmarks use Mail Public, a corpus of 16,376 emails.
 
-| Движок | Recall@10 | nDCG@10 | MRR@10 |
+| Search engine | Recall@10 | nDCG@10 | MRR@10 |
 |---|---:|---:|---:|
-| **BM25 с учётом событий** | **0,9376** | **0,9976** | **1,0000** |
-| BM25 + E5 · объединение рангов (RRF) | 0,9366 | 0,9949 | 1,0000 |
-| E5 → BM25 | 0,9342 | 0,9935 | 0,9949 |
-| BM25 по дате + MiniLM (75/25, ARM64 INT8) | 0,9366 | 0,9931 | 0,9949 |
-| BM25 с весами запроса | 0,8648 | 0,9173 | 0,9848 |
-| BM25 со стеммингом | 0,8615 | 0,8910 | 0,9444 |
-| BM25 → E5 | 0,8547 | 0,8895 | 0,9163 |
-| BM25 базовый | 0,4441 | 0,4097 | 0,4590 |
-| E5 · косинусная близость (INT8) | 0,2961 | 0,2004 | 0,2245 |
+| **Event-aware BM25** | **0.9376** | **0.9976** | **1.0000** |
+| BM25 + E5 (reciprocal rank fusion) | 0.9366 | 0.9949 | 1.0000 |
+| E5 → BM25 | 0.9342 | 0.9935 | 0.9949 |
+| Date-aware BM25 + MiniLM (75/25, ARM64 INT8) | 0.9366 | 0.9931 | 0.9949 |
+| Query-weighted BM25 | 0.8648 | 0.9173 | 0.9848 |
+| BM25 with stemming | 0.8615 | 0.8910 | 0.9444 |
+| BM25 → E5 | 0.8547 | 0.8895 | 0.9163 |
+| Baseline BM25 | 0.4441 | 0.4097 | 0.4590 |
+| E5 with cosine similarity (INT8) | 0.2961 | 0.2004 | 0.2245 |
 
 <details>
-<summary>Скорость E5 и MiniLM на CPU и GPU</summary>
+<summary>E5 and MiniLM latency on CPU and GPU</summary>
 
-Задержка dev API в миллисекундах. 99 последовательных запросов, до 100 писем, без отдельного прогрева. CPU — Intel Xeon Gold 6338, GPU — NVIDIA A100 80 GB PCIe.
+The development API processed 99 sequential queries with a limit of 100 emails per query and no separate warm-up. Times are in milliseconds. The CPU was an Intel Xeon Gold 6338 and the GPU was an NVIDIA A100 80 GB PCIe.
 
-| Движок | CPU p50 | CPU p99 | GPU p50 | GPU p99 |
+| Search engine | CPU p50 | CPU p99 | GPU p50 | GPU p99 |
 |---|---:|---:|---:|---:|
-| E5 · косинусная близость | 29,72 | 184,76 | 16,77 | 109,04 |
-| BM25 по дате + MiniLM | 816,34 | 2 422,42 | 43,24 | 685,47 |
+| E5 with cosine similarity | 29.72 | 184.76 | 16.77 | 109.04 |
+| Date-aware BM25 + MiniLM | 816.34 | 2,422.42 | 43.24 | 685.47 |
 
 </details>
 
-[Методика оценки](EVAL.md) · [Сравнение на EnronQA](https://github.com/GalimovKI/pentada-astr/blob/e3781b900d3badfc0fe94c13f7336962c3633433/reports/quality/e5-hybrids.md) · [Запуск](DEPLOYMENT.md) · [Архитектура](COMPONENTS.md)
-
-## Мультфильм «Поиск и двадцать сантиметров»
-
-https://github.com/user-attachments/assets/1194513c-0adf-4dbd-91b2-e1e700cac703
-
-[Скачать мультфильм в MP4 · 1 мин 44 с](https://github.com/GalimovKI/pentada-astr/raw/refs/heads/main/docs/assets/hackfpmi3012-search-cartoon-v3.mp4)
+[Evaluation methodology](EVAL.md) · [EnronQA comparison](https://github.com/GalimovKI/pentada-astr/blob/e3781b900d3badfc0fe94c13f7336962c3633433/reports/quality/e5-hybrids.md) · [Deployment](DEPLOYMENT.md) · [Architecture](COMPONENTS.md)
