@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="240" viewBox="0 0 880 240" role="img" aria-labelledby="title desc">
+  <title id="title">Пример поиска в SmartMail</title>
+  <desc id="desc">Запрос о завершении досмотра контейнеров. Слово «вчера» задаёт день получения писем.</desc>
+  <rect width="880" height="240" rx="18" fill="#163777"/>
+  <g fill="none" stroke="#8dbbff" stroke-width="2" opacity=".18">
+    <path d="M605 0l151 110a20 20 0 0 0 23 0L880 35M556 0l187 137a42 42 0 0 0 51 0l86-65"/>
+  </g>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="46" y="62" fill="#c2dcff" font-size="19">Запрос в SmartMail</text>
+    <rect x="44" y="82" width="792" height="118" rx="15" fill="#fff"/>
+    <g fill="none" stroke="#1767ce" stroke-width="3.5" stroke-linecap="round">
+      <circle cx="82" cy="123" r="10"/>
+      <path d="m90 131 8 8"/>
+    </g>
+    <text x="118" y="134" fill="#132a4e" font-size="28">Найди уведомления о завершении досмотра</text>
+    <text x="118" y="171" fill="#132a4e" font-size="28">контейнеров, полученные вчера</text>
+  </g>
+</svg>
