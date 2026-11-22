@@ -37,3 +37,7 @@
 </details>
 
 [Методика оценки](EVAL.md) · [Сравнение на EnronQA](https://github.com/GalimovKI/pentada-astr/blob/e3781b900d3badfc0fe94c13f7336962c3633433/reports/quality/e5-hybrids.md) · [Запуск](DEPLOYMENT.md) · [Архитектура](COMPONENTS.md)
+
+## Мультфильм «Поиск и двадцать сантиметров»
+
+[Скачать мультфильм в MP4 · 1 мин 44 с](https://github.com/GalimovKI/pentada-astr/raw/refs/heads/main/docs/assets/hackfpmi3012-search-cartoon-v3.mp4)
