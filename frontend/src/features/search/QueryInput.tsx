@@ -2,9 +2,10 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { type SpellingChange } from "../../api/client";
 import { useSpellingHints } from "./useSpellingHints";
 
-export function QueryInput({ value, invalid, onChange }: {
+export function QueryInput({ value, invalid, example = "перенос встречи", onChange }: {
   value: string;
   invalid: boolean;
+  example?: string;
   onChange: (value: string) => void;
 }) {
   const field = useRef<HTMLInputElement>(null);
@@ -89,7 +90,7 @@ export function QueryInput({ value, invalid, onChange }: {
         autoCorrect="off" spellCheck={false}
         autoComplete="off"
         aria-autocomplete="inline"
-        placeholder="Например, перенос встречи" aria-invalid={invalid}
+        placeholder={`Например, ${example}`} aria-invalid={invalid}
         aria-describedby={invalid ? "query-error" : primary ? "inline-hint-help" : "query-help"}
         onSelect={event => caret(event.currentTarget)}
         onCompositionStart={() => setComposing(true)} onCompositionEnd={() => setComposing(false)}

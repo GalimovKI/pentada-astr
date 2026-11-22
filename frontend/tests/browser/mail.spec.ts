@@ -3,15 +3,64 @@ import { cards, mockApi, preview, reply, searchFor } from "./helpers";
 
 test("public landing loads search without prefetching messages or dev controls", async ({ page }) => {
   const paths: string[] = [];
-  await mockApi(page, async (_route, url) => { paths.push(url.pathname); return false; });
+  await mockApi(page, async (route, url) => {
+    paths.push(url.pathname);
+    if (!url.pathname.endsWith("/mailboxes")) return false;
+    await reply(route, { items: ["box-extra", "box-84bd433469cb", "box-12259a301ee2", "box-90560850fd8e"] });
+    return true;
+  });
   await page.goto("./");
   await expect(page.getByRole("button", { name: "Найти", exact: true })).toBeEnabled();
   await expect(page.getByLabel("Найти письмо своими словами")).toBeVisible();
-  await expect(page.getByRole("combobox")).toHaveCount(0);
+  const picker = page.getByRole("combobox", { name: "Почтовый ящик" });
+  await expect(page.getByRole("combobox")).toHaveCount(1);
+  await expect(picker.locator("option")).toHaveText([
+    "Штрафы и счета", "Заказы покупателей", "Контейнерные перевозки",
+  ]);
+  await expect(picker).toHaveValue("box-12259a301ee2");
+  await picker.selectOption({ label: "Заказы покупателей" });
+  await expect(picker).toHaveValue("box-90560850fd8e");
   await expect(page.getByRole("article")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Оценка моделей" })).toHaveCount(0);
   await expect(cards(page)).toHaveCount(0);
   expect([...new Set(paths)]).toEqual(["/api/v1/mailboxes"]);
+});
+
+test("switching mailboxes closes the open letter and repeats only the submitted query", async ({ page }) => {
+  const searches: { box: string; query: string; date: string }[] = [];
+  await mockApi(page, async (route, url) => {
+    const match = url.pathname.match(/\/mailboxes\/([^/]+)\/search$/);
+    if (!match) return false;
+    const box = match[1];
+    const body = route.request().postDataJSON();
+    searches.push({ box, query: body.query, date: body.query_date });
+    await reply(route, { items: [{ ...preview(box, `Письмо для ${box}`, null, box), score: 1 }] });
+    return true;
+  });
+  await page.goto("./?mailbox=box-a&date=2029-10-25");
+  const field = page.getByLabel("Найти письмо своими словами");
+  const picker = page.getByRole("combobox", { name: "Почтовый ящик" });
+  const query = "новый штраф";
+  await searchFor(page, query);
+  await expect(cards(page).first()).toContainText("Письмо для box-a");
+  await field.fill("черновик");
+  await cards(page).first().click();
+  await expect(page.getByRole("article")).toContainText("Полный текст box-a");
+
+  await picker.selectOption("box-b");
+  await expect(page.getByRole("article")).toHaveCount(0);
+  await expect(cards(page)).toHaveCount(1);
+  await expect(cards(page).first()).toContainText("Письмо для box-b");
+  await expect(field).toHaveValue("черновик");
+  expect(searches).toEqual([
+    { box: "box-a", query, date: "2029-10-25" },
+    { box: "box-b", query, date: "2029-10-25" },
+  ]);
+  const params = new URL(page.url()).searchParams;
+  expect(params.get("mailbox")).toBe("box-b");
+  expect(params.get("date")).toBe("2029-10-25");
+  await page.reload();
+  await expect(picker).toHaveValue("box-b");
 });
 
 test("search preserves ranking, safe snippets, submitted text and keyboard return", async ({ page }) => {
