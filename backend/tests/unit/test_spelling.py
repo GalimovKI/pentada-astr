@@ -4,6 +4,7 @@ from unittest.mock import Mock
 from fastapi.testclient import TestClient
 from mail_search.api.app import create_app
 from mail_search.application.spelling import correct_query, spelling_hints
+from mail_search.application.word_forms import search_queries
 from mail_search.core.engine import LoadedEngine
 from mail_search.core.settings import Settings
 
@@ -46,6 +47,21 @@ class SpellingTests(unittest.TestCase):
         self.assertEqual(spelling_hints(query, expand_word_forms=True)["changes"], changes)
         self.assertEqual(correct_query("закзик, доствочках, товарчк", preserve_forms=True)[0],
                          "заказик, доставочках, товарчик")
+
+    def test_contextual_abbreviations_and_sentence_final_typos(self):
+        for query, abbreviated in (("6 наим. (комплект)", "наим"),
+                                   ("кислородн. датчика", "кислородн"),
+                                   ("3 просп.", "просп")):
+            with self.subTest(query=query):
+                for enabled in (False, True):
+                    self.assertEqual(correct_query(query, preserve_forms=enabled), (query, []))
+                    hints = spelling_hints(query, query.index("."),
+                                           expand_word_forms=enabled)
+                    self.assertEqual(hints, {"changes": [], "completions": []})
+                self.assertTrue(all(abbreviated + "." in variant for variant in search_queries(query)))
+        self.assertEqual(correct_query("Вчера пришёл закз.")[0], "Вчера пришёл заказ.")
+        self.assertEqual(correct_query("кислородн. датчика и даставка.")[0],
+                         "кислородн. датчика и доставка.")
 
     def test_prefixes_at_the_caret_do_not_affect_silent_search(self):
         query = "📩 испр в отчёте"

@@ -1,4 +1,5 @@
 """Conservative Russian mail search alternatives, including cross-POS derivations."""
+from collections.abc import Iterator
 from dataclasses import dataclass
 from functools import lru_cache
 from importlib.resources import files
@@ -9,6 +10,7 @@ from ..search.dates import RUSSIAN_DATE
 
 # Keep structured tokens literal, including identifiers and addresses.
 TOKENS = re.compile(r"(?:https?://|www\.)[^\s]+|[\w@#]+(?:[./@:+#'’–—-]+[\w@#]+)*", re.I)
+ABBREVIATION_CONTEXT = re.compile(r"\.\s+(?:[а-яё0-9]|\()")
 
 
 @dataclass(frozen=True)
@@ -22,6 +24,22 @@ class Replacement:
 @lru_cache(maxsize=1)
 def russian_morphology() -> MorphAnalyzer:
     return MorphAnalyzer()
+
+
+def editable_tokens(query: str) -> Iterator[re.Match[str]]:
+    for token in TOKENS.finditer(query):
+        word = token.group().lower()
+        if (query.startswith(".", token.end()) and RUSSIAN_TOKEN.fullmatch(word)
+                and word[-1] in "бвгджзйклмнпрстфхцчшщ"
+                and (ABBREVIATION_CONTEXT.match(query, token.end()) or re.search(r"\d\s+$", query[:token.start()]))):
+            # A consonant-final dictionary prefix before a period inside a phrase
+            # can be a truncated word, e.g. «кислородн. датчика».
+            morph = russian_morphology()
+            if not morph.word_is_known(word) and next(morph.iter_known_word_parses(word), None):
+                continue
+            if any(p.is_known and "Abbr" in p.tag for p in morph.parse(word)):
+                continue
+        yield token
 
 
 # A noun and representative surface forms also work in the unstemmed BM25 preset.
@@ -124,7 +142,7 @@ def query_words(query: str) -> list[WordForms]:
     words = []
     dates = RUSSIAN_DATE.finditer(query)
     date = next(dates, None)
-    for token in TOKENS.finditer(query):
+    for token in editable_tokens(query):
         while date and date.end() <= token.start():
             date = next(dates, None)
         if date and date.start() <= token.start() < date.end():

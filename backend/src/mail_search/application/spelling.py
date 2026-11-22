@@ -8,8 +8,8 @@ import re
 from spellchecker import SpellChecker
 
 from .word_forms import (
-    FAMILY_WORDS, PRODUCTIVE_DIMINUTIVE, PROPER_TAGS, Replacement, TOKENS,
-    diminutive_base, query_words, russian_morphology,
+    FAMILY_WORDS, PRODUCTIVE_DIMINUTIVE, PROPER_TAGS, Replacement,
+    diminutive_base, editable_tokens, query_words, russian_morphology,
 )
 
 RU = re.compile("[а-яё]{3,32}")
@@ -42,7 +42,7 @@ def top_completions(prefix: str, language: str) -> tuple[str, ...]:
 def spelling_hints(query: str, cursor: int | None = None, *, expand_word_forms: bool = False) -> dict[str, list[Replacement]]:
     _, changes = correct_query(query, preserve_forms=expand_word_forms)
     cursor = len(query) if cursor is None else cursor
-    token = next((token for token in TOKENS.finditer(query) if token.end() == cursor), None)
+    token = next((token for token in editable_tokens(query) if token.end() == cursor), None)
     completions = []
     if token is not None:
         original = token.group()
@@ -173,7 +173,7 @@ def correct_query(query: str, *, preserve_forms: bool = False) -> tuple[str, lis
     changes = []
     corrected_length = len(query)
     pieces, cursor = [], 0
-    for token in TOKENS.finditer(query):
+    for token in editable_tokens(query):
         if token.start() in protected:
             continue
         original = token.group()
