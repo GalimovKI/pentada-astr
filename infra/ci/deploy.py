@@ -129,11 +129,6 @@ def main():
                         if p.is_file() and '__pycache__' not in p.parts and p.suffix != '.pyc'}
             if previous and migrations(previous) != migrations(release):
                 raise RuntimeError('Migrations changed: deploy this environment manually first')
-            # Build both images before touching this environment's running containers.
-            compose(release, 'build', 'backend')
-            if gpu_environment(root, release):
-                compose(release, 'run', '--rm', '--no-deps', 'backend',
-                        'python', '/app/scripts/check_minilm_gpu.py')
             if environment == 'dev':
                 verifier = os.environ.get('DEV_AUTH_BCRYPT', '')
                 if not re.fullmatch(r'\$2[aby]\$(?:1[0-6])\$[./A-Za-z0-9]{53}', verifier):
@@ -148,6 +143,12 @@ def main():
                 pending.write_text(verifier + '\n')
                 pending.chmod(0o444)
                 pending.replace(password_file)
+
+            # Build both images before touching this environment's running containers.
+            compose(release, 'build', 'backend')
+            if gpu_environment(root, release):
+                compose(release, 'run', '--rm', '--no-deps', 'backend',
+                        'python', '/app/scripts/check_minilm_gpu.py')
             with archive.open('rb') as stream:
                 run(*ssh, f'stage {environment} {sha}', stdin=stream)
 
