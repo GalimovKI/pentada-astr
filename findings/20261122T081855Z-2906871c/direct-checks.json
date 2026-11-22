@@ -1,0 +1,30 @@
+{
+  "id": "20261122T081855Z-2906871c",
+  "timestamp": "2026-11-22T08:18:55.506048+00:00",
+  "direct_wifi_checks": [
+    {
+      "path": "main/",
+      "exit_code": 0,
+      "status_and_seconds": "200 0.034109",
+      "error": ""
+    },
+    {
+      "path": "dev/",
+      "exit_code": 0,
+      "status_and_seconds": "200 0.032045",
+      "error": ""
+    },
+    {
+      "path": "main/api/v1/mailboxes",
+      "exit_code": 0,
+      "status_and_seconds": "200 0.042298",
+      "error": ""
+    },
+    {
+      "path": "dev/api/v1/mailboxes",
+      "exit_code": 0,
+      "status_and_seconds": "200 0.033810",
+      "error": ""
+    }
+  ]
+}
