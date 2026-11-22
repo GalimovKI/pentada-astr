@@ -49,6 +49,7 @@ class ApiTests(PostgreSQLTestCase):
             self.assertEqual(client.post(url, json={"model": "unknown", "dataset": "mail-public"}).status_code, 422)
             self.assertEqual([d["id"] for d in client.get(url).json()["datasets"]], ["mail-public"])
             self.assertEqual(client.post(url, json={"model": "bm25", "dataset": "enronqa-ru"}).status_code, 422)
+            self.assertEqual(client.post(url, json={"model": "bm25", "dataset": "mail-public", "device": "cuda"}).status_code, 422)
             reply = client.post(url, json={"model": "bm25", "dataset": "mail-public"})
             self.assertEqual(reply.status_code, 202)
             deadline = time.monotonic() + 20
@@ -57,6 +58,9 @@ class ApiTests(PostgreSQLTestCase):
             self.assertEqual(job["status"], "completed")
             self.assertEqual(job["metrics"]["failed_queries"], 0)
             self.assertEqual(job["samples"], job["total"])
+            self.assertEqual(job["device"], "cpu")
+            ms = [job[f"p{q}_ms"] for q in (50, 90, 95, 99)]
+            self.assertEqual(ms, sorted(ms))
             self.assertGreater(job["p99_ms"], 0)
             self.assertEqual(json.loads((folder / job["id"] / "metrics.json").read_text()), job["metrics"])
 
@@ -65,6 +69,8 @@ class ApiTests(PostgreSQLTestCase):
             row, = client.get(url).json()["comparisons"]
             self.assertEqual((row["dataset"], row["model"]), ("mail-public", "bm25"))
             self.assertEqual(row["ndcg"], job["metrics"]["by_k"]["10"]["ndcg"])
+            self.assertEqual(row["device"], "cpu")
+            self.assertEqual(row["p50_ms"], job["p50_ms"])
 
     def test_dev_mail_presets_match_their_engines(self):
         from importlib import import_module

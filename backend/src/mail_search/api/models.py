@@ -1,6 +1,6 @@
 import re
 from datetime import date
-from typing import Annotated
+from typing import Annotated, Literal
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, field_validator
 
 
@@ -116,6 +116,7 @@ PageLimit = Annotated[int, BeforeValidator(page_integer)]
 
 
 class EvaluationSelection(BaseModel):
+    device: Literal["cpu", "cuda"] | None = None
     model_config = ConfigDict(extra="forbid")
     model: str = Field(max_length=64)
     dataset: str = Field(max_length=64)

@@ -70,12 +70,23 @@ COPY infra/docker/fetch_e5.py /tmp/fetch_e5.py
 RUN mkdir -p /opt/mailsearch/e5 && \
     if [ "$INCLUDE_MINILM" = "1" ]; then python /tmp/fetch_e5.py --device "$E5_DEVICE" --output /opt/mailsearch/e5; fi
 
+# Reuse the GPU already assigned to MiniLM for dev evaluation of E5.
+# The interactive E5 graph and device stay independently configured.
+FROM model-fetch AS e5-eval-model
+ARG MINILM_DEVICE=cpu
+ARG E5_DEVICE=cpu
+COPY infra/docker/fetch_e5.py /tmp/fetch_e5.py
+RUN mkdir -p /opt/mailsearch/e5-eval-cuda && \
+    if [ "$MINILM_DEVICE" = cuda ] && [ "$E5_DEVICE" != cuda ]; then \
+      python /tmp/fetch_e5.py --device cuda --output /opt/mailsearch/e5-eval-cuda; fi
+
 FROM python-base AS runtime
 ENV PATH="/app/backend/.venv/bin:$PATH" PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 WORKDIR /app
 RUN useradd --uid 10001 --create-home app && install -d -o app -g app /home/app/evaluations /home/app/e5-indexes
 COPY --from=minilm-model /opt/mailsearch/minilm /opt/mailsearch/minilm
 COPY --from=e5-model /opt/mailsearch/e5 /opt/mailsearch/e5
+COPY --from=e5-eval-model /opt/mailsearch/e5-eval-cuda /opt/mailsearch/e5-eval-cuda
 COPY --from=dependencies /app/backend/.venv /app/backend/.venv
 # Install only our wheel on top of the stable dependency layer, without network.
 # Bind mounts keep the build tool and wheel out of the final image.

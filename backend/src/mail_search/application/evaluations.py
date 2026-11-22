@@ -25,6 +25,21 @@ from .mail import ServiceError
 PUBLIC_FINGERPRINT = "0daa664136d798c1ed2fe50802a7d236f93b4891d56f2353bc5b807b56601665"
 
 
+QUANTILES = {"p50": .50, "p90": .90, "p95": .95, "p99": .99}
+
+
+def measured_latency(samples):
+    return {name: percentile(samples, q) for name, q in QUANTILES.items()}
+
+
+def recorded_device(model, config):
+    if model == "e5-cosine":
+        return config.get("device")
+    if model == "bm25-minilm":
+        return config.get("inference_device")
+    return "cpu"
+
+
 class Evaluations:
     def __init__(self, settings, app_factory):
         self.settings = settings
@@ -39,11 +54,20 @@ class Evaluations:
         if reference.is_file():
             for row in json.loads(reference.read_text()):
                 if row["dataset"] in self.datasets and row["model"] in self.models:
-                    self.comparisons[row["dataset"], row["model"]] = row
+                    device = recorded_device(row["model"], {})
+                    self.comparisons[row["dataset"], row["model"], device] = {**row, "device": device}
         for path in settings.evaluation_dir.glob("*/run.json"):
             try:
                 metadata = json.loads(path.read_text())
                 if metadata.get("status") == "ok":
+                    latency = metadata["server_latency"]
+                    samples_path = path.with_name("per_query.jsonl")
+                    if "p50" not in latency and samples_path.is_file():
+                        with samples_path.open() as stream:
+                            samples = [r["latency_ms"] for line in stream if (r := json.loads(line)).get("latency_ms") is not None
+                                       and not r.get("error")]
+                        if samples and len(samples) == latency.get("samples"):
+                            latency.update(measured_latency(samples))
                     self._remember(metadata, json.loads(path.with_name("metrics.json").read_text()))
             except (OSError, ValueError, KeyError, TypeError):
                 logging.getLogger(__name__).warning("Skipping unreadable evaluation %s", path.parent.name)
@@ -54,27 +78,44 @@ class Evaluations:
             dataset = PUBLIC_DATASET
         if dataset not in self.datasets or meta["engine"] not in self.models:
             return
-        key = (dataset, meta["engine"])
+        device = recorded_device(meta["engine"], meta.get("engine_config", {}))
+        key = (dataset, meta["engine"], device)
         row = dict(dataset=dataset, model=meta["engine"], created_at=meta["created_at"],
                    fingerprint=meta["dataset"]["fingerprint"], **metrics["by_k"]["10"],
-                   p99_ms=meta["server_latency"]["p99"])
+                   device=device, samples=meta["server_latency"].get("samples"),
+                   **{f"{name}_ms": meta["server_latency"].get(name) for name in QUANTILES})
         if key not in self.comparisons or self.comparisons[key]["created_at"] < row["created_at"]:
             self.comparisons[key] = row
 
+    def _devices(self, model):
+        if model == "bm25-minilm" and self.settings.minilm_device == "cuda":
+            return ["cuda", "cpu"]
+        if model == "e5-cosine":
+            if self.settings.e5_device == "cuda":
+                return ["cuda", "cpu"]
+            graph = self.settings.evaluation_e5_cuda_dir
+            if self.settings.minilm_device == "cuda" and graph and (graph / "model.onnx").is_file():
+                return ["cpu", "cuda"]
+        return ["cpu"]
+
     def catalog(self):
         with self.lock:
-            return dict(models=model_options(self.models),
+            return dict(models=[{**m, "devices": self._devices(m["id"])} for m in model_options(self.models)],
                         datasets=[dict(id=key, name=value[0]) for key, value in self.datasets.items()],
                         comparisons=list(self.comparisons.values()),
                         run=self.latest)
 
-    def start(self, model, dataset):
+    def start(self, model, dataset, device=None):
         if model not in self.models or dataset not in self.datasets:
             raise ServiceError(422, "unknown_evaluation_option")
+        devices = self._devices(model)
+        device = devices[0] if device is None else device
+        if device not in devices:
+            raise ServiceError(422, "unsupported_evaluation_device")
         with self.lock:
             if self.latest and self.latest["status"] == "running":
                 raise ServiceError(409, "evaluation_running")
-            self.latest = dict(id=uuid4().hex, model=model, dataset=dataset, status="running",
+            self.latest = dict(id=uuid4().hex, model=model, dataset=dataset, device=device, status="running",
                                phase="Подготовка модели", completed=0, total=None)
             self.worker.submit(self._run, self.latest)
 
@@ -95,6 +136,13 @@ class Evaluations:
         _, archive, database_url = self.datasets[job["dataset"]]
         settings = model_settings(self.settings, model).model_copy(update=dict(
             search_dataset=archive, database_url=database_url))
+        if model == "bm25-minilm":
+            settings = settings.model_copy(update={"minilm_device": job["device"]})
+        if model == "e5-cosine":
+            graph = settings.e5_model_dir
+            if settings.e5_device == "cpu" and "cuda" in self._devices(model):
+                graph = settings.evaluation_e5_cuda_dir
+            settings = settings.model_copy(update={"e5_device": job["device"], "e5_model_dir": graph})
         ds = load_dataset(settings.search_dataset)
         self._update(total=len(ds.queries))
         predictions, times, errors = {}, {}, {}
@@ -131,11 +179,12 @@ class Evaluations:
                 self._update(completed=i, phase="Выполняется поиск")
         metrics, rows = evaluate(ds, predictions, DEFAULT_KS, durations=times, errors=errors)
         samples = list(times.values())
-        latency = dict(samples=len(samples), p99=percentile(samples, .99),
+        latency = dict(samples=len(samples), **measured_latency(samples), percentile_method="nearest_rank",
                        scope="ASGI Server-Timing, sequential, no explicit warmup, limit=100")
         if model == "e5-cosine":
             engine_config["device"] = settings.e5_device
-            if settings.e5_device == "cuda":
+            engine_config["model_identity"] = loaded.engine.model.identity
+            if "cuda" in self._devices(model):
                 engine_config["graph"] = "onnx/model.onnx"
         metadata = dict(created_at=datetime.now(timezone.utc).isoformat(), status="failed" if errors else "ok",
                         engine=model, engine_config=engine_config, ks=DEFAULT_KS,
@@ -150,7 +199,7 @@ class Evaluations:
             with self.lock:
                 self._remember(metadata, metrics)
         self._update(status="completed" if not errors else "partial", phase="Прогон завершён",
-                     metrics=metrics, p99_ms=latency["p99"], samples=len(samples))
+                     metrics=metrics, **{f"{name}_ms": latency[name] for name in QUANTILES}, samples=len(samples))
 
     def close(self):
         self.worker.shutdown(wait=True)

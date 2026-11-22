@@ -18,6 +18,7 @@ class Settings(BaseModel):
     minilm_model_dir: Path | None = None
     e5_device: Literal["cpu", "cuda"] = "cpu"
     e5_model_dir: Path = repository_root() / "artifacts/models/e5"
+    evaluation_e5_cuda_dir: Path | None = None
     e5_index_dir: Path = Path.home() / ".local/state/pentada/e5-indexes"
     evaluation_dir: Path = Path.home() / ".local/state/pentada/evaluations"
     enronqa_ru_database_url: SecretStr | None = None

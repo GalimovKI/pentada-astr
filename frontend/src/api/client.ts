@@ -45,15 +45,18 @@ export interface SearchBody {
   query_date: string;
   limit?: number;
 }
-type EvalSelection = { model: string; dataset: string };
+export type EvalDevice = "cpu" | "cuda";
+type LatencyMetrics = Partial<Record<"p50_ms" | "p90_ms" | "p95_ms" | "p99_ms", number | null>>;
+type EvalSelection = { model: string; dataset: string; device?: EvalDevice | null };
 type MetricRow = { recall: number; ndcg: number; mrr: number; mrr_single: number | null };
-export type EvalOption = { id: string; name: string; threshold?: number };
+export type EvalOption = { id: string; name: string; threshold?: number; devices?: EvalDevice[] };
 export interface Features { evaluations: boolean; mail_models?: EvalOption[] }
 export interface EvaluationCatalog {
   models: EvalOption[];
   datasets: EvalOption[];
-  comparisons: (EvalSelection & MetricRow & { fingerprint: string; source?: string; created_at: string; p99_ms: number | null })[];
-  run: (EvalSelection & {
+  comparisons: (EvalSelection & MetricRow & LatencyMetrics & { device?: EvalDevice | null; fingerprint: string; source?: string; created_at: string; p99_ms: number | null })[];
+  run: (EvalSelection & LatencyMetrics & {
+    device?: EvalDevice;
     id: string;
     status: "running" | "completed" | "partial" | "failed";
     phase: string;
@@ -137,8 +140,8 @@ function contextParams(context: Context) {
 export const api = {
   features: (signal: AbortSignal) => request<Features>("/features", signal),
   evaluations: (signal: AbortSignal) => request<EvaluationCatalog>("/evaluations", signal),
-  startEvaluation: (model: string, dataset: string, signal: AbortSignal) =>
-    request<EvaluationCatalog>("/evaluations", signal, { model, dataset }),
+  startEvaluation: (model: string, dataset: string, device: EvalDevice, signal: AbortSignal) =>
+    request<EvaluationCatalog>("/evaluations", signal, { model, dataset, device }),
   mailboxes: (signal: AbortSignal) => request<Mailboxes>("/mailboxes", signal),
   messages: (context: Context, signal: AbortSignal, cursor?: string) => {
     const params = contextParams(context);

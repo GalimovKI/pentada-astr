@@ -21,6 +21,7 @@ services:
       <<: *e5
       MINILM_MODEL_DIR: /opt/mailsearch/minilm
       ENABLE_EVALUATIONS: "true"
+      EVALUATION_E5_CUDA_DIR: /opt/mailsearch/e5-eval-cuda
       ENRONQA_DIRECTORY: /data/enronqa
       ENRONQA_RU_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/enronqa_ru
       ENRONQA_EN_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/enronqa_en
