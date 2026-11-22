@@ -101,8 +101,11 @@ def diminutive_base(word: str) -> str | None:
 
 def retrieval_forms(lemma: str) -> tuple[str, ...]:
     if lemma in RELATED_LEMMAS:
-        # A related noun can retrieve more letters, but the verb's lemma is its infinitive.
-        return tuple(dict.fromkeys((lemma, *RELATED_FORMS[RELATED_LEMMAS[lemma]])))
+        related = RELATED_FORMS[RELATED_LEMMAS[lemma]]
+        # Search established noun topics first. Preserve infinitives for verb queries.
+        if russian_morphology().parse(lemma)[0].tag.POS == "NOUN":
+            return tuple(dict.fromkeys((*related, lemma)))
+        return tuple(dict.fromkeys((lemma, *related)))
     return RELATED_FORMS.get(lemma, (lemma,))
 
 

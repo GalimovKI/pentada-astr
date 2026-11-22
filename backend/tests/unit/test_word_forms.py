@@ -102,6 +102,9 @@ class WordFormTests(unittest.TestCase):
             self.assertIn("штраф", search_queries(word))
             self.assertEqual(correct_query(word, preserve_forms=True)[0], word)
         self.assertIn("оплата за штраф", search_queries("оплата за штрафик"))
+        payments = search_queries("об отклонённых платежах")
+        self.assertIn("оплата", payments[0])
+        self.assertTrue(any("платёж" in variant for variant in payments))
         self.assertIn("открытка", search_queries("открытками"))
         for text in ("марии", "переводчик", "SKU-штрафик", "штрафик@example.ru",
                      "https://банк.рф/штрафик", "ШТРАФ", "invoices"):
