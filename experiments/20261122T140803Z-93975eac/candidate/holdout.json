@@ -1,0 +1,318 @@
+{
+  "tsv_sha256": "aa7f8b709275324a61770877c3e728c952e31aeabf8f0f6b909283d611b22e84",
+  "input_pairs": 2206,
+  "n_pairs": 2206,
+  "excluded": 0,
+  "n_families": 2073,
+  "folds": [
+    {
+      "fold": 0,
+      "train": 1751,
+      "test": 455,
+      "overlap": 0
+    },
+    {
+      "fold": 1,
+      "train": 1758,
+      "test": 448,
+      "overlap": 0
+    },
+    {
+      "fold": 2,
+      "train": 1779,
+      "test": 427,
+      "overlap": 0
+    },
+    {
+      "fold": 3,
+      "train": 1766,
+      "test": 440,
+      "overlap": 0
+    },
+    {
+      "fold": 4,
+      "train": 1770,
+      "test": 436,
+      "overlap": 0
+    }
+  ],
+  "snowball_same_count": 0,
+  "oof_lemma": {
+    "total": 2206,
+    "predicted": 1912,
+    "correct": 1853,
+    "incorrect": 59,
+    "coverage": 0.8667271078875793,
+    "exact_overall": 0.8399818676337262,
+    "precision_on_predictions": 0.9691422594142259
+  },
+  "oof_guarded": {
+    "total": 2206,
+    "predicted": 1041,
+    "correct": 933,
+    "incorrect": 108,
+    "coverage": 0.47189483227561196,
+    "exact_overall": 0.4229374433363554,
+    "precision_on_predictions": 0.8962536023054755
+  },
+  "probes": {
+    "штрафик": {
+      "expected": "штраф",
+      "generated": "штраф",
+      "guarded": "штраф",
+      "in_train": false,
+      "stems": [
+        [
+          "штрафик"
+        ],
+        [
+          "штраф"
+        ]
+      ]
+    },
+    "штрафчиком": {
+      "expected": "штраф",
+      "generated": null,
+      "guarded": "штраф",
+      "in_train": false,
+      "stems": [
+        [
+          "штрафчик"
+        ],
+        [
+          "штраф"
+        ]
+      ]
+    },
+    "штрафиках": {
+      "expected": "штраф",
+      "generated": null,
+      "guarded": "штраф",
+      "in_train": false,
+      "stems": [
+        [
+          "штрафик"
+        ],
+        [
+          "штраф"
+        ]
+      ]
+    },
+    "штрафчиками": {
+      "expected": "штраф",
+      "generated": null,
+      "guarded": "штраф",
+      "in_train": false,
+      "stems": [
+        [
+          "штрафчик"
+        ],
+        [
+          "штраф"
+        ]
+      ]
+    },
+    "заказик": {
+      "expected": "заказ",
+      "generated": "заказ",
+      "guarded": "заказ",
+      "in_train": false,
+      "stems": [
+        [
+          "заказик"
+        ],
+        [
+          "заказ"
+        ]
+      ]
+    },
+    "складик": {
+      "expected": "склад",
+      "generated": "склад",
+      "guarded": "склад",
+      "in_train": false,
+      "stems": [
+        [
+          "складик"
+        ],
+        [
+          "склад"
+        ]
+      ]
+    },
+    "контейнерчиками": {
+      "expected": "контейнер",
+      "generated": null,
+      "guarded": "контейнер",
+      "in_train": false,
+      "stems": [
+        [
+          "контейнерчик"
+        ],
+        [
+          "контейнер"
+        ]
+      ]
+    },
+    "доставочка": {
+      "expected": "доставка",
+      "generated": "доставка",
+      "guarded": "доставка",
+      "in_train": false,
+      "stems": [
+        [
+          "доставочк"
+        ],
+        [
+          "доставк"
+        ]
+      ]
+    },
+    "упаковочка": {
+      "expected": "упаковка",
+      "generated": "упаковка",
+      "guarded": null,
+      "in_train": false,
+      "stems": [
+        [
+          "упаковочк"
+        ],
+        [
+          "упаковк"
+        ]
+      ]
+    },
+    "возвратик": {
+      "expected": "возврат",
+      "generated": "возврат",
+      "guarded": "возврат",
+      "in_train": false,
+      "stems": [
+        [
+          "возвратик"
+        ],
+        [
+          "возврат"
+        ]
+      ]
+    }
+  },
+  "negative_controls": {
+    "график": {
+      "raw": "граф",
+      "guarded": null
+    },
+    "ручка": {
+      "raw": null,
+      "guarded": null
+    },
+    "заказчик": {
+      "raw": "заказ",
+      "guarded": null
+    },
+    "переводчик": {
+      "raw": "перевод",
+      "guarded": null
+    },
+    "гвоздик": {
+      "raw": "гвоздь",
+      "guarded": null
+    },
+    "поводок": {
+      "raw": "повод",
+      "guarded": null
+    },
+    "дворник": {
+      "raw": null,
+      "guarded": null
+    },
+    "открытка": {
+      "raw": null,
+      "guarded": null
+    },
+    "отпускник": {
+      "raw": null,
+      "guarded": null
+    },
+    "холодильник": {
+      "raw": null,
+      "guarded": null
+    },
+    "заявка": {
+      "raw": null,
+      "guarded": null
+    },
+    "проводник": {
+      "raw": null,
+      "guarded": null
+    },
+    "техник": {
+      "raw": null,
+      "guarded": null
+    },
+    "датчик": {
+      "raw": null,
+      "guarded": null
+    },
+    "сотрудник": {
+      "raw": null,
+      "guarded": null
+    },
+    "страховщик": {
+      "raw": null,
+      "guarded": null
+    },
+    "чайник": {
+      "raw": null,
+      "guarded": null
+    },
+    "графин": {
+      "raw": null,
+      "guarded": null
+    },
+    "станочник": {
+      "raw": null,
+      "guarded": null
+    },
+    "сантехник": {
+      "raw": null,
+      "guarded": null
+    },
+    "дневник": {
+      "raw": null,
+      "guarded": null
+    },
+    "срок": {
+      "raw": null,
+      "guarded": null
+    },
+    "тариф": {
+      "raw": null,
+      "guarded": null
+    },
+    "налог": {
+      "raw": null,
+      "guarded": null
+    }
+  },
+  "n_known": 783,
+  "oof_lemma_known": {
+    "total": 783,
+    "predicted": 694,
+    "correct": 672,
+    "incorrect": 22,
+    "coverage": 0.8863346104725415,
+    "exact_overall": 0.8582375478927203,
+    "precision_on_predictions": 0.968299711815562
+  },
+  "oof_lemma_oov": {
+    "total": 1423,
+    "predicted": 1218,
+    "correct": 1181,
+    "incorrect": 37,
+    "coverage": 0.8559381588193956,
+    "exact_overall": 0.8299367533380183,
+    "precision_on_predictions": 0.9696223316912972
+  },
+  "model_git_sha": "391b83406a432d3f07de768775f0bfb9a708e3eb"
+}

@@ -1,0 +1,177 @@
+{
+  "inflection": {
+    "о возвратах": {
+      "expected": "о возврат",
+      "spelling": "о возвратах",
+      "variants": [
+        "о возвратах",
+        "о возврат"
+      ],
+      "primary_match": false
+    },
+    "срочными документами": {
+      "expected": "срочный документ",
+      "spelling": "срочными документами",
+      "variants": [
+        "срочными документами",
+        "срочный документ"
+      ],
+      "primary_match": false
+    },
+    "проверяю документы": {
+      "expected": "проверять документ",
+      "spelling": "проверяю документы",
+      "variants": [
+        "проверяю документы",
+        "проверять документ"
+      ],
+      "primary_match": false
+    },
+    "проверенные документы": {
+      "expected": "проверить документ",
+      "spelling": "проверенные документы",
+      "variants": [
+        "проверенные документы",
+        "проверить документ"
+      ],
+      "primary_match": false
+    },
+    "упаковывают проверенные документы": {
+      "expected": "упаковывать проверить документ",
+      "spelling": "упаковывают проверенные документы",
+      "variants": [
+        "упаковывают проверенные документы",
+        "упаковывать проверить документ"
+      ],
+      "primary_match": false
+    },
+    "оформлялись срочные возвраты": {
+      "expected": "оформляться срочный возврат",
+      "spelling": "оформлялись срочные возвраты",
+      "variants": [
+        "оформлялись срочные возвраты",
+        "оформляться срочный возврат"
+      ],
+      "primary_match": false
+    },
+    "приходили с заказиками": {
+      "expected": "приходить с заказ",
+      "spelling": "приходили с заказиками",
+      "variants": [
+        "приходили с заказ",
+        "приходили с заказиками",
+        "приходить с заказ"
+      ],
+      "primary_match": false
+    },
+    "по штрафчикам": {
+      "expected": "по штраф",
+      "spelling": "по штрафчикам",
+      "variants": [
+        "по штраф",
+        "по штрафчикам",
+        "по штрафик",
+        "по оштрафовали"
+      ],
+      "primary_match": true
+    }
+  },
+  "protection": {
+    "график": {
+      "expected": "график",
+      "spelling": "график",
+      "variants": [
+        "график"
+      ],
+      "primary_match": true
+    },
+    "заказчик": {
+      "expected": "заказчик",
+      "spelling": "заказчик",
+      "variants": [
+        "заказчик"
+      ],
+      "primary_match": true
+    },
+    "переводчик": {
+      "expected": "переводчик",
+      "spelling": "переводчик",
+      "variants": [
+        "переводчик"
+      ],
+      "primary_match": true
+    },
+    "поводок": {
+      "expected": "поводок",
+      "spelling": "поводок",
+      "variants": [
+        "поводок"
+      ],
+      "primary_match": true
+    },
+    "гвоздик": {
+      "expected": "гвоздик",
+      "spelling": "гвоздик",
+      "variants": [
+        "гвоздик"
+      ],
+      "primary_match": true
+    },
+    "ручка": {
+      "expected": "ручка",
+      "spelling": "ручка",
+      "variants": [
+        "ручка"
+      ],
+      "primary_match": true
+    },
+    "от Ивана": {
+      "expected": "от Ивана",
+      "spelling": "от Ивана",
+      "variants": [
+        "от Ивана"
+      ],
+      "primary_match": true
+    },
+    "стали": {
+      "expected": "стали",
+      "spelling": "стали",
+      "variants": [
+        "стали"
+      ],
+      "primary_match": true
+    },
+    "к двум": {
+      "expected": "к двум",
+      "spelling": "к двум",
+      "variants": [
+        "к двум"
+      ],
+      "primary_match": true
+    },
+    "5 декабря 2028 года": {
+      "expected": "5 декабря 2028 года",
+      "spelling": "5 декабря 2028 года",
+      "variants": [
+        "5 декабря 2028 года"
+      ],
+      "primary_match": true
+    },
+    "SKU-штрафик": {
+      "expected": "SKU-штрафик",
+      "spelling": "SKU-штрафик",
+      "variants": [
+        "SKU-штрафик"
+      ],
+      "primary_match": true
+    },
+    "штрафик@example.com": {
+      "expected": "штрафик@example.com",
+      "spelling": "штрафик@example.com",
+      "variants": [
+        "штрафик@example.com"
+      ],
+      "primary_match": true
+    }
+  }
+}

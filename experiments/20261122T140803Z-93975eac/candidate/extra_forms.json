@@ -1,0 +1,83 @@
+[
+  {
+    "box": "fines",
+    "base": "штраф",
+    "surface": "штрафик",
+    "spelling": "штрафик",
+    "primary": "штраф",
+    "nonempty": true,
+    "same": true
+  },
+  {
+    "box": "fines",
+    "base": "штраф",
+    "surface": "штрафиком",
+    "spelling": "штрафиком",
+    "primary": "штраф",
+    "nonempty": true,
+    "same": true
+  },
+  {
+    "box": "fines",
+    "base": "штраф",
+    "surface": "штрафчиками",
+    "spelling": "штрафчиками",
+    "primary": "штраф",
+    "nonempty": true,
+    "same": true
+  },
+  {
+    "box": "fines",
+    "base": "штраф",
+    "surface": "штрафиках",
+    "spelling": "штрафиках",
+    "primary": "штраф",
+    "nonempty": true,
+    "same": true
+  },
+  {
+    "box": "fines",
+    "base": "штраф",
+    "surface": "штрафчику",
+    "spelling": "штрафчику",
+    "primary": "штраф",
+    "nonempty": true,
+    "same": true
+  },
+  {
+    "box": "fines",
+    "base": "штраф",
+    "surface": "штрфаик",
+    "spelling": "штрафик",
+    "primary": "штраф",
+    "nonempty": true,
+    "same": true
+  },
+  {
+    "box": "orders",
+    "base": "срочный заказ",
+    "surface": "срочные заказы",
+    "spelling": "срочные заказы",
+    "primary": "срочный заказ",
+    "nonempty": true,
+    "same": true
+  },
+  {
+    "box": "orders",
+    "base": "срочный заказ",
+    "surface": "срочными заказиками",
+    "spelling": "срочными заказиками",
+    "primary": "срочный заказ",
+    "nonempty": true,
+    "same": true
+  },
+  {
+    "box": "orders",
+    "base": "проверить документ",
+    "surface": "проверенные документы",
+    "spelling": "проверенные документы",
+    "primary": "проверить документ",
+    "nonempty": true,
+    "same": true
+  }
+]

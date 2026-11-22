@@ -1,0 +1,26 @@
+{
+  "queries": 99,
+  "failed_queries": 0,
+  "single_relevant_queries": 42,
+  "aggregation": "macro; no-relevant queries receive zero; failed queries retained",
+  "by_k": {
+    "1": {
+      "recall": 0.551552632189887,
+      "ndcg": 0.98989898989899,
+      "mrr": 0.98989898989899,
+      "mrr_single": 0.9761904761904762
+    },
+    "5": {
+      "recall": 0.8545645077507823,
+      "ndcg": 0.9894357588863789,
+      "mrr": 0.9949494949494949,
+      "mrr_single": 0.9880952380952381
+    },
+    "10": {
+      "recall": 0.9375641606033763,
+      "ndcg": 0.9938822109275142,
+      "mrr": 0.9949494949494949,
+      "mrr_single": 0.9880952380952381
+    }
+  }
+}

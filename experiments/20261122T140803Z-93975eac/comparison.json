@@ -1,0 +1,131 @@
+{
+  "public": {
+    "same_rankings": 89,
+    "count": 99,
+    "same_primary_wording": 0,
+    "receipt_day_preserved": [
+      99,
+      99
+    ],
+    "spelling_restored": [
+      99,
+      99
+    ],
+    "metrics": [
+      {
+        "recall": 0.9375641606033763,
+        "ndcg": 0.9976101932146711,
+        "mrr": 1.0,
+        "mrr_single": 1.0
+      },
+      {
+        "recall": 0.9375641606033763,
+        "ndcg": 0.9976101932146711,
+        "mrr": 1.0,
+        "mrr_single": 1.0
+      }
+    ],
+    "failed_queries": [
+      0,
+      0
+    ],
+    "ndcg_changes": [],
+    "changed_query_metrics_at_any_k": []
+  },
+  "typo": {
+    "same_rankings": 88,
+    "count": 99,
+    "same_primary_wording": 0,
+    "receipt_day_preserved": [
+      99,
+      99
+    ],
+    "spelling_restored": [
+      77,
+      77
+    ],
+    "metrics": [
+      {
+        "recall": 0.9375641606033763,
+        "ndcg": 0.9938822109275142,
+        "mrr": 0.9949494949494949,
+        "mrr_single": 0.9880952380952381
+      },
+      {
+        "recall": 0.9375641606033763,
+        "ndcg": 0.9938822109275142,
+        "mrr": 0.9949494949494949,
+        "mrr_single": 0.9880952380952381
+      }
+    ],
+    "failed_queries": [
+      0,
+      0
+    ],
+    "ndcg_changes": [],
+    "changed_query_metrics_at_any_k": []
+  },
+  "probes": {
+    "cases": 36,
+    "eligible": [
+      27,
+      27
+    ],
+    "matched": [
+      27,
+      27
+    ],
+    "changes": []
+  },
+  "extra_forms": {
+    "cases": 9,
+    "eligible": [
+      9,
+      9
+    ],
+    "matched": [
+      8,
+      9
+    ],
+    "changes": [
+      {
+        "pair": [
+          "проверить документ",
+          "проверенные документы"
+        ],
+        "baseline": false,
+        "candidate": true
+      }
+    ]
+  },
+  "input_controls": [
+    10,
+    10
+  ],
+  "phrases": [
+    {
+      "inflection": {
+        "total": 8,
+        "matched_primary": 1,
+        "matched_any_variant": 8
+      },
+      "protection": {
+        "total": 12,
+        "matched_primary": 12,
+        "matched_any_variant": 12
+      }
+    },
+    {
+      "inflection": {
+        "total": 8,
+        "matched_primary": 8,
+        "matched_any_variant": 8
+      },
+      "protection": {
+        "total": 12,
+        "matched_primary": 10,
+        "matched_any_variant": 12
+      }
+    }
+  ]
+}
