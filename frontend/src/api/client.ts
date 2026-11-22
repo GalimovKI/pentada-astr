@@ -39,7 +39,14 @@ export interface Context {
   mailbox: string;
   date: string;
 }
+export interface SpellingChange {
+  start: number;
+  end: number;
+  original: string;
+  replacement: string;
+}
 export interface SearchBody {
+  correct_typos?: boolean;
   relevance_threshold?: number;
   query: string;
   query_date: string;
@@ -81,7 +88,7 @@ export class ApiError extends Error {
 async function request<T>(
   path: string,
   signal: AbortSignal,
-  body?: SearchBody | EvalSelection,
+  body?: SearchBody | EvalSelection | { query: string },
 ): Promise<T> {
   let response: Response;
   try {
@@ -162,13 +169,16 @@ export const api = {
       signal,
     );
   },
-  search: (context: Context, query: string, signal: AbortSignal, model?: string, threshold?: number) => {
+  spelling: (query: string, signal: AbortSignal) =>
+    request<{ changes: SpellingChange[] }>("/spelling", signal, { query }),
+  search: (context: Context, query: string, signal: AbortSignal, model?: string, threshold?: number, correctTypos = false) => {
     const params = new URLSearchParams({ explain: "true" });
     if (context.dataset) params.set("dataset", context.dataset);
     if (model) params.set("model", model);
     return request<SearchResponse>(`${mailboxPath(context)}/search?${params}`, signal, {
       query,
       query_date: context.date,
+      ...(correctTypos ? { correct_typos: true } : {}),
       ...(threshold === undefined ? { limit: 10 } : { relevance_threshold: threshold }),
     });
   },

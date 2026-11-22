@@ -271,3 +271,12 @@ mark { color: #382800; background: #ffe8a6; border-radius: 2px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+.spelling-controls { flex-basis: 100%; min-width: 0; }
+.spelling-modes, .spelling-suggestions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.spelling-controls span { color: var(--muted); margin-right: 4px; font-size: .8rem; }
+.spelling-controls button { min-height: 32px; padding: 5px 10px; font-size: .8rem; }
+.spelling-modes button[aria-pressed=true] { color: var(--action); background: var(--selected); border-color: var(--action); }
+.spelling-suggestions { margin-top: 8px; }
+.spelling-suggestions button { color: var(--action); }
+@media (pointer: coarse) { .spelling-controls button { min-height: 44px; } }

@@ -7,6 +7,7 @@ import {
   type SearchResponse,
 } from "../api/client";
 import { useTask } from "./useTask";
+import { type SpellingMode, readSpellingMode } from "../features/search/SpellingControls";
 import { SearchForm } from "../features/search/SearchForm";
 import { MessageList } from "../features/messages/MessageList";
 import { MessageReader } from "../features/messages/MessageReader";
@@ -20,6 +21,13 @@ export function MailSession({ context, models, model, onModelChange }: {
 }) {
   const list = useTask<Messages>();
   const search = useTask<SearchResponse>();
+  const [spellingMode, setSpellingMode] = useState<SpellingMode>(readSpellingMode);
+  function changeSpellingMode(mode: SpellingMode) {
+    setSpellingMode(mode);
+    try { localStorage.setItem("smartmail.spelling", mode); }
+    catch { /* Private browsing can disable storage. */ }
+  }
+
   const [submitted, setSubmitted] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const { run: loadList } = list;
@@ -57,7 +65,7 @@ export function MailSession({ context, models, model, onModelChange }: {
       try { localStorage.setItem(`smartmail.threshold.${selectedModel}`, String(threshold)); }
       catch { /* Search still works without persistent storage. */ }
     }
-    void search.run((signal) => api.search(context, query, signal, selectedModel, threshold));
+    void search.run((signal) => api.search(context, query, signal, selectedModel, threshold, Boolean(models?.length) && spellingMode === "silent"));
   }
   function backToList() {
     search.reset();
@@ -80,6 +88,7 @@ export function MailSession({ context, models, model, onModelChange }: {
     <>
       <section className="search-area" aria-label="Поиск">
         <SearchForm onSearch={(query, similarity) => find(query, model, similarity)}
+          spellingMode={models?.length ? spellingMode : undefined} onSpellingMode={changeSpellingMode}
           threshold={thresholdFor(model)} model={model} pending={search.pending}
           modelPicker={models?.length ? (
             <div className="mail-model field">

@@ -17,6 +17,8 @@ dependencies = [
     "uvicorn>=0.34,<1",
     "httpx>=0.28,<1",
     "bcrypt>=4.1,<6",
+    "pyspellchecker>=0.8.3,<1",
+    "pymorphy3>=2,<3",
 ]
 
 [project.optional-dependencies]

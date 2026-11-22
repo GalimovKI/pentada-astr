@@ -13,16 +13,9 @@ def exact_date(value):
 ScenarioDate = Annotated[date, BeforeValidator(exact_date)]
 
 
-class SearchBody(BaseModel):
+class QueryText(BaseModel):
     model_config = ConfigDict(extra="forbid")
     query: str = Field(strict=True, min_length=1, max_length=4000)
-    query_date: ScenarioDate
-    limit: int = Field(default=10, strict=True, ge=1, le=100)
-
-    relevance_threshold: float | None = Field(default=None, strict=True, ge=-1, le=1, allow_inf_nan=False)
-    min_similarity: float | None = Field(default=None, strict=True, ge=-1, le=1, allow_inf_nan=False)
-    offset: int = Field(default=0, strict=True, ge=0)
-
     @field_validator("query")
     @classmethod
     def nonblank(cls, value):
@@ -30,6 +23,15 @@ class SearchBody(BaseModel):
             raise ValueError("Expected nonblank query")
         return value
 
+
+class SearchBody(QueryText):
+    correct_typos: bool = Field(default=False, strict=True)
+    query_date: ScenarioDate
+    limit: int = Field(default=10, strict=True, ge=1, le=100)
+
+    relevance_threshold: float | None = Field(default=None, strict=True, ge=-1, le=1, allow_inf_nan=False)
+    min_similarity: float | None = Field(default=None, strict=True, ge=-1, le=1, allow_inf_nan=False)
+    offset: int = Field(default=0, strict=True, ge=0)
 
 class Preview(BaseModel):
     doc_id: str

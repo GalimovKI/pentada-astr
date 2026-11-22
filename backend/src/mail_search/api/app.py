@@ -24,7 +24,7 @@ from ..storage.database import database_engine
 from ..storage.repository import ArchiveStore, MailStore, UnknownMailbox
 from . import cursors
 from .models import (ErrorResponse, Health, Mailboxes, Messages, MessageResponse,
-                     SearchResponse, SearchBody, ScenarioDate, PageLimit, EvaluationSelection)
+                     SearchResponse, SearchBody, QueryText, ScenarioDate, PageLimit, EvaluationSelection)
 
 logger = logging.getLogger("mail_search.api")
 
@@ -192,6 +192,14 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
         return evaluations().catalog()
 
     @app.post("/api/v1/evaluations", status_code=202)
+    @app.post("/api/v1/spelling")
+    def spelling(body: QueryText):
+        if app.state.evaluations is None:
+            raise ServiceError(404, "spelling_disabled")
+        from ..application.spelling import correct_query
+        _, replacements = correct_query(body.query)
+        return {"changes": replacements}
+
     def start_evaluation(selection: EvaluationSelection):
         manager = evaluations()
         manager.start(selection.model, selection.dataset, selection.device)
@@ -246,7 +254,13 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
             if app.state.evaluations is None:
                 raise ServiceError(422, "model_selection_disabled")
             active = app.state.mail_model(dataset, model if model is not None else next(iter(MODELS)), archive)
-        return active.search(synthetic_user, body.query, body.query_date, body.limit, explain=explain,
+        query = body.query
+        if body.correct_typos:
+            if app.state.evaluations is None:
+                raise ServiceError(422, "spelling_disabled")
+            from ..application.spelling import correct_query
+            query, _ = correct_query(query)
+        return active.search(synthetic_user, query, body.query_date, body.limit, explain=explain,
                              min_similarity=body.min_similarity, offset=body.offset,
                              relevance_threshold=body.relevance_threshold)
 
