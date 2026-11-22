@@ -5,6 +5,14 @@ import { Failure } from "../../components/Status";
 
 const decimal = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 4 });
 
+function MetricValue({ value, max = 1 }: { value: number | null; max?: number }) {
+  if (value == null) return <>—</>;
+  return <span className="metric-score">
+    <span>{decimal.format(value)}</span>
+    <meter aria-hidden="true" min={0} max={max} value={value} />
+  </span>;
+}
+
 export function EvaluationPanel({ visible }: { visible: boolean }) {
   const { data, error, pending, run } = useTask<EvaluationCatalog>();
   const [model, setModel] = useState("");
@@ -16,6 +24,7 @@ export function EvaluationPanel({ visible }: { visible: boolean }) {
   const results = (data?.comparisons ?? []).filter(row => row.dataset === selectedDataset);
   const fingerprint = results.slice().sort((a, b) => b.created_at.localeCompare(a.created_at))[0]?.fingerprint;
   const comparison = results.filter(row => row.fingerprint === fingerprint).sort((a, b) => b.ndcg - a.ndcg);
+  const maxLatency = Math.max(0, ...comparison.map(row => row.p99_ms ?? 0)) || 1;
   const refresh = () => void run(api.evaluations, { keepData: true });
   useEffect(() => {
     if (visible) void run(api.evaluations, { keepData: true });
@@ -47,13 +56,12 @@ export function EvaluationPanel({ visible }: { visible: boolean }) {
         <h2>Сравнение моделей</h2>
         <p id="comparison-caption" className="hint">{data.datasets.find(option => option.id === selectedDataset)?.name} · последние успешные прогоны</p>
         <div className="eval-table" tabIndex={0} role="region" aria-label="Таблица сравнения"><table aria-labelledby="comparison-caption">
-          <thead><tr><th>Модель</th><th>Recall@10</th><th aria-sort="descending">nDCG@10 ↓</th><th>MRR@10</th><th>p99, мс</th><th>Место замера</th></tr></thead>
+          <thead><tr><th>Модель</th><th>Recall@10</th><th aria-sort="descending">nDCG@10 ↓</th><th>MRR@10</th><th title="Длиннее полоса — больше задержка. Шкала до максимума в таблице.">p99, мс</th><th>Место замера</th></tr></thead>
           <tbody>{comparison.map(row => <tr key={row.model}>
             <th scope="row">{data.models.find(option => option.id === row.model)?.name}</th>
-            {[row.recall, row.ndcg, row.mrr, row.p99_ms].map((value, i) =>
-              <td key={i}>{i === 1 && value != null
-                ? <span className="metric-score"><span>{decimal.format(value)}</span><meter aria-hidden="true" min={0} max={1} value={value} /></span>
-                : value == null ? "—" : decimal.format(value)}</td>)}
+            {[row.recall, row.ndcg, row.mrr].map((value, i) =>
+              <td key={i}><MetricValue value={value} /></td>)}
+            <td><MetricValue value={row.p99_ms} max={maxLatency} /></td>
             <td>{row.source ?? "Этот стенд"}</td>
           </tr>)}</tbody>
         </table></div>
@@ -73,7 +81,7 @@ export function EvaluationPanel({ visible }: { visible: boolean }) {
             <thead><tr><th>K</th><th>Recall@K</th><th>nDCG@K</th><th>MRR@K</th><th>MRR@K · одно письмо</th></tr></thead>
             <tbody>{Object.entries(current.metrics.by_k).map(([k, values]) =>
               <tr key={k}><th scope="row">{k}</th>{[values.recall, values.ndcg, values.mrr, values.mrr_single].map((value, i) =>
-                <td key={i}>{value == null ? "—" : decimal.format(value)}</td>)}</tr>)}</tbody>
+                <td key={i}><MetricValue value={value} /></td>)}</tr>)}</tbody>
           </table></div>
           <h3>Серверная задержка p99</h3>
           <p>{current.p99_ms == null ? "Нет измерений" : `${decimal.format(current.p99_ms)} мс`} · целевой порог &lt; 1 000 мс</p>
