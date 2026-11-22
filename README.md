@@ -1,8 +1,85 @@
-# Умный поиск в Почте
+<h1 align="center"><img src="frontend/public/mail.svg" width="38" height="38" alt=""> SmartMail</h1>
 
-Веб-приложение для поиска писем по описанию своими словами. Пользователь выбирает
-почтовый ящик, просматривает письма, вводит запрос и открывает найденное письмо.
-Проект разрабатывается для кейса VK Tech на хакатоне МФТИ.
+<p align="center"><strong>Найдите письмо, даже если помните только его смысл.</strong><br>
+Умный поиск в Почте · кейс VK Tech на хакатоне МФТИ</p>
+
+<p align="center">
+  <a href="https://smartmail-hackaton.ru/main/"><strong>Открыть сайт · smartmail-hackaton.ru/main/ ↗</strong></a> ·
+  <a href="#быстрый-старт">Быстрый старт</a> ·
+  <a href="#сравнение-движков">Сравнение движков</a> ·
+  <a href="#архитектура-приложения">Архитектура</a>
+</p>
+
+<!-- Когда запись будет готова, положите её в docs/assets/search-demo.gif и замените src у изображения ниже. -->
+<p align="center">
+  <a href="https://smartmail-hackaton.ru/main/">
+    <img src="docs/assets/search-preview.svg" width="880" alt="Открыть демо SmartMail. Пример поиска писем о завершении досмотра контейнеров за вчера.">
+  </a>
+</p>
+
+<p align="center">
+  16 376 писем в 12 ящиках · <a href="EVAL.md">nDCG@10 0,9976 на 99 публичных запросах</a>
+</p>
+
+## Сравнение движков
+
+Все девять пресетов dev оценены на одних и тех же 99 публичных запросах SmartMail.
+Recall@10 показывает долю найденных релевантных писем, nDCG@10 учитывает их порядок,
+а MRR@10 — позицию первого релевантного письма. Чем ближе значение к 1, тем лучше.
+
+| Движок | Recall@10 | nDCG@10 | MRR@10 |
+|---|---:|---:|---:|
+| **BM25 с учётом событий** | **0,9376** | **0,9976** | **1,0000** |
+| BM25 + E5 · объединение рангов (RRF) | 0,9366 | 0,9949 | 1,0000 |
+| E5 → BM25 | 0,9342 | 0,9935 | 0,9949 |
+| BM25 по дате + MiniLM (75/25, ARM64 INT8) | 0,9366 | 0,9931 | 0,9949 |
+| BM25 с весами запроса | 0,8648 | 0,9173 | 0,9848 |
+| BM25 со стеммингом | 0,8615 | 0,8910 | 0,9444 |
+| BM25 → E5 | 0,8547 | 0,8895 | 0,9163 |
+| BM25 базовый | 0,4441 | 0,4097 | 0,4590 |
+| E5 · косинусная близость (INT8) | 0,2961 | 0,2004 | 0,2245 |
+
+В строках со стрелкой первый движок отбирает кандидатов, а второй меняет их порядок.
+В RRF итоговый порядок учитывает позиции писем в обоих списках.
+Все публичные запросы указывают день получения. Для запросов без такой подсказки есть отдельное сравнение на EnronQA.
+[E5 и гибриды на трёх корпусах](https://github.com/GalimovKI/pentada-astr/blob/e3781b900d3badfc0fe94c13f7336962c3633433/reports/quality/e5-hybrids.md) · [Базовый BM25 и стемминг](https://github.com/GalimovKI/pentada-astr/tree/fcf4a6c/experiments/20261121T120349Z-10730634) · [BM25 с весами](https://github.com/GalimovKI/pentada-astr/tree/fcf4a6c/experiments/20261121T143749Z-0e039bca/runs/participants-bm25) · [MiniLM](https://github.com/GalimovKI/pentada-astr/tree/fcf4a6c/experiments/20261121T150307Z-e539c8bf/runs/public-blend)
+
+<details>
+<summary><strong>Скорость E5 и MiniLM на CPU и GPU</strong></summary>
+
+В каждом прогоне dev API обработал 99 последовательных запросов с лимитом 100 писем,
+без отдельного прогрева. Серверный таймер включает поиск и чтение результатов из базы.
+CPU — Intel Xeon Gold 6338, GPU — NVIDIA A100 80 GB PCIe. Время указано в миллисекундах.
+
+| Движок | CPU p50 | CPU p99 | GPU p50 | GPU p99 |
+|---|---:|---:|---:|---:|
+| E5 · косинусная близость | 29,72 | 184,76 | 16,77 | 109,04 |
+| BM25 по дате + MiniLM | 816,34 | 2 422,42 | 43,24 | 685,47 |
+
+</details>
+
+## Быстрый старт
+
+Для локального поиска и оценки понадобятся Python 3.11+, `uv` и архив участников.
+Положите архив в `data/raw/mipt_mail_search_participants.zip` или укажите свой путь
+через `--dataset`. Команды выполняются из корня репозитория. PostgreSQL нужен для
+веб-приложения, а CLI читает письма прямо из архива.
+
+```bash
+uv sync --project backend --locked
+uv run --project backend --locked mailsearch validate
+uv run --project backend --locked mailsearch search \
+  --mailbox box-84bd433469cb --as-of 2028-09-11 --limit 3 \
+  'Найди уведомления о завершении досмотра контейнеров, полученные вчера'
+```
+
+Запустить тесты и оценить поиск на всех публичных запросах можно тем же окружением.
+Для каждого прогона укажите новую папку результатов.
+
+```bash
+uv run --project backend --locked python -m unittest discover -s backend/tests -t backend -v
+uv run --project backend --locked mailsearch run --output reports/quality/runs/bm25-example
+```
 
 ## Текущее состояние
 
@@ -12,33 +89,6 @@
 Офлайн-поиск и HTTP API используют настройку
 `configs/search/bm25-event-aware.json`. Готовы PostgreSQL, импорт и веб-интерфейс
 для выбора ящика и даты, просмотра, поиска и чтения писем.
-
-PostgreSQL выбран для хранения писем, ящиков и метаданных. Остальной стек ниже —
-предлагаемая основа реализации. Модели и параметры поиска окончательно выбираются
-по результатам оценки качества и скорости на предоставленном корпусе.
-
-Локальный eval читает ZIP или распакованные JSONL напрямую: PostgreSQL для него
-не требуется. Нужны Python 3.11+ и `uv`. Snowball и зависимости PostgreSQL
-устанавливаются вместе с backend; версии закреплены в lock-файле.
-Команды из корня репозитория:
-
-```bash
-uv sync --project backend --locked
-uv run --project backend --locked python -m unittest discover -s backend/tests -t backend -v
-uv run --project backend --locked mailsearch validate
-uv run --project backend --locked mailsearch run --output reports/quality/runs/bm25-example
-```
-
-Поиск одного запроса через тот же движок:
-
-```bash
-uv run --project backend --locked mailsearch search \
-  --mailbox box-84bd433469cb --as-of 2028-09-11 --limit 3 \
-  'Найди уведомления о завершении досмотра контейнеров, полученные вчера'
-```
-
-Архив участников ожидается в `data/raw/mipt_mail_search_participants.zip`;
-другой путь задаётся через `--dataset`. Для каждого прогона нужна новая папка.
 
 ## Документация и источники
 
