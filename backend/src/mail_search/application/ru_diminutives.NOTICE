@@ -15,9 +15,7 @@ Kaikki.org extracted the dictionaries with Wiktextract. This adaptation
 uses the English Wiktionary dump of 2026-10-01 and the Russian Wiktionary
 dump of 2026-11-01. It retains lowercase Russian common nouns when all
 listed senses agree on the same diminutive relation. It removes stress
-marks and includes three additional hand-reviewed mail terms listed in
-the extraction script. These terms are subject to the same homograph
-checks as the dictionary entries.
+marks.
 
 Source indexes:
 https://kaikki.org/dictionary/Russian/

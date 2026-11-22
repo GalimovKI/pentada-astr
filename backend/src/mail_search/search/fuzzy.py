@@ -16,7 +16,7 @@ from .dates import receipt_day
 from .deadline import SEARCH_BUDGET_SECONDS, check_deadline
 
 
-COMMAND = re.compile(r"^\s*(?:найди(?:те)?|покажи(?:те)?|поищи(?:те)?|ищу|нуж(?:ен|на|но|ны)|пожалуйста)\b\s*[, ]*")
+COMMAND = re.compile(r"^\s*(?:найди(?:те)?|найти|покажи(?:те)?|показать|поищи(?:те)?|поискать|ищу|нуж(?:ен|на|но|ны)|пожалуйста)\b\s*[, ]*")
 MESSAGE_TYPE = re.compile(r"^(?:письм\w*|сообщени\w*|уведомлени\w*)\s+(?:о|об|обо|с|про|по)\s+")
 SCRIPT_BOUNDARY = re.compile(r"(?<=[а-яё])(?=[a-z0-9])|(?<=[a-z0-9])(?=[а-яё])", re.I)
 MAX_QUERY_CHARS = 4096

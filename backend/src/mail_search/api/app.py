@@ -155,7 +155,7 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
         alternatives = ()
         if body.expand_word_forms:
             from ..application.word_forms import search_queries
-            query, *alternatives = search_queries(query)
+            query, *alternatives = search_queries(query, query_date=body.query_date)
         return service().search(synthetic_user, query, body.query_date, body.limit,
                                 explain=explain, alternatives=alternatives)
 

@@ -95,7 +95,8 @@ class SpellingTests(unittest.TestCase):
                 self.assertEqual(client.post(url, json={**body, **flag}).status_code, 200)
                 self.assertEqual(engine.search.call_args.args[0].query, expected)
 
-            for text, fixed in (("штрфаик", "штрафик"), ("оштрафвоали", "оштрафовали")):
+            for text, fixed, lemma in (("штрфаик", "штрафик", "штраф"),
+                                       ("оштрафвоали", "оштрафовали", "оштрафовать")):
                 options = dict(query=text, expand_word_forms=True)
                 preview = client.post("/api/v1/spelling", json=options).json()
                 self.assertEqual(preview["changes"][0]["replacement"], fixed)
@@ -104,5 +105,6 @@ class SpellingTests(unittest.TestCase):
                 response = client.post(url, json={**body, **options, "correct_typos": True})
                 self.assertEqual(response.status_code, 200)
                 calls = [call.args[0].query for call in engine.search.call_args_list]
-                self.assertEqual(calls[:2], ["штраф", fixed])
+                self.assertEqual(calls[:2], [lemma, fixed])
+                self.assertIn("штраф", calls)
                 self.assertNotIn(text, calls)
