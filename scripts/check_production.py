@@ -41,7 +41,9 @@ def main():
             assert "WWW-Authenticate" not in headers, path
         headers, script = request("/login/login.js")
         assert script and "javascript" in headers.get_content_type()
-        print("Dev login form and session protection verified")
+        # A POST without the trusted Origin reaches the login handler and is rejected.
+        request("/session/login", 403, method="POST", body=b'{"username":"probe","password":"probe"}')
+        print("Dev login form, submit handler and session protection verified")
         return
 
     for endpoint, state in (("live", "live"), ("ready", "ready")):

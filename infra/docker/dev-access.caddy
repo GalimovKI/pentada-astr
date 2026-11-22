@@ -14,8 +14,7 @@ handle @session {
     request_body {
         max_size 4KB
     }
-    uri strip_prefix /dev/session
-    rewrite * /internal/dev{uri}
+    uri replace /dev/session/ /internal/dev/ 1
     reverse_proxy {$API_UPSTREAM:backend:8000}
 }
 forward_auth {$API_UPSTREAM:backend:8000} {
