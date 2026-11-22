@@ -35,6 +35,16 @@ class BM25MiniLMTests(TestCase):
         self.assertAlmostEqual(relevance[-1].score, 0.75 / 21)
         self.assertNotEqual(relevance[1].score, output[1].score)
 
+    def test_cpu_picks_quantized_graph_when_both_graphs_are_installed(self):
+        from mail_search.core.engine import load_bm25_minilm
+
+        settings = Settings(database_url="postgresql://unused", minilm_model_dir=Path("/models/fp32"),
+                            minilm_cpu_model_dir=Path("/models/int8"))
+        for device, expected in (("cpu", "/models/int8"), ("cuda", "/models/fp32")):
+            with patch("mail_search.core.engine._load_engine") as load:
+                load_bm25_minilm(settings.model_copy(update={"minilm_device": device}))
+                self.assertEqual(load.call_args.args[1].keywords["model_dir"], Path(expected))
+
     def test_date_only_skips_minilm(self):
         day = date(2028, 11, 20)
         model = Mock()

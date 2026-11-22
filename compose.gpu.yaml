@@ -10,5 +10,6 @@ services:
       - "${GPU_CDI_DEVICE:?Set a single nvidia.com/gpu=UUID device}"
     environment:
       MINILM_DEVICE: cuda
+      MINILM_CPU_MODEL_DIR: /opt/mailsearch/minilm-cpu
       MINILM_MODEL_DIR: /opt/mailsearch/minilm
       MINILM_GPU_MEMORY_MB: ${MINILM_GPU_MEMORY_MB:-2048}

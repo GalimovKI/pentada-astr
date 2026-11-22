@@ -15,6 +15,7 @@ class Settings(BaseModel):
     enable_evaluations: bool = False
     minilm_device: Literal["cpu", "cuda"] = "cpu"
     minilm_gpu_memory_mb: int = Field(default=2048, ge=256)
+    minilm_cpu_model_dir: Path | None = None
     minilm_model_dir: Path | None = None
     e5_device: Literal["cpu", "cuda"] = "cpu"
     e5_model_dir: Path = repository_root() / "artifacts/models/e5"

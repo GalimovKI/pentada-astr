@@ -63,6 +63,15 @@ RUN mkdir -p /opt/mailsearch/minilm && \
       python /tmp/fetch_minilm.py --arch "${TARGETARCH:-$(uname -m)}" --device "$MINILM_DEVICE" --output /opt/mailsearch/minilm; \
     fi
 
+# Mixed-device images serve the pinned integer graph to CPU benchmarks.
+FROM model-fetch AS minilm-cpu-alternative
+ARG INCLUDE_MINILM=0
+ARG MINILM_DEVICE=cpu
+ARG TARGETARCH
+RUN mkdir -p /opt/mailsearch/minilm-cpu && \
+    if [ "$INCLUDE_MINILM" = "1" ] && [ "$MINILM_DEVICE" = cuda ]; then \
+      python /tmp/fetch_minilm.py --arch "${TARGETARCH:-$(uname -m)}" --device cpu --output /opt/mailsearch/minilm-cpu; fi
+
 FROM model-fetch AS e5-model
 ARG INCLUDE_MINILM=0
 ARG E5_DEVICE=cpu
@@ -85,6 +94,7 @@ ENV PATH="/app/backend/.venv/bin:$PATH" PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECO
 WORKDIR /app
 RUN useradd --uid 10001 --create-home app && install -d -o app -g app /home/app/evaluations /home/app/e5-indexes
 COPY --from=minilm-model /opt/mailsearch/minilm /opt/mailsearch/minilm
+COPY --from=minilm-cpu-alternative /opt/mailsearch/minilm-cpu /opt/mailsearch/minilm-cpu
 COPY --from=e5-model /opt/mailsearch/e5 /opt/mailsearch/e5
 COPY --from=e5-eval-model /opt/mailsearch/e5-eval-cuda /opt/mailsearch/e5-eval-cuda
 COPY --from=dependencies /app/backend/.venv /app/backend/.venv

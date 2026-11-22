@@ -54,7 +54,7 @@ export interface Features { evaluations: boolean; mail_models?: EvalOption[] }
 export interface EvaluationCatalog {
   models: EvalOption[];
   datasets: EvalOption[];
-  comparisons: (EvalSelection & MetricRow & LatencyMetrics & { device?: EvalDevice | null; fingerprint: string; source?: string; created_at: string; p99_ms: number | null })[];
+  comparisons: (EvalSelection & MetricRow & LatencyMetrics & { device?: EvalDevice | null; fingerprint: string; precision?: string | null; source?: string; created_at: string; p99_ms: number | null })[];
   run: (EvalSelection & LatencyMetrics & {
     device?: EvalDevice;
     id: string;

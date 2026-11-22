@@ -42,7 +42,10 @@ def load_event_aware(settings: Settings, *, single_mailbox=None) -> LoadedEngine
 def load_bm25_minilm(settings: Settings, *, single_mailbox=None) -> LoadedEngine:
     from ..search.bm25_minilm import create_engine as create_bm25_minilm_engine
 
-    factory = partial(create_bm25_minilm_engine, model_dir=settings.minilm_model_dir,
+    model_dir = settings.minilm_model_dir
+    if settings.minilm_device == "cpu" and settings.minilm_cpu_model_dir is not None:
+        model_dir = settings.minilm_cpu_model_dir
+    factory = partial(create_bm25_minilm_engine, model_dir=model_dir,
                       device=settings.minilm_device, gpu_memory_mb=settings.minilm_gpu_memory_mb)
     return _load_engine(settings, factory, settings.search_config, single_mailbox)
 

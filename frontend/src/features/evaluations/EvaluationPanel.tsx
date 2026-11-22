@@ -69,7 +69,7 @@ export function EvaluationPanel({ visible }: { visible: boolean }) {
           <thead><tr><th>Модель</th><th>Устройство</th><th>Recall@10</th><th aria-sort="descending">nDCG@10 ↓</th><th>MRR@10</th>{quantiles.map(q => <th key={q} title="Длиннее полоса — больше задержка.">{q}, мс</th>)}<th>Место замера</th></tr></thead>
           <tbody>{comparison.map(row => <tr key={row.model + "/" + row.device}>
             <th scope="row">{data.models.find(option => option.id === row.model)?.name}</th>
-            <td>{row.device ? devices[row.device] : "Не указано"}</td>
+            <td>{row.device ? devices[row.device] : "Не указано"}{row.precision && ` · ${row.precision}`}</td>
             {[row.recall, row.ndcg, row.mrr].map((value, i) =>
               <td key={i}><MetricValue value={value} /></td>)}
             {quantiles.map(q => <td key={q}><MetricValue value={row[`${q}_ms`] ?? null} max={maxLatency} /></td>)}

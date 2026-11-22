@@ -105,10 +105,20 @@ class Evaluations:
         if dataset not in self.datasets or meta["engine"] not in self.models:
             return
         device = recorded_device(meta["engine"], meta.get("engine_config", {}))
+        config = meta.get("engine_config", {})
+        precision = None
+        if meta["engine"] == "bm25-minilm":
+            # Only label known, SHA-verified assets (including historical runs).
+            weights = config.get("model_identity", {}).get("weights_sha256")
+            precision = {
+                "3e9a03ed1e966f7c5288dd4230e3d6a9bf5e3a170a06f1f4241c5bca12c6487c": "FP32",
+                "6c2513767fb63d008a4377bef7a7a3555433d9436342bb53e35a3a72ffc52d4b": "INT8",
+                "1825907d6c1a9001ff78124780bbde20a614a8c3df3b63409cf3c72c6fe5c8b4": "INT8",
+            }.get(weights)
         key = (dataset, meta["engine"], device)
         row = dict(dataset=dataset, model=meta["engine"], created_at=meta["created_at"],
                    fingerprint=meta["dataset"]["fingerprint"], **metrics["by_k"]["10"],
-                   device=device, source=meta.get("hardware"), samples=meta["server_latency"].get("samples"),
+                   device=device, precision=precision, source=meta.get("hardware"), samples=meta["server_latency"].get("samples"),
                    **{f"{name}_ms": meta["server_latency"].get(name) for name in QUANTILES})
         if key not in self.comparisons or self.comparisons[key]["created_at"] < row["created_at"]:
             self.comparisons[key] = row
