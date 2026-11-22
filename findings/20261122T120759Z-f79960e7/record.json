@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "20261122T120759Z-f79960e7",
+  "kind": "finding",
+  "owner": "Fu22210",
+  "status": "completed",
+  "updated_at": "2026-11-22T12:07:59.599709+00:00",
+  "title": "Публичный поиск SmartMail: подсказки в строке и основная форма при отправке",
+  "hypothesis": null,
+  "code_branch": "codex/main-mail-release",
+  "code_commit": "6ff09bae6b42edd4e33302202f0045c46db2b163",
+  "baseline_ref": null,
+  "replicates": null,
+  "outcome": null
+}
