@@ -26,6 +26,9 @@ mailsearch = "mail_search.cli:main"
 where = ["src"]
 include = ["mail_search*"]
 
+[tool.setuptools.package-data]
+"mail_search.application" = ["ru_diminutives.tsv", "ru_diminutives.NOTICE"]
+
 [dependency-groups]
 dev = [
     "httpx>=0.28,<1",

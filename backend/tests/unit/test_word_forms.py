@@ -12,6 +12,42 @@ from mail_search.search.bm25 import BM25Engine
 
 
 class WordFormTests(unittest.TestCase):
+    def test_dictionary_and_productive_diminutives_in_search(self):
+        cases = {"заказик": "заказ", "заказиками": "заказ", "Счётиком": "Счёт",
+                 "авансиках": "аванс", "складику": "склад", "заявочку": "заявка",
+                 "письмецом": "письмо", "билетиков": "билет", "пакетиками": "пакет",
+                 "контейнерчиками": "контейнер", "доставочкой": "доставка",
+                 "документиками": "документ", "посылочках": "посылка"}
+        for surface, base in cases.items():
+            with self.subTest(surface=surface):
+                self.assertEqual(search_queries(surface)[:2], (base, surface))
+                self.assertEqual(correct_query(surface, preserve_forms=True), (surface, []))
+        self.assertEqual(search_queries("про заказик и билетики")[0], "про заказ и билет")
+        self.assertIn("срочный заказ", search_queries("срочных заказов"))
+
+    def test_ambiguous_names_dates_and_identifiers(self):
+        for word in ("график", "ручка", "заказчик", "переводчик", "гвоздик",
+                     "поводок", "дворник", "Марина", "INV-заказик", "заказик@почта.рф"):
+            self.assertEqual(search_queries(word), (word,), word)
+        queries = search_queries("найди заказики от Марии за 5 декабря 2028 года")
+        self.assertIn("найди заказ от Марии за 5 декабря 2028 года", queries)
+        self.assertTrue(all("от Марии за 5 декабря 2028 года" in q for q in queries))
+
+    def test_fallback_keeps_the_receipt_date(self):
+        store, engine = Mock(), Mock()
+        store.list_mailboxes.return_value = ["one"]
+        store.import_fingerprint.return_value = "a" * 64
+        store.get_previews.return_value = []
+        engine.config = {}
+        engine.search.return_value = []
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            service = MailService(store, LoadedEngine(engine, "a" * 64), executor)
+            query = "пришли 5 декабря 2028 года заказы"
+            alternatives = ("прийти 5 декабря 2028 года заказ", "пришли 5 декабря 2028 года заказ")
+            service.search("one", query, date(2028, 12, 10), 10, alternatives=alternatives)
+            self.assertEqual([call.args[0].query for call in engine.search.call_args_list],
+                             [query, alternatives[1]])
+
     def test_morphology_and_structured_terms(self):
         for word in ("штрафиком", "штрафчиками", "оштрафуют", "оштрафована"):
             self.assertIn("штраф", search_queries(word))

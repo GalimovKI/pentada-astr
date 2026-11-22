@@ -20,6 +20,33 @@ class SpellingTests(unittest.TestCase):
         query = "бронь, выслать Тимофею INV-штрфа-2 A45_штрфа @invoiec test@штрфа.ru https://example.org/?q=штрфа"
         self.assertEqual(correct_query(query), (query, []))
 
+    def test_short_words_duplicates_missing_letters_and_vowels(self):
+        cases = (
+            ("закз, чке, срко, штрф", "заказ, чек, срок, штраф"),
+            ("даставка, католог, упоковка", "доставка, каталог, упаковка"),
+            ("сроок и оплта", "срок и оплата"),
+            ("согласовнный график грузоперевзок", "согласованный график грузоперевозок"),
+            ("delviery and reecipt", "delivery and receipt"),
+        )
+        for query, expected in cases:
+            with self.subTest(query=query):
+                corrected, changes = correct_query(query, preserve_forms=True)
+                self.assertEqual(corrected, expected)
+                self.assertEqual([query[c.start:c.end] for c in changes], [c.original for c in changes])
+        literal = "график и шарф, от Марии, INV-закз-2, шраф@example.ru, https://example.org/даставка"
+        self.assertEqual(correct_query(literal, preserve_forms=True), (literal, []))
+        terms = "шаровый, подкатного, поворотник, холдере"
+        self.assertEqual(correct_query(terms, preserve_forms=True), (terms, []))
+
+    def test_typos_in_productive_forms_are_corrected_before_search(self):
+        query = "закзаик и закаазики"
+        corrected, changes = correct_query(query, preserve_forms=True)
+        self.assertEqual(corrected, "заказик и заказики")
+        self.assertEqual([c.replacement for c in changes], ["заказик", "заказики"])
+        self.assertEqual(spelling_hints(query, expand_word_forms=True)["changes"], changes)
+        self.assertEqual(correct_query("закзик, доствочках, товарчк", preserve_forms=True)[0],
+                         "заказик, доставочках, товарчик")
+
     def test_prefixes_at_the_caret_do_not_affect_silent_search(self):
         query = "📩 испр в отчёте"
         hints = spelling_hints(query, cursor=6)
