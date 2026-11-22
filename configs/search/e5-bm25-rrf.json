@@ -1,0 +1,6 @@
+{
+  "strategy": "rrf",
+  "lexical_weight": 0.75,
+  "rrf_constant": 10,
+  "candidate_depth": 50
+}

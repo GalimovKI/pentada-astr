@@ -18,7 +18,7 @@ import httpx
 from ..benchmarks.latency import percentile
 from ..cli import DEFAULT_KS
 from ..core.datasets import mail_datasets, PUBLIC_DATASET
-from ..core.presets import available_models, model_options, model_settings
+from ..core.presets import E5_MODELS, available_models, model_options, model_settings
 from ..core.provenance import code_version
 from ..evaluation.runner import evaluate, validate_ranking, write_run
 from ..ingestion.dataset import load_dataset
@@ -58,7 +58,7 @@ def server_hardware(cuda_enabled):
 
 
 def recorded_device(model, config):
-    if model == "e5-cosine":
+    if model in E5_MODELS:
         return config.get("device")
     if model == "bm25-minilm":
         return config.get("inference_device")
@@ -80,7 +80,7 @@ class Evaluations:
         if reference.is_file():
             for row in json.loads(reference.read_text()):
                 if row["dataset"] in self.datasets and row["model"] in self.models:
-                    device = recorded_device(row["model"], {})
+                    device = row.get("device") or recorded_device(row["model"], {})
                     self.comparisons[row["dataset"], row["model"], device] = {**row, "device": device}
         for path in settings.evaluation_dir.glob("*/run.json"):
             try:
@@ -128,7 +128,7 @@ class Evaluations:
     def _devices(self, model):
         if model == "bm25-minilm" and self.settings.minilm_device == "cuda":
             return ["cuda", "cpu"]
-        if model == "e5-cosine":
+        if model in E5_MODELS:
             if self.settings.e5_device == "cuda":
                 return ["cuda", "cpu"]
             graph = self.settings.evaluation_e5_cuda_dir
@@ -176,7 +176,7 @@ class Evaluations:
             search_dataset=archive, database_url=database_url))
         if model == "bm25-minilm":
             settings = settings.model_copy(update={"minilm_device": job["device"]})
-        if model == "e5-cosine":
+        if model in E5_MODELS:
             graph = settings.e5_model_dir
             if settings.e5_device == "cpu" and "cuda" in self._devices(model):
                 graph = settings.evaluation_e5_cuda_dir
@@ -219,7 +219,7 @@ class Evaluations:
         samples = list(times.values())
         latency = dict(samples=len(samples), **measured_latency(samples), percentile_method="nearest_rank",
                        scope="ASGI Server-Timing, sequential, no explicit warmup, limit=100")
-        if model == "e5-cosine":
+        if model in E5_MODELS:
             engine_config["device"] = settings.e5_device
             engine_config["model_identity"] = loaded.engine.model.identity
             if "cuda" in self._devices(model):

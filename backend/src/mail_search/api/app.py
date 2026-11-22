@@ -17,8 +17,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from ..application.evaluations import Evaluations
 from ..core.datasets import ARCHIVE_USER, mail_datasets, PUBLIC_DATASET
 from ..application.mail import MailService, ServiceError
-from ..core.engine import LoadedEngine
-from ..core.presets import MAIL_THRESHOLDS, MODELS, model_options, model_settings
+from ..core.engine import LoadedEngine, combine_e5_hybrid
+from ..core.presets import E5_HYBRIDS, MAIL_THRESHOLDS, MODELS, model_options, model_settings
 from ..core.settings import Settings
 from ..storage.database import database_engine
 from ..storage.repository import ArchiveStore, MailStore, UnknownMailbox
@@ -70,7 +70,12 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
                         return active
                     key = (dataset, model, archive)
                     if key not in cached_models:
-                        cached_models[key] = initialize(chosen, archive=archive)
+                        if model in E5_HYBRIDS:
+                            lexical = select_model(dataset, "bm25-event-aware", archive).loaded
+                            dense = select_model(dataset, "e5-cosine", archive).loaded
+                            cached_models[key] = combine_e5_hybrid(chosen, lexical, dense)
+                        else:
+                            cached_models[key] = initialize(chosen, archive=archive)
                     store = app.state.archive_stores[dataset] if archive else active.store
                     return MailService(store, cached_models[key], executor)
 

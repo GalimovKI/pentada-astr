@@ -1,0 +1,4 @@
+{
+  "strategy": "lexical_first",
+  "candidate_depth": 50
+}

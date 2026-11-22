@@ -1,0 +1,5 @@
+{
+  "strategy": "dense_first",
+  "lexical_weight": 0.75,
+  "candidate_depth": 50
+}

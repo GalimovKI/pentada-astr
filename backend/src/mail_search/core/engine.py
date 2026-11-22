@@ -57,3 +57,20 @@ def load_e5(settings: Settings, *, single_mailbox=None) -> LoadedEngine:
     engine = dataset_engine(dataset, settings.e5_model_dir, settings.e5_index_dir, single_mailbox,
                             device=settings.e5_device)
     return LoadedEngine(engine, dataset.summary["fingerprint"])
+
+
+def combine_e5_hybrid(settings, lexical: LoadedEngine, dense: LoadedEngine) -> LoadedEngine:
+    from ..search.e5_hybrid import E5HybridEngine
+
+    if lexical.fingerprint != dense.fingerprint:
+        raise ValueError("E5 and BM25 require the same corpus")
+    config = json.loads(settings.search_config.read_text(encoding="utf-8"))
+    return LoadedEngine(E5HybridEngine(lexical.engine, dense.engine, config), dense.fingerprint)
+
+
+def load_e5_hybrid(settings: Settings, *, single_mailbox=None) -> LoadedEngine:
+    from .presets import model_settings
+
+    lexical = load_event_aware(model_settings(settings, "bm25-event-aware"), single_mailbox=single_mailbox)
+    dense = load_e5(settings, single_mailbox=single_mailbox)
+    return combine_e5_hybrid(settings, lexical, dense)

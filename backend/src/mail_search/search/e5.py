@@ -113,6 +113,8 @@ class E5Engine:
         self.vectors = vectors
         self.model = model
         self.ids = [doc.doc_id for doc in documents]
+        self.row_by_id = {doc_id: i for i, doc_id in enumerate(self.ids)}
+        self.owners = [single_mailbox or doc.synthetic_user for doc in documents]
         self.dates = np.array([doc.doc_dt.toordinal() if doc.doc_dt else 0 for doc in documents])
         boxes = defaultdict(list)
         for i, doc in enumerate(documents):
@@ -126,13 +128,18 @@ class E5Engine:
         hits, _ = self.search_page(request, k)
         return hits
 
-    def search_page(self, request, k, *, min_similarity=None, offset=0):
+    def search_page(self, request, k, *, min_similarity=None, offset=0, candidate_ids=None, receipt_date=None):
         if k < 1 or not request.query.strip():
             raise ValueError("nonempty query and positive K required")
         rows = self.boxes.get(request.synthetic_user)
         if rows is None:
             return [], 0
+        if candidate_ids is not None:
+            rows = np.array([self.row_by_id[key] for key in candidate_ids
+                             if self.owners[self.row_by_id[key]] == request.synthetic_user], dtype=np.intp)
         eligible = rows[self.dates[rows] <= request.query_date.toordinal()]
+        if receipt_date is not None:
+            eligible = eligible[self.dates[eligible] == receipt_date.toordinal()]
         if not len(eligible):
             return [], 0
         query, = self.model.encode(["query: " + request.query])
