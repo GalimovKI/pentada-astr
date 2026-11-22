@@ -63,7 +63,8 @@ button:disabled { opacity: .6; cursor: wait; }
   outline: 3px solid var(--action);
   outline-offset: 2px;
 }
-input, select { width: 100%; min-width: 0; padding: 0 12px; font-size: .925rem; }
+/* Native WebKit selects need an explicit height; min-height alone is ignored. */
+input, select { width: 100%; min-width: 0; height: var(--control); padding: 0 12px; font-size: .925rem; }
 input[type=date] { font-variant-numeric: tabular-nums; }
 input[aria-invalid=true] { border-color: var(--danger); }
 select { cursor: pointer; text-overflow: ellipsis; }
@@ -116,8 +117,9 @@ h1, h2, h3, strong { font-weight: 500; }
 .mail-context h1 { margin: auto auto auto 0; }
 .mail-context .field { width: min(22vw, 310px); min-width: 0; }
 .mail-context .field:last-child { width: 165px; }
-.mail-context input, .mail-context select { display: block; height: var(--control); }
-.mail-context input[type=date] { appearance: none; }
+.mail-context input, .mail-context select { display: block; }
+/* Keep the native date value vertically centered, including on iOS. */
+.mail-context input[type=date] { display: flex; align-items: center; appearance: none; }
 .content, .eval-form, .eval-result {
   min-width: 0;
   background: var(--surface);
