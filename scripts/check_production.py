@@ -11,7 +11,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--url", default="http://localhost:8080")
     parser.add_argument("--expect-dev-auth", action="store_true",
-                        help="Check the public dev gateway's Basic authentication challenge")
+                        help="Check the dev login page and session protection")
     args = parser.parse_args()
     base = args.url.rstrip("/")
     parsed = urlsplit(base)
@@ -34,10 +34,14 @@ def main():
             return response.headers, response.read()
 
     if args.expect_dev_auth or local_dev:
-        for path in ("/", "/api/v1/mailboxes", "/assets/missing.js"):
+        headers, page = request("/")
+        assert headers.get_content_type() == "text/html" and b'autocomplete="current-password"' in page
+        for path in ("/api/v1/mailboxes", "/assets/missing.js"):
             headers, _ = request(path, 401)
-            assert headers.get("WWW-Authenticate") == 'Basic realm="SmartMail-dev"', path
-        print("Dev authentication challenge verified for frontend, API and assets")
+            assert "WWW-Authenticate" not in headers, path
+        headers, script = request("/login/login.js")
+        assert script and "javascript" in headers.get_content_type()
+        print("Dev login form and session protection verified")
         return
 
     for endpoint, state in (("live", "live"), ("ready", "ready")):

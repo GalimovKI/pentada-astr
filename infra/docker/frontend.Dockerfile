@@ -16,3 +16,6 @@ COPY infra/docker/dev-access.caddy /etc/caddy/dev-access.caddy
 RUN if [ "$APP_BASE_PATH" = "/dev/" ]; then cp /etc/caddy/dev-access.caddy /etc/caddy/access.caddy; \
     else touch /etc/caddy/access.caddy; fi
 COPY --from=build /app/dist /srv
+COPY infra/docker/login /srv-login/
+COPY frontend/src/assets/smartmail-logo-vk.png /srv-login/logo.png
+COPY frontend/public/fonts/VKSansDisplay-Regular.woff2 /srv-login/font.woff2

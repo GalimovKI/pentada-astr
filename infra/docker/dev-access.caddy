@@ -1,7 +1,25 @@
-# The public gateway supplies X-Forwarded-Proto to the loopback-only dev listener.
+# Only the gateway can reach this loopback listener.
 @plain not header X-Forwarded-Proto https
 redir @plain https://smartmail-hackaton.ru{uri} 308
-basic_auth bcrypt SmartMail-dev {
-    import /run/smartmail-auth/users.caddy
-}
+header Cache-Control no-store
 request_header -Authorization
+handle_path /dev/login/* {
+    root * /srv-login
+    header X-Content-Type-Options nosniff
+    header Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
+    file_server
+}
+@session path /dev/session/login /dev/session/logout
+handle @session {
+    request_body {
+        max_size 4KB
+    }
+    uri strip_prefix /dev/session
+    rewrite * /internal/dev{uri}
+    reverse_proxy {$API_UPSTREAM:backend:8000}
+}
+forward_auth {$API_UPSTREAM:backend:8000} {
+    uri /internal/dev/check
+}
+# The API never needs to receive the browser's session after authorization.
+request_header -Cookie

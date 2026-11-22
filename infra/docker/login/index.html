@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f6fa">
+  <title>Вход в SmartMail</title>
+  <link rel="stylesheet" href="./login.css">
+  <script defer src="./login.js"></script>
+</head>
+<body>
+  <main>
+    <header><img src="./logo.png" alt="SmartMail"><span>Dev-версия</span></header>
+    <h1>Вход в почту</h1>
+    <form method="post" action="/dev/session/login">
+      <label for="username">Логин</label>
+      <input id="username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="128" required>
+      <label for="password">Пароль</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" maxlength="72" required>
+      <p id="error" role="alert"></p>
+      <button type="submit">Войти</button>
+    </form>
+  </main>
+</body>
+</html>

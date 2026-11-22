@@ -4,6 +4,8 @@ from contextlib import asynccontextmanager
 import asyncio
 import importlib
 import logging
+import os
+from pathlib import Path
 from time import perf_counter
 from typing import Annotated
 from fastapi import FastAPI, Query
@@ -113,6 +115,10 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
     errors = {status: {"model": ErrorResponse} for status in (404, 422, 500, 503)}
     app = FastAPI(title="Mail Search API", version="1.0.0", lifespan=lifespan, responses=errors)
 
+    if verifier_file := os.getenv("DEV_LOGIN_VERIFIER_FILE"):
+        from .dev_login import session_routes
+        app.include_router(session_routes(Path(verifier_file)))
+
     def error(status, code):
         return JSONResponse({"error": {"code": code}}, status_code=status)
 
@@ -172,7 +178,8 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
     def features():
         if app.state.evaluations is None:
             return {"evaluations": False}
-        return {"evaluations": True, "mail_models": [dict(item, threshold=MAIL_THRESHOLDS[item["id"]])
+        return {"evaluations": True, **({"session_login": True} if verifier_file else {}),
+                "mail_models": [dict(item, threshold=MAIL_THRESHOLDS[item["id"]])
                 for item in model_options(app.state.evaluations.models)]}
 
     def evaluations():

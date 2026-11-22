@@ -19,6 +19,7 @@ services:
         INCLUDE_MINILM: "1"
     environment:
       <<: *e5
+      DEV_LOGIN_VERIFIER_FILE: /run/dev-login.hash
       MINILM_MODEL_DIR: /opt/mailsearch/minilm
       ENABLE_EVALUATIONS: "true"
       EVALUATION_E5_CUDA_DIR: /opt/mailsearch/e5-eval-cuda
@@ -27,6 +28,7 @@ services:
       ENRONQA_EN_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/enronqa_en
       EVALUATION_DIR: /home/app/evaluations
     volumes:
+      - ./infra/docker/runtime-auth/dev-login.hash:/run/dev-login.hash:ro
       - ./data/benchmarks/enronqa-ru:/data/enronqa:ro
       - dev_e5_indexes:/home/app/e5-indexes
       - dev_evaluations:/home/app/evaluations

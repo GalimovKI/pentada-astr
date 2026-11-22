@@ -26,6 +26,15 @@ export function App() {
     return () => window.removeEventListener("hashchange", update);
   }, [loadFeatures]);
   const dev = features.data?.evaluations === true;
+  const sessionLogin = features.data?.session_login === true;
+  useEffect(() => {
+    if (!sessionLogin) return;
+    const refreshOnRestore = (event: PageTransitionEvent) => {
+      if (event.persisted) window.location.reload();
+    };
+    window.addEventListener("pageshow", refreshOnRestore);
+    return () => window.removeEventListener("pageshow", refreshOnRestore);
+  }, [sessionLogin]);
   const showEvaluation = dev && view === "#evaluations";
   const archive = data?.archives?.find(item => item.id === box.dataset);
   const selected = archive?.mailbox ?? (box.mailbox || data?.items[0] || "");
@@ -49,6 +58,11 @@ export function App() {
           <nav className="dev-nav" aria-label="Вкладки dev-сайта">
             <a href="#main" aria-current={showEvaluation ? undefined : "page"}>Почта</a>
             <a href="#evaluations" aria-current={showEvaluation ? "page" : undefined}>Оценка моделей</a>
+            {sessionLogin && (
+              <form method="post" action={`${import.meta.env.BASE_URL}session/logout`}>
+                <button type="submit">Выйти</button>
+              </form>
+            )}
           </nav>
         )}
       </header>

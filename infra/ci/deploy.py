@@ -138,11 +138,16 @@ def main():
                 verifier = os.environ.get('DEV_AUTH_BCRYPT', '')
                 if not re.fullmatch(r'\$2[aby]\$(?:1[0-6])\$[./A-Za-z0-9]{53}', verifier):
                     raise ValueError('Configure the DEV_AUTH_BCRYPT repository secret for dev')
-                users = Path(temp) / 'users.caddy'
-                users.write_text(f'ruslan2005 {verifier}\n')
-                users.chmod(0o600)
-                run('git', 'archive', '--format=tar.gz', '-o', archive,
-                    '--prefix=infra/docker/runtime-auth/', f'--add-file={users}', '--prefix=', sha)
+                # The directory is private on the host. Bind only the file into the
+                # rootless container, where the API runs as an unprivileged UID.
+                auth_dir = release / 'infra/docker/runtime-auth'
+                auth_dir.mkdir(exist_ok=True)
+                auth_dir.chmod(0o700)
+                password_file = auth_dir / 'dev-login.hash'
+                pending = auth_dir / 'dev-login.next'
+                pending.write_text(verifier + '\n')
+                pending.chmod(0o444)
+                pending.replace(password_file)
             with archive.open('rb') as stream:
                 run(*ssh, f'stage {environment} {sha}', stdin=stream)
 

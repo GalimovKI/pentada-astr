@@ -50,7 +50,7 @@ type LatencyMetrics = Partial<Record<"p50_ms" | "p90_ms" | "p95_ms" | "p99_ms", 
 type EvalSelection = { model: string; dataset: string; device?: EvalDevice | null };
 type MetricRow = { recall: number; ndcg: number; mrr: number; mrr_single: number | null };
 export type EvalOption = { id: string; name: string; threshold?: number; devices?: EvalDevice[] };
-export interface Features { evaluations: boolean; mail_models?: EvalOption[] }
+export interface Features { evaluations: boolean; session_login?: boolean; mail_models?: EvalOption[] }
 export interface EvaluationCatalog {
   models: EvalOption[];
   datasets: EvalOption[];
@@ -98,6 +98,9 @@ async function request<T>(
   } catch (error) {
     if (signal.aborted) throw error;
     throw new ApiError(0, "network_error");
+  }
+  if (response.status === 401 && import.meta.env.BASE_URL === "/dev/") {
+    window.location.replace("/dev/login/" + window.location.hash);
   }
   if (!response.ok) {
     let code = "http_error";
