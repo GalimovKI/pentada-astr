@@ -1,8 +1,10 @@
 """Single-worker dev benchmarks. Each run owns its search engine and artifacts."""
 import asyncio
+import ctypes
 import json
 import logging
 import math
+import platform
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
@@ -32,6 +34,29 @@ def measured_latency(samples):
     return {name: percentile(samples, q) for name, q in QUANTILES.items()}
 
 
+def server_hardware(cuda_enabled):
+    cpu = platform.machine()
+    cpuinfo = Path("/proc/cpuinfo")
+    if cpuinfo.is_file():
+        for line in cpuinfo.read_text().splitlines():
+            if line.startswith("model name") and ":" in line:
+                cpu = line.split(":", 1)[1].strip()
+                break
+    hardware = {"cpu": cpu}
+    if cuda_enabled:
+        # Use the same visible CUDA ordinal (0) as ONNX Runtime, including CDI remapping.
+        try:
+            driver = ctypes.CDLL("libcuda.so.1")
+            device = ctypes.c_int()
+            name = ctypes.create_string_buffer(256)
+            if (driver.cuInit(0) == 0 and driver.cuDeviceGet(ctypes.byref(device), 0) == 0
+                    and driver.cuDeviceGetName(name, len(name), device) == 0):
+                hardware["cuda"] = name.value.decode(errors="replace")
+        except (OSError, AttributeError):
+            pass
+    return hardware
+
+
 def recorded_device(model, config):
     if model == "e5-cosine":
         return config.get("device")
@@ -49,6 +74,7 @@ class Evaluations:
         self.latest = None
         self.datasets = mail_datasets(settings)
         self.models = available_models(settings)
+        self.hardware = server_hardware("cuda" in (settings.e5_device, settings.minilm_device))
         self.comparisons = {}
         reference = settings.enronqa_directory / "comparisons.json"
         if reference.is_file():
@@ -82,7 +108,7 @@ class Evaluations:
         key = (dataset, meta["engine"], device)
         row = dict(dataset=dataset, model=meta["engine"], created_at=meta["created_at"],
                    fingerprint=meta["dataset"]["fingerprint"], **metrics["by_k"]["10"],
-                   device=device, samples=meta["server_latency"].get("samples"),
+                   device=device, source=meta.get("hardware"), samples=meta["server_latency"].get("samples"),
                    **{f"{name}_ms": meta["server_latency"].get(name) for name in QUANTILES})
         if key not in self.comparisons or self.comparisons[key]["created_at"] < row["created_at"]:
             self.comparisons[key] = row
@@ -100,7 +126,7 @@ class Evaluations:
 
     def catalog(self):
         with self.lock:
-            return dict(models=[{**m, "devices": self._devices(m["id"])} for m in model_options(self.models)],
+            return dict(hardware=self.hardware, models=[{**m, "devices": self._devices(m["id"])} for m in model_options(self.models)],
                         datasets=[dict(id=key, name=value[0]) for key, value in self.datasets.items()],
                         comparisons=list(self.comparisons.values()),
                         run=self.latest)
@@ -187,6 +213,7 @@ class Evaluations:
             if "cuda" in self._devices(model):
                 engine_config["graph"] = "onnx/model.onnx"
         metadata = dict(created_at=datetime.now(timezone.utc).isoformat(), status="failed" if errors else "ok",
+                        hardware=self.hardware.get(job["device"]),
                         engine=model, engine_config=engine_config, ks=DEFAULT_KS,
                         dataset_id=job["dataset"], dataset=ds.summary, code=code_version(), server_latency=latency)
         root = settings.evaluation_dir
