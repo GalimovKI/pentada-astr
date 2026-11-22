@@ -45,6 +45,17 @@ class BM25MiniLMTests(TestCase):
                 load_bm25_minilm(settings.model_copy(update={"minilm_device": device}))
                 self.assertEqual(load.call_args.args[1].keywords["model_dir"], Path(expected))
 
+    def test_cpu_depth_override_keeps_gpu_depth(self):
+        from mail_search.search.bm25_minilm import create_engine
+
+        with TemporaryDirectory() as root, patch("mail_search.search.bm25_minilm.MiniLM"):
+            path = Path(root)
+            for name in ("model.onnx", "tokenizer.json"):
+                (path / name).touch()
+            for device, expected in (("cpu", 6), ("cuda", 20)):
+                engine = create_engine((), {"cpu_rerank_depth": 6}, model_dir=path, device=device)
+                self.assertEqual(engine.config["rerank_depth"], expected)
+
     def test_date_only_skips_minilm(self):
         day = date(2028, 11, 20)
         model = Mock()

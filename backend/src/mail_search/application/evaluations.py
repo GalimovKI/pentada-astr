@@ -118,7 +118,9 @@ class Evaluations:
         key = (dataset, meta["engine"], device)
         row = dict(dataset=dataset, model=meta["engine"], created_at=meta["created_at"],
                    fingerprint=meta["dataset"]["fingerprint"], **metrics["by_k"]["10"],
-                   device=device, precision=precision, source=meta.get("hardware"), samples=meta["server_latency"].get("samples"),
+                   device=device, precision=precision, source=meta.get("hardware"),
+                   rerank_depth=config.get("rerank_depth") if meta["engine"] == "bm25-minilm" else None,
+                   samples=meta["server_latency"].get("samples"),
                    **{f"{name}_ms": meta["server_latency"].get(name) for name in QUANTILES})
         if key not in self.comparisons or self.comparisons[key]["created_at"] < row["created_at"]:
             self.comparisons[key] = row

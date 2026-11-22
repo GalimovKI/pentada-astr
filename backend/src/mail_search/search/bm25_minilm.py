@@ -126,7 +126,7 @@ def create_engine(documents: tuple[Document, ...], config: dict, *, model_dir: P
         "minilm_model": "artifacts/models/minilm/model.onnx", "minilm_weight": 0.25,
         "rerank_depth": 20, "inference_threads": 4, "inference_device": "cpu", "gpu_memory_mb": 2048,
     }
-    unknown = config.keys() - defaults.keys()
+    unknown = config.keys() - defaults.keys() - {"cpu_rerank_depth"}
     if unknown:
         raise ValueError(f"Unknown BM25 + MiniLM options: {sorted(unknown)}")
     options = {**defaults, **config}
@@ -142,6 +142,12 @@ def create_engine(documents: tuple[Document, ...], config: dict, *, model_dir: P
     for name in ("rerank_depth", "inference_threads", "gpu_memory_mb"):
         if type(options[name]) is not int or options[name] < 1:
             raise ValueError(f"{name} must be a positive integer")
+    if "cpu_rerank_depth" in options:
+        depth = options.pop("cpu_rerank_depth")
+        if type(depth) is not int or not 1 <= depth <= options["rerank_depth"]:
+            raise ValueError("cpu_rerank_depth must be between 1 and rerank_depth")
+        if options["inference_device"] == "cpu":
+            options["rerank_depth"] = depth
     model_path = model_dir / "model.onnx" if model_dir is not None else repository_root() / options["minilm_model"]
     with model_path.open("rb") as weights, model_path.with_name("tokenizer.json").open("rb") as tokenizer:
         identity = {"weights_sha256": file_digest(weights, "sha256").hexdigest(),
