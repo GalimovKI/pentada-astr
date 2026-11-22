@@ -1,25 +1,15 @@
 """Conservative single-edit suggestions using local Russian and English word frequencies."""
 from bisect import bisect_left
-from dataclasses import dataclass
 from functools import lru_cache
 from heapq import nsmallest
 import re
 
-from pymorphy3 import MorphAnalyzer
 from spellchecker import SpellChecker
 
-# Scan structured tokens as a whole so words inside addresses, URLs and IDs stay literal.
-TOKENS = re.compile(r"(?:https?://|www\.)[^\s]+|[\w@#]+(?:[./@:+#'’–—-]+[\w@#]+)*", re.I)
+from .word_forms import Replacement, TOKENS, query_words, related_hints, russian_morphology
+
 RU = re.compile("[а-яё]{5,28}")
 EN = re.compile("[a-z]{5,28}")
-
-
-@dataclass(frozen=True)
-class Replacement:
-    start: int
-    end: int
-    original: str
-    replacement: str
 
 
 @lru_cache(maxsize=2)
@@ -42,8 +32,8 @@ def top_completions(prefix: str, language: str) -> tuple[str, ...]:
     return tuple(nsmallest(3, matches, key=lambda word: (-frequency[word], len(word), word)))
 
 
-def spelling_hints(query: str, cursor: int | None = None) -> dict[str, list[Replacement]]:
-    _, changes = correct_query(query)
+def spelling_hints(query: str, cursor: int | None = None, *, expand_word_forms: bool = False) -> dict[str, list[Replacement]]:
+    _, changes = correct_query(query, preserve_forms=expand_word_forms)
     cursor = len(query) if cursor is None else cursor
     token = next((token for token in TOKENS.finditer(query) if token.end() == cursor), None)
     completions = []
@@ -63,12 +53,10 @@ def spelling_hints(query: str, cursor: int | None = None) -> dict[str, list[Repl
                                                    word.capitalize() if original.istitle() else word))
     if completions:
         changes = [change for change in changes if change.start != token.start()]
-    return {"changes": changes, "completions": completions}
-
-
-@lru_cache(maxsize=1)
-def russian_morphology() -> MorphAnalyzer:
-    return MorphAnalyzer()
+    hints = {"changes": changes, "completions": completions}
+    if expand_word_forms:
+        hints["related"] = related_hints(query, cursor)
+    return hints
 
 
 @lru_cache(maxsize=4096)
@@ -106,11 +94,16 @@ def replacement_for(word: str, language: str) -> str | None:
     return best
 
 
-def correct_query(query: str) -> tuple[str, list[Replacement]]:
+def correct_query(query: str, *, preserve_forms: bool = False) -> tuple[str, list[Replacement]]:
+    protected = set()
+    if preserve_forms:
+        protected = {word.start for word in query_words(query)}
     changes = []
     corrected_length = len(query)
     pieces, cursor = [], 0
     for token in TOKENS.finditer(query):
+        if token.start() in protected:
+            continue
         original = token.group()
         lower = original.lower()
         language = "ru" if RU.fullmatch(lower) else "en" if EN.fullmatch(lower) else None

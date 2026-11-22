@@ -12,7 +12,7 @@ async function expectInsideField(input: Locator, hint: Locator) {
 }
 
 test("suggestions change only accepted words and silent search preserves the draft", async ({ page, isMobile }) => {
-  const searches: Array<{ query: string; correct_typos?: boolean }> = [];
+  const searches: Array<{ query: string; correct_typos?: boolean; expand_word_forms?: boolean }> = [];
   await mockApi(page, async (route, url) => {
     if (url.pathname === "/api/v1/features") {
       await reply(route, { evaluations: true, mail_models: [{ id: "bm25", name: "BM25" }] });
@@ -44,11 +44,13 @@ test("suggestions change only accepted words and silent search preserves the dra
   await query.press("Enter");
   await expect.poll(() => searches.at(-1)?.correct_typos).toBe(true);
   await expect(query).toHaveValue("штрфа");
+  expect(searches.at(-1)).not.toHaveProperty("expand_word_forms");
   await expect(suggestion).toHaveCount(0);
   await page.getByRole("button", { name: "Выкл." }).click();
   await query.press("Enter");
   await expect.poll(() => searches.length).toBe(3);
   expect(searches.at(-1)).not.toHaveProperty("correct_typos");
+  expect(searches.at(-1)).not.toHaveProperty("expand_word_forms");
 });
 
 test("inline completions respect the caret, keyboard acceptance, dismissal and trailing spaces", async ({ page }) => {
@@ -102,4 +104,55 @@ test("inline completions respect the caret, keyboard acceptance, dismissal and t
   await expect(query).toBeFocused();
   await query.press("!");
   await expect(query).toHaveValue("📩 исправить! завтра");
+});
+
+
+test("combined mode suggests related words and corrects submitted queries after a reload", async ({ page }) => {
+  const searches: Array<{ query: string; correct_typos?: boolean; expand_word_forms?: boolean }> = [];
+  await mockApi(page, async (route, url) => {
+    if (url.pathname.endsWith("/features")) {
+      await reply(route, { evaluations: true, mail_models: [{ id: "bm25", name: "BM25" }] });
+      return true;
+    }
+    if (url.pathname.endsWith("/spelling")) {
+      const { query, expand_word_forms } = route.request().postDataJSON();
+      const change = { start: 0, end: query.length, original: query, replacement: "штраф" };
+      await reply(route, {
+        changes: query === "штрфа" ? [change] : [],
+        completions: query === "штрафик" ? [{ ...change, replacement: "штрафики" }] : [],
+        related: expand_word_forms && query === "штрафик" ? [change] : [],
+      });
+      return true;
+    }
+    if (url.pathname.endsWith("/search")) searches.push(route.request().postDataJSON());
+    return false;
+  });
+  await page.goto("./");
+  const mode = page.getByRole("button", { name: "При вводе и поиске", exact: true });
+  await mode.click();
+  await page.reload();
+  await expect(mode).toHaveAttribute("aria-pressed", "true");
+  const query = page.getByLabel("Найти письмо своими словами");
+  await query.fill("штрафик");
+  const related = page.getByRole("button", { name: "Подставить родственное слово «штраф»" });
+  await expectInsideField(query, related);
+  await expect(related).toHaveText("Также штраф");
+  await query.press("Enter");
+  await expect.poll(() => searches.at(-1)).toMatchObject({
+    query: "штрафик", correct_typos: true, expand_word_forms: true,
+  });
+  await expect(query).toHaveValue("штрафик");
+  await query.fill("штрфа");
+  await expectInsideField(query, page.getByRole("button", { name: "Заменить штрфа на штраф" }));
+  await query.press("Enter");
+  await expect.poll(() => searches.at(-1)).toMatchObject({
+    query: "штрфа", correct_typos: true, expand_word_forms: true,
+  });
+  await query.fill("штрафик");
+  await related.click();
+  await expect(query).toHaveValue("штраф");
+  await query.press("Enter");
+  await expect.poll(() => searches.at(-1)).toMatchObject({
+    query: "штраф", correct_typos: true, expand_word_forms: true,
+  });
 });

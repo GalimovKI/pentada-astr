@@ -28,17 +28,18 @@ class MailService:
         if fingerprint != self.loaded.fingerprint:
             raise ServiceError(503, "dataset_mismatch")
 
-    def search(self, user, query, query_date, limit, *, explain=False, min_similarity=None, offset=0, relevance_threshold=None):
+    def search(self, user, query, query_date, limit, *, explain=False, min_similarity=None, offset=0, relevance_threshold=None, alternatives=()):
         self.ready()
         if user not in self.store.list_mailboxes():
             raise UnknownMailbox(user)
-        def invoke():
+        def retrieve(text):
             # Bound materialization, including a misbehaving lazy engine result.
-            request = SearchRequest(query, user, query_date)
+            request = SearchRequest(text, user, query_date)
             total = None
-            if relevance_threshold is not None:
+            if relevance_threshold is not None or (alternatives and min_similarity is not None):
+                threshold = relevance_threshold if relevance_threshold is not None else min_similarity
                 hits = [hit for hit in self.loaded.engine.relevance_scores(request)
-                        if hit.score >= relevance_threshold]
+                        if hit.score >= threshold]
                 total = len(hits)
             elif min_similarity is None:
                 result = self.loaded.engine.search(request, limit)
@@ -46,12 +47,30 @@ class MailService:
             else:
                 result, total = self.loaded.engine.search_page(request, limit, min_similarity=min_similarity, offset=offset)
                 hits = list(islice(result, limit + 1))
-            if (relevance_threshold is None and len(hits) > limit) or any(
+            if (relevance_threshold is None and not (alternatives and min_similarity is not None)
+                    and len(hits) > limit) or any(
                 not isinstance(h, SearchHit) or not isinstance(h.doc_id, str) or not h.doc_id
                 or type(h.score) not in (int, float) or not math.isfinite(h.score) for h in hits
             ) or len({h.doc_id for h in hits}) != len(hits):
                 raise ServiceError(500, "engine_contract_violation")
             return hits, total
+        def invoke():
+            hits, total = retrieve(query)
+            if not alternatives:
+                return hits, total
+            # Max-pool each document across alternatives. Stable sorting keeps
+            # the literal result first on equal scores. A page comes from the
+            # merged ranking, so duplicate documents never consume page slots.
+            best = {hit.doc_id: hit for hit in hits}
+            for text in alternatives:
+                for hit in retrieve(text)[0]:
+                    if hit.doc_id not in best or hit.score > best[hit.doc_id].score:
+                        best[hit.doc_id] = hit
+            ranking = sorted(best.values(), key=lambda hit: -hit.score)
+            if relevance_threshold is not None:
+                return ranking, len(ranking)
+            return ranking[offset:offset + limit], len(ranking) if min_similarity is not None else None
+
         try:
             hits, total = self.executor.submit(invoke).result()
         except ServiceError:
@@ -66,6 +85,8 @@ class MailService:
             day, content = ((None, query) if isinstance(config, dict) and config.get("date_mode") == "availability_only"
                             else parser(query, query_date))
             terms = query_terms(content)
+            for alternative in alternatives:
+                terms.update(query_terms(parser(alternative, query_date)[1]) if day is not None else query_terms(alternative))
             documents = self.store.get_messages(user, ids, query_date=query_date)
             if [doc.doc_id for doc in documents] != ids:
                 raise ServiceError(500, "engine_contract_violation")

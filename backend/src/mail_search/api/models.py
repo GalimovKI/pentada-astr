@@ -25,10 +25,12 @@ class QueryText(BaseModel):
 
 
 class SpellingBody(QueryText):
+    expand_word_forms: bool = Field(default=False, strict=True)
     cursor: int | None = Field(default=None, strict=True, ge=0, le=4000)
 
 
 class SearchBody(QueryText):
+    expand_word_forms: bool = Field(default=False, strict=True)
     correct_typos: bool = Field(default=False, strict=True)
     query_date: ScenarioDate
     limit: int = Field(default=10, strict=True, ge=1, le=100)

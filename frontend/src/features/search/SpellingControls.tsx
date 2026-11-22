@@ -5,13 +5,14 @@ const modes = [
   ["off", "Выкл."],
   ["suggest", "Подсказывать при вводе"],
   ["silent", "Исправлять при поиске"],
+  ["combined", "При вводе и поиске"],
 ] as const;
 export type SpellingMode = typeof modes[number][0];
 
 export function readSpellingMode(): SpellingMode {
   try {
     const saved = localStorage.getItem("smartmail.spelling");
-    if (saved === "suggest" || saved === "silent") return saved;
+    if (saved === "suggest" || saved === "silent" || saved === "combined") return saved;
   } catch { /* Private browsing can disable storage. */ }
   return "off";
 }
@@ -35,12 +36,14 @@ export function SpellingModes({ mode, onChange }: {
 type Hints = {
   query: string;
   cursor: number;
+  expandWordForms: boolean;
+  related: SpellingChange[];
   changes: SpellingChange[];
   completions: SpellingChange[];
   failed?: boolean;
 };
 
-export function useSpellingHints(query: string, cursor: number, enabled: boolean) {
+export function useSpellingHints(query: string, cursor: number, enabled: boolean, expandWordForms: boolean) {
   const [result, setResult] = useState<Hints>();
   useEffect(() => {
     setResult(undefined);
@@ -48,16 +51,19 @@ export function useSpellingHints(query: string, cursor: number, enabled: boolean
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       try {
-        const response = await api.spelling(query, cursor, controller.signal);
-        if (!controller.signal.aborted) setResult({ query, cursor, changes: response.changes, completions: response.completions ?? [] });
+        const response = await api.spelling(query, cursor, controller.signal, expandWordForms);
+        if (!controller.signal.aborted) setResult({
+          query, cursor, expandWordForms, changes: response.changes,
+          completions: response.completions ?? [], related: response.related ?? [],
+        });
       } catch {
-        if (!controller.signal.aborted) setResult({ query, cursor, changes: [], completions: [], failed: true });
+        if (!controller.signal.aborted) setResult({ query, cursor, expandWordForms, changes: [], completions: [], related: [], failed: true });
       }
     }, 180);
     return () => {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [query, cursor, enabled]);
-  return enabled && result?.query === query && result.cursor === cursor ? result : undefined;
+  }, [query, cursor, enabled, expandWordForms]);
+  return enabled && result?.query === query && result.cursor === cursor && result.expandWordForms === expandWordForms ? result : undefined;
 }

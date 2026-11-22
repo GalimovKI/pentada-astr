@@ -47,6 +47,7 @@ export interface SpellingChange {
 }
 export interface SearchBody {
   correct_typos?: boolean;
+  expand_word_forms?: boolean;
   relevance_threshold?: number;
   query: string;
   query_date: string;
@@ -169,16 +170,19 @@ export const api = {
       signal,
     );
   },
-  spelling: (query: string, cursor: number, signal: AbortSignal) =>
-    request<{ changes: SpellingChange[]; completions: SpellingChange[] }>("/spelling", signal, { query, cursor }),
-  search: (context: Context, query: string, signal: AbortSignal, model?: string, threshold?: number, correctTypos = false) => {
+  spelling: (query: string, cursor: number, signal: AbortSignal, expandWordForms = false) =>
+    request<{ changes: SpellingChange[]; completions: SpellingChange[]; related?: SpellingChange[] }>(
+      "/spelling", signal, { query, cursor, ...(expandWordForms ? { expand_word_forms: true } : {}) },
+    ),
+  search: (context: Context, query: string, signal: AbortSignal, model?: string, threshold?: number,
+           spelling?: Pick<SearchBody, "correct_typos" | "expand_word_forms">) => {
     const params = new URLSearchParams({ explain: "true" });
     if (context.dataset) params.set("dataset", context.dataset);
     if (model) params.set("model", model);
     return request<SearchResponse>(`${mailboxPath(context)}/search?${params}`, signal, {
       query,
       query_date: context.date,
-      ...(correctTypos ? { correct_typos: true } : {}),
+      ...spelling,
       ...(threshold === undefined ? { limit: 10 } : { relevance_threshold: threshold }),
     });
   },

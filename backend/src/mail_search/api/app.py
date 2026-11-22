@@ -197,7 +197,7 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
         if app.state.evaluations is None:
             raise ServiceError(404, "spelling_disabled")
         from ..application.spelling import spelling_hints
-        return spelling_hints(body.query, body.cursor)
+        return spelling_hints(body.query, body.cursor, expand_word_forms=body.expand_word_forms)
 
     @app.get("/api/v1/evaluations")
     def evaluation_catalog():
@@ -259,13 +259,17 @@ def create_app(settings=None, *, loader=None, database_factory=database_engine, 
                 raise ServiceError(422, "model_selection_disabled")
             active = app.state.mail_model(dataset, model if model is not None else next(iter(MODELS)), archive)
         query = body.query
+        if (body.correct_typos or body.expand_word_forms) and app.state.evaluations is None:
+            raise ServiceError(422, "spelling_disabled")
         if body.correct_typos:
-            if app.state.evaluations is None:
-                raise ServiceError(422, "spelling_disabled")
             from ..application.spelling import correct_query
-            query, _ = correct_query(query)
+            query, _ = correct_query(query, preserve_forms=body.expand_word_forms)
+        alternatives = ()
+        if body.expand_word_forms:
+            from ..application.word_forms import related_queries
+            alternatives = related_queries(query)
         return active.search(synthetic_user, query, body.query_date, body.limit, explain=explain,
                              min_similarity=body.min_similarity, offset=body.offset,
-                             relevance_threshold=body.relevance_threshold)
+                             relevance_threshold=body.relevance_threshold, alternatives=alternatives)
 
     return app

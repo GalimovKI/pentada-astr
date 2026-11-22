@@ -65,7 +65,11 @@ export function MailSession({ context, models, model, onModelChange }: {
       try { localStorage.setItem(`smartmail.threshold.${selectedModel}`, String(threshold)); }
       catch { /* Search still works without persistent storage. */ }
     }
-    void search.run((signal) => api.search(context, query, signal, selectedModel, threshold, Boolean(models?.length) && spellingMode === "silent"));
+    const spelling = models?.length ? {
+      ...(spellingMode === "silent" || spellingMode === "combined" ? { correct_typos: true } : {}),
+      ...(spellingMode === "combined" ? { expand_word_forms: true } : {}),
+    } : undefined;
+    void search.run((signal) => api.search(context, query, signal, selectedModel, threshold, spelling));
   }
   function backToList() {
     search.reset();

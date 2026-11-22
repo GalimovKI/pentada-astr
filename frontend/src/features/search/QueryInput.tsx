@@ -19,11 +19,20 @@ export function QueryInput({ value, mode, invalid, onChange }: {
   const [dismissed, setDismissed] = useState(false);
   const [alternatives, setAlternatives] = useState(false);
   const [fits, setFits] = useState(false);
-  const enabled = mode === "suggest" && focused && !selection && !composing && !dismissed;
-  const result = useSpellingHints(value, cursor, enabled);
-  const choices = [...(result?.completions ?? []), ...(result?.changes ?? [])];
+  const showHints = mode === "suggest" || mode === "combined";
+  const enabled = showHints && focused && !selection && !composing && !dismissed;
+  const result = useSpellingHints(value, cursor, enabled, mode === "combined");
+  const changes = result?.changes ?? [];
+  const activeChange = mode === "combined" ? changes.find(change => change.end === cursor) : undefined;
+  const choices = [
+    ...(activeChange ? [activeChange] : []),
+    ...(result?.related ?? []),
+    ...(result?.completions ?? []),
+    ...changes.filter(change => change !== activeChange),
+  ];
   const primary = choices[0];
-  const completion = Boolean(result?.completions.length);
+  const completion = result?.completions.includes(primary);
+  const related = result?.related.includes(primary);
   const atEnd = primary?.end === Array.from(value).length && primary?.end === cursor;
   const suffix = completion && primary ? primary.replacement.slice(primary.original.length) : "";
   const dock = !atEnd || !fits;
@@ -68,8 +77,10 @@ export function QueryInput({ value, mode, invalid, onChange }: {
     setAlternatives(false);
   }
 
-  const label = (item: SpellingChange) => result?.completions.includes(item)
-    ? item.replacement : `Заменить ${item.original} на ${item.replacement}`;
+  function label(item: SpellingChange) {
+    if (result?.related.includes(item)) return `Подставить родственное слово «${item.replacement}»`;
+    return result?.completions.includes(item) ? item.replacement : `Заменить ${item.original} на ${item.replacement}`;
+  }
   return (
     <div ref={box} className={`query-input${primary && dock ? " hint-docked" : ""}`}
       onFocus={() => setFocused(true)}
@@ -81,8 +92,8 @@ export function QueryInput({ value, mode, invalid, onChange }: {
       }}>
       <input ref={field} id="query" type="search" value={value}
         autoCorrect={mode ? "off" : undefined} spellCheck={mode ? false : undefined}
-        autoComplete={mode === "suggest" ? "off" : undefined}
-        aria-autocomplete={mode === "suggest" ? "inline" : undefined}
+        autoComplete={showHints ? "off" : undefined}
+        aria-autocomplete={showHints ? "inline" : undefined}
         placeholder="Например, перенос встречи" aria-invalid={invalid}
         aria-describedby={invalid ? "query-error" : primary ? "inline-hint-help" : "query-help"}
         onSelect={event => caret(event.currentTarget)}
@@ -109,13 +120,13 @@ export function QueryInput({ value, mode, invalid, onChange }: {
           }
         }} />
       {primary && <>
-        <span className="hint-ruler" aria-hidden="true"><span ref={measure}>{value}{suffix || " → " + primary.replacement}{choices.length > 1 ? "　⌄" : ""}</span></span>
+        <span className="hint-ruler" aria-hidden="true"><span ref={measure}>{value}{suffix || (related ? " Также " : " → ") + primary.replacement}{choices.length > 1 ? "　⌄" : ""}</span></span>
         <div className={`inline-hint${dock ? " docked" : ""}`}>
           {!dock && <span aria-hidden="true" className="hint-prefix">{value}</span>}
           <button type="button" className={`hint-word ${completion && !dock ? "ghost" : "corrected"}`}
             tabIndex={-1} aria-label={label(primary)}
             onMouseDown={event => event.preventDefault()} onClick={() => accept(primary)}>
-            {completion && !dock ? suffix : (!completion && primary.end !== cursor
+            {related ? `Также ${primary.replacement}` : completion && !dock ? suffix : (!completion && primary.end !== cursor
               ? `${primary.original} → ${primary.replacement}` : primary.replacement)}
           </button>
           {choices.length > 1 && <button type="button" className="more-hints" aria-label="Другие варианты"
@@ -129,7 +140,7 @@ export function QueryInput({ value, mode, invalid, onChange }: {
           }}>
           {choices.slice(1).map(change => <button type="button" key={change.start + ":" + change.replacement}
             aria-label={label(change)} onMouseDown={event => event.preventDefault()}
-            onClick={() => accept(change)}>{change.replacement}</button>)}
+            onClick={() => accept(change)}>{result?.related.includes(change) ? `Также ${change.replacement}` : change.replacement}</button>)}
         </div>}
       </>}
       {result?.failed && <span className="sr-only" role="status">Подсказки временно недоступны.</span>}
