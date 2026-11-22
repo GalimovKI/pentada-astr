@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "20261122T091405Z-e287077a",
+  "kind": "experiment",
+  "owner": "evseevgrv",
+  "status": "completed",
+  "updated_at": "2026-11-22T09:14:05.907415+00:00",
+  "title": "Поиск по периоду на 60 контрольных запросах",
+  "hypothesis": "Варианты с фильтром по периоду улучшат выдачу на локальном контрольном наборе с пятью ящиками.",
+  "code_branch": "codex/receipt-period-research",
+  "code_commit": "12ebbd0090c7a02ed120ea58f436e51a407ad18a",
+  "baseline_ref": "20261121T201426Z-841b6b1d",
+  "replicates": "20261121T225146Z-c3396be4",
+  "outcome": "improved"
+}
