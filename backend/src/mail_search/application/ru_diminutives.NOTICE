@@ -1,0 +1,36 @@
+Russian diminutive noun pairs
+
+ru_diminutives.tsv is adapted from entries by contributors to English
+Wiktionary and Russian Wiktionary. Each row contains a diminutive lemma
+and its base noun. Word definitions, examples and translations are omitted.
+The table is provided under Creative Commons Attribution-ShareAlike 4.0
+International (CC BY-SA 4.0).
+
+License: https://creativecommons.org/licenses/by-sa/4.0/
+Source entries and contributor histories:
+https://en.wiktionary.org/wiki/<word>#Russian
+https://ru.wiktionary.org/wiki/<word>
+
+Kaikki.org extracted the dictionaries with Wiktextract. This adaptation
+uses the English Wiktionary dump of 2026-10-01 and the Russian Wiktionary
+dump of 2026-11-01. It retains lowercase Russian common nouns when all
+listed senses agree on the same diminutive relation. It removes stress
+marks and includes three additional hand-reviewed mail terms listed in
+the extraction script. These terms are subject to the same homograph
+checks as the dictionary entries.
+
+Source indexes:
+https://kaikki.org/dictionary/Russian/
+https://kaikki.org/ruwiktionary/
+Wiktextract: https://github.com/tatuylonen/wiktextract
+
+To regenerate from the repository root using Python 3.11 or newer:
+
+curl -fLO https://kaikki.org/dictionary/Russian/kaikki.org-dictionary-Russian.jsonl
+curl -fLO https://kaikki.org/dictionary/downloads/ru/ru-extract.jsonl.gz
+gzip -dc ru-extract.jsonl.gz > ru-extract.jsonl
+python3 scripts/extract_ru_diminutives.py kaikki.org-dictionary-Russian.jsonl ru-extract.jsonl backend/src/mail_search/application/ru_diminutives.tsv
+
+Kaikki updates these URLs periodically. SHA-256 of the inputs used here:
+9078947aa21ed33ccfe9ada814fa70605c282a26bc0b7d60e388865da17984b7  kaikki.org-dictionary-Russian.jsonl
+fdcb978c76b660e0e43977bbf7487c812e6d42e965b0a73e3f5b4ba6981174c4  ru-extract.jsonl.gz

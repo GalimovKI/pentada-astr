@@ -2,14 +2,21 @@
 from bisect import bisect_left
 from functools import lru_cache
 from heapq import nsmallest
+from itertools import chain
 import re
 
 from spellchecker import SpellChecker
 
-from .word_forms import FAMILY_WORDS, Replacement, TOKENS, query_words, russian_morphology
+from .word_forms import (
+    FAMILY_WORDS, PRODUCTIVE_DIMINUTIVE, PROPER_TAGS, Replacement,
+    diminutive_base, editable_tokens, query_words, russian_morphology,
+)
 
-RU = re.compile("[а-яё]{5,28}")
-EN = re.compile("[a-z]{5,28}")
+RU = re.compile("[а-яё]{3,32}")
+EN = re.compile("[a-z]{3,32}")
+VOWEL_CONFUSIONS = ("ао", "еэи", "иы")
+VOWELS = "аеиоуыэюя"
+CONSONANTS = frozenset("бвгджзклмнпрстфхцчшщ")
 
 
 @lru_cache(maxsize=2)
@@ -35,7 +42,7 @@ def top_completions(prefix: str, language: str) -> tuple[str, ...]:
 def spelling_hints(query: str, cursor: int | None = None, *, expand_word_forms: bool = False) -> dict[str, list[Replacement]]:
     _, changes = correct_query(query, preserve_forms=expand_word_forms)
     cursor = len(query) if cursor is None else cursor
-    token = next((token for token in TOKENS.finditer(query) if token.end() == cursor), None)
+    token = next((token for token in editable_tokens(query) if token.end() == cursor), None)
     completions = []
     if token is not None:
         original = token.group()
@@ -56,43 +63,107 @@ def spelling_hints(query: str, cursor: int | None = None, *, expand_word_forms: 
     return {"changes": changes, "completions": completions}
 
 
+def frequent_choice(choices: set[str], checker: SpellChecker) -> str | None:
+    ranked = sorted(choices, key=lambda value: (-checker.word_frequency[value], value))
+    if not ranked:
+        return None
+    best = ranked[0]
+    count = checker.word_frequency[best]
+    if count >= 10 and (len(ranked) == 1 or count >= 4 * checker.word_frequency[ranked[1]]):
+        return best
+    return None
+
+
+def plausible_substitution(word: str, candidate: str, language: str) -> bool:
+    old, new = next((a, b) for a, b in zip(word, candidate) if a != b)
+    rows = ("йцукенгшщзхъ", "фывапролджэ", "ячсмитьбю") if language == "ru" else (
+        "qwertyuiop", "asdfghjkl", "zxcvbnm")
+    if any(old + new in row or new + old in row for row in rows):
+        return True
+    return language == "ru" and any(old in group and new in group for group in VOWEL_CONFUSIONS)
+
+
+def recognized(word: str, language: str, checker: SpellChecker) -> bool:
+    return word in checker or language == "ru" and (
+        russian_morphology().word_is_known(word) or word in FAMILY_WORDS or diminutive_base(word) is not None
+    )
+
+
+def russian_vowel_correction(word: str) -> str | None:
+    morphology = russian_morphology()
+    # Restrict the rare-word fallback to likely vowel confusion or a missing
+    # vowel between consonants. Unrestricted dictionary edits change genuine
+    # out-of-vocabulary terms, e.g. «поворотник» into «подворотник».
+    inserts = (word[:i] + v + word[i:] for i in range(1, len(word))
+               if word[i-1] in CONSONANTS and word[i] in CONSONANTS for v in VOWELS)
+    vowels = (word[:i] + v + word[i+1:] for i, c in enumerate(word)
+              for group in VOWEL_CONFUSIONS if c in group for v in group if v != c)
+    match = None
+    for candidate in chain(vowels, inserts):
+        if candidate == match:
+            continue
+        if morphology.word_is_known(candidate):
+            if not any(p.is_known and not p.tag.grammemes & PROPER_TAGS for p in morphology.parse(candidate)):
+                continue
+        elif not (PRODUCTIVE_DIMINUTIVE.fullmatch(candidate) and diminutive_base(candidate)):
+            continue
+        if match is not None:
+            return None
+        match = candidate
+    return match
+
+
 @lru_cache(maxsize=4096)
 def replacement_for(word: str, language: str) -> str | None:
     checker = dictionary(language)
-    if word in checker or language == "ru" and russian_morphology().word_is_known(word):
+    if recognized(word, language, checker):
         return None
 
-    # Adjacent transpositions change no letters and are particularly useful in short queries.
-    transposed = {word[:i] + word[i:i+2][::-1] + word[i+2:] for i in range(len(word) - 1)}
-    transposed.discard(word)
-    if language == "ru":
-        known = transposed & FAMILY_WORDS
-        if len(known) == 1:
-            return next(iter(known))
-    candidates = checker.candidates(word) or set()
-    choices = candidates & transposed
-    if language == "ru" and not choices:
-        # The frequency dictionary omits some inflected forms, including «доставку».
-        inflections = [value for value in transposed if russian_morphology().word_is_known(value)]
-        if len(inflections) == 1:
-            return inflections[0]
-    choices = choices or candidates
-    if not choices:
-        return None
-    ranked = sorted(choices, key=lambda value: (-checker.word_frequency[value], value))
-    best = ranked[0]
-    count = checker.word_frequency[best]
-    if count < 10 or len(ranked) > 1 and count < 4 * checker.word_frequency[ranked[1]]:
-        return None
-    # A (possibly rare) correctly spelled name or word is easy to turn into a different word
-    # by substituting one character. Only suggest this edit for neighbouring keyboard keys.
-    if len(best) == len(word) and best not in transposed:
-        left, right = next((a, b) for a, b in zip(word, best) if a != b)
-        rows = ("йцукенгшщзхъ", "фывапролджэ", "ячсмитьбю") if language == "ru" else (
-            "qwertyuiop", "asdfghjkl", "zxcvbnm")
-        if not any(left + right in row or right + left in row for row in rows):
+    # A repeated key has stronger evidence than an arbitrary insertion or substitution.
+    drops = {word[:i] + word[i+1:] for i in range(1, len(word)) if word[i-1] == word[i]}
+    repeated = [w for w in drops if recognized(w, language, checker)]
+    if len(repeated) == 1:
+        return repeated[0]
+
+    swaps = {word[:i] + word[i+1] + word[i] + word[i+2:]
+             for i in range(len(word) - 1) if word[i] != word[i+1]}
+    candidates = (checker.candidates(word) or set()) - {word}
+    common_swaps = candidates & swaps
+    if len(word) <= 4:
+        # A short prefix is useful as-is. For other short tokens only consider
+        # internal omissions and swaps: «закз» has many unrelated one-edit neighbours.
+        if not common_swaps and top_completions(word, language):
             return None
-    return best
+        omitted = {w for w in candidates if len(w) == len(word) + 1
+                   and w[0] == word[0] and w[-1] == word[-1]}
+        best_swap = frequent_choice(common_swaps, checker)
+        best_insert = frequent_choice(omitted, checker)
+        if best_insert and (not best_swap or
+                            checker.word_frequency[best_insert] >= 2 * checker.word_frequency[best_swap]):
+            return best_insert
+        return best_swap
+
+    if common_swaps:
+        return frequent_choice(common_swaps, checker)
+    if language == "ru":
+        # OpenCorpora covers inflections and the derivation lookup covers productive
+        # diminutives absent from both frequency dictionaries.
+        variants = {w for w in swaps
+                    if w in FAMILY_WORDS or PRODUCTIVE_DIMINUTIVE.fullmatch(w) and diminutive_base(w)}
+        if len(variants) == 1:
+            return variants.pop()
+    plausible = {w for w in candidates if len(word) != len(w) or plausible_substitution(word, w, language)}
+    best = frequent_choice(plausible, checker)
+    if best or language != "ru":
+        return best
+
+    morphology = russian_morphology()
+    inflections = {w for w in swaps if morphology.word_is_known(w)}
+    if inflections:
+        return inflections.pop() if len(inflections) == 1 else None
+    if not candidates and len(word) >= 6:
+        return russian_vowel_correction(word)
+    return None
 
 
 def correct_query(query: str, *, preserve_forms: bool = False) -> tuple[str, list[Replacement]]:
@@ -102,7 +173,7 @@ def correct_query(query: str, *, preserve_forms: bool = False) -> tuple[str, lis
     changes = []
     corrected_length = len(query)
     pieces, cursor = [], 0
-    for token in TOKENS.finditer(query):
+    for token in editable_tokens(query):
         if token.start() in protected:
             continue
         original = token.group()

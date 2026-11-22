@@ -5,7 +5,7 @@ from ..indexing.text import normalize
 
 MONTHS = {name: i for i, name in enumerate(("января", "февраля", "марта", "апреля", "мая",
           "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"), 1)}
-RUSSIAN_DATE = re.compile(r"\b(\d{1,2})\s+(" + "|".join(MONTHS) + r")\s+(\d{4})(?:\s+года)?\b")
+RUSSIAN_DATE = re.compile(r"\b(\d{1,2})\s+(" + "|".join(MONTHS) + r")\s+(\d{4})(?:\s+года)?\b", re.I)
 ISO_DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
 RELATIVE = re.compile(r"\b(позавчера|вчера|сегодня)\b")
 RELATIVE_OFFSETS = {"сегодня": 0, "вчера": 1, "позавчера": 2}

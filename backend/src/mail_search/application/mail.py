@@ -33,6 +33,17 @@ class MailService:
         if user not in self.store.list_mailboxes():
             raise UnknownMailbox(user)
 
+        config = getattr(self.loaded.engine, "config", {})
+        parser = target_day if isinstance(config, dict) and config.get("date_mode") == "legacy" else receipt_day
+        if alternatives:
+            # An inflected receipt verb can activate a date filter. Never broaden a
+            # search by filling its results with a variant that lost that filter.
+            try:
+                day = parser(query, query_date)[0]
+                alternatives = tuple(text for text in alternatives if parser(text, query_date)[0] == day)
+            except (ValueError, OverflowError):
+                raise ServiceError(500, "engine_failure") from None
+
         def retrieve(text):
             # Bound materialization, including a misbehaving lazy engine result.
             hits = list(islice(self.loaded.engine.search(SearchRequest(text, user, query_date), limit), limit + 1))
@@ -66,8 +77,6 @@ class MailService:
             raise ServiceError(500, "engine_failure") from None
         ids = [h.doc_id for h in hits]
         if explain:
-            config = getattr(self.loaded.engine, "config", {})
-            parser = target_day if isinstance(config, dict) and config.get("date_mode") == "legacy" else receipt_day
             day, content = parser(query, query_date)
             terms = query_terms(content)
             for alternative in alternatives:
